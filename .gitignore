@@ -1,0 +1,11 @@
+﻿# .NET и Visual Studio
+.vs/
+.idea/
+**/bin/
+**/obj/
+**/TestResults/
+*.user
+*.suo
+
+# Локальный индекс CodeGraph
+.codegraph/

@@ -1,0 +1,18 @@
+﻿<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/SDD.md" />
+  </Folder>
+  <Folder Name="/openspec/">
+    <File Path="openspec/config.yaml" />
+  </Folder>
+  <Folder Name="/openspec/specs/">
+    <File Path="openspec/specs/.gitkeep" />
+  </Folder>
+  <Folder Name="/openspec/changes/archive/">
+    <File Path="openspec/changes/archive/.gitkeep" />
+  </Folder>
+</Solution>
