@@ -2,6 +2,8 @@
 
 CAD Lens is a personal experiment in interfaces for exploring AutoCAD drawings. The idea is inspired by the lenses in Civilization: the same DWG can be viewed through different visual layers, letting users switch context quickly without changing the drawing itself.
 
+![CAD Lens Layers preview showing the drawing inventory and highlight controls](docs/images/layers-preview.png)
+
 ## Why this project exists
 
 The goal is to test whether a game-inspired interface can make an unfamiliar drawing easier and more enjoyable to explore. The first useful outcome is a quick understanding of the DWG's structure; more analysis tools may follow as the project develops.
@@ -34,6 +36,14 @@ These are directions, not commitments for the first release. For example, a hist
 - Analysis is separate from AutoCAD access: read the required snapshot in the proper document context, then calculate aggregates over ordinary .NET models.
 - A lens result describes the desired visualization. Clear temporary effects when switching lenses or documents and when closing lens mode.
 - The first slice does not require changing DWG geometry or properties.
+
+## Shared libraries
+
+- `Common` contains host operation results and their composition helpers. It targets .NET 8 without a host API dependency.
+- `Common.AutoCAD` contains typed database access, the host task queue, selection highlighting, and temporary graphics. It references `Common` and the AutoCAD API, with WPF dispatcher support for the queue.
+- `CadLens.AutoCAD` supplies highlight colors and owns plugin/panel lifetime, cleanup, lens snapshot construction, and panel messages. Neither shared library references a CAD Lens project.
+
+Create `AutoCadTaskService` on the host UI thread. Call selection actions on that thread to capture preselection before queuing work. Clear graphics when leaving the drawing context; stop and drain the queue before disposing it. The extracted graphics implementation remains subject to the native rendering checks described below.
 
 ## Spec-driven development
 

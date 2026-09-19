@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using CadLens.Core;
+using Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 

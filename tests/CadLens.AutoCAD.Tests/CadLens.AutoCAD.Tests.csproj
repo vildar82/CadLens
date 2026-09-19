@@ -7,9 +7,9 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="../../src/CadLens.Core/CadLens.Core.csproj" />
-        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Abstractions/IHostTaskService.cs" Link="IHostTaskService.cs" />
-        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Services/AutoCadTaskService.cs" Link="AutoCadTaskService.cs" />
-        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Extensions/DatabaseObjectExtensions.cs" Link="DatabaseObjectExtensions.cs" />
+        <ProjectReference Include="../../src/Common/Common.csproj" />
+        <Compile Include="../../src/Common.AutoCAD/Abstractions/IHostTaskService.cs" Link="IHostTaskService.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Services/AutoCadTaskService.cs" Link="AutoCadTaskService.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Extensions/DatabaseObjectExtensions.cs" Link="DatabaseObjectExtensions.cs" />
     </ItemGroup>
 </Project>

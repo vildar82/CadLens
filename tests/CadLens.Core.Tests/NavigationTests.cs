@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Common;
 using Xunit;
 
 namespace CadLens.Core.Tests;

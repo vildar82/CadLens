@@ -2,6 +2,8 @@
 using Autodesk.AutoCAD.DatabaseServices;
 using CadLens.Core;
 using CadLens.Lenses;
+using Common;
+using Common.AutoCAD;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace CadLens.AutoCAD;

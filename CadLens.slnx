@@ -10,6 +10,8 @@
     <File Path="docs/SDD.md" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Common/Common.csproj" />
+    <Project Path="src/Common.AutoCAD/Common.AutoCAD.csproj" />
     <Project Path="src/CadLens.Core/CadLens.Core.csproj" />
     <Project Path="src/CadLens.Lenses/CadLens.Lenses.csproj" />
     <Project Path="src/CadLens.UI/CadLens.UI.csproj" />

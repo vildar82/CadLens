@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <UseAutocad>true</UseAutocad>
+        <UseWPF>true</UseWPF>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="../Common/Common.csproj"/>

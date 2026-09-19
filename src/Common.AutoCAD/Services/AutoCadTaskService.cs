@@ -1,12 +1,11 @@
 ﻿using System.Windows.Threading;
 using Autodesk.AutoCAD.ApplicationServices;
-using CadLens.Core;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
-namespace CadLens.AutoCAD;
+namespace Common.AutoCAD;
 
 /// <inheritdoc cref="IHostTaskService" />
-internal sealed class AutoCadTaskService : IHostTaskService, IDisposable
+public sealed class AutoCadTaskService : IHostTaskService, IDisposable
 {
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
     private readonly Queue<Action> _requests = new();
@@ -14,8 +13,10 @@ internal sealed class AutoCadTaskService : IHostTaskService, IDisposable
     private bool _stopping;
     private bool _running;
 
+    /// <summary>Creates a queue on the current host dispatcher and subscribes to idle processing.</summary>
     public AutoCadTaskService() => Application.Idle += OnIdle;
 
+    /// <inheritdoc />
     public async Task<HostResult<T>> RunAsync<T>(Func<T> action, CancellationToken cancellationToken)
     {
         var completion = new TaskCompletionSource<HostResult<T>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -26,7 +27,7 @@ internal sealed class AutoCadTaskService : IHostTaskService, IDisposable
         {
             if (_stopping)
             {
-                completion.TrySetResult(new HostResult<T>.Unavailable("The panel is closed."));
+                completion.TrySetResult(new HostResult<T>.Unavailable("The task service has stopped."));
                 return;
             }
 
@@ -38,6 +39,7 @@ internal sealed class AutoCadTaskService : IHostTaskService, IDisposable
         return await completion.Task;
     }
 
+    /// <inheritdoc />
     public Task StopAsync()
     {
         _dispatcher.VerifyAccess();
@@ -47,6 +49,7 @@ internal sealed class AutoCadTaskService : IHostTaskService, IDisposable
         return _stopped.Task;
     }
 
+    /// <summary>Detaches idle processing after StopAsync completes.</summary>
     public void Dispose() => Application.Idle -= OnIdle;
 
     private void OnIdle(object? sender, EventArgs args) => ProcessNextRequest();
@@ -108,7 +111,7 @@ internal sealed class AutoCadTaskService : IHostTaskService, IDisposable
             HostResult<T> result;
 
             if (_stopping)
-                result = new HostResult<T>.Unavailable("The panel is closed.");
+                result = new HostResult<T>.Unavailable("The task service has stopped.");
             else if (document is null || document != Application.DocumentManager.MdiActiveDocument)
                 result = new HostResult<T>.Unavailable("The active drawing is no longer available.");
             else

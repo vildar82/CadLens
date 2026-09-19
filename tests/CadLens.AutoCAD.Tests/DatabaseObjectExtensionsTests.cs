@@ -1,4 +1,5 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
+using Common.AutoCAD;
 using Xunit;
 
 namespace CadLens.AutoCAD;

@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
 using CadLens.Lenses;
 using CadLens.UI;
+using Common.AutoCAD;
 using Microsoft.Extensions.DependencyInjection;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
@@ -10,11 +12,17 @@ namespace CadLens.AutoCAD;
 /// <summary>Owns one reusable plugin root and a separate scope for each open panel.</summary>
 internal sealed class VerificationOwner
 {
+    private static readonly EntityHighlightOptions HighlightColors = new(
+        Accent: new EntityColor(70, 210, 230),
+        Dimmed: new EntityColor(65, 72, 80));
+
     private readonly ServiceProvider _root = ExplorerComposition.Build(services =>
     {
         services.AddScoped<IHostTaskService, AutoCadTaskService>();
         services.AddScoped<ILayersSnapshotSource, AutoCadLayersSnapshotSource>();
-        services.AddScoped<IVerificationGraphics, VerificationGraphics>();
+        services.AddSingleton(HighlightColors);
+        services.AddScoped<IEntityHighlightService, EntityHighlightService>();
+        services.AddScoped<IEntityHighlightActions, EntityHighlightActions>();
         services.AddScoped<IVerificationActions, VerificationActions>();
     });
 
@@ -22,7 +30,7 @@ internal sealed class VerificationOwner
     private VerificationWindow? _window;
     private VerificationViewModel? _viewModel;
     private IHostTaskService? _requests;
-    private IVerificationGraphics? _graphics;
+    private IEntityHighlightService? _graphics;
     private bool _closing;
     private bool _terminated;
     private bool _rootDisposed;
@@ -43,7 +51,7 @@ internal sealed class VerificationOwner
         try
         {
             _requests = _scope.ServiceProvider.GetRequiredService<IHostTaskService>();
-            _graphics = _scope.ServiceProvider.GetRequiredService<IVerificationGraphics>();
+            _graphics = _scope.ServiceProvider.GetRequiredService<IEntityHighlightService>();
             _viewModel = _scope.ServiceProvider.GetRequiredService<VerificationViewModel>();
             _window = _scope.ServiceProvider.GetRequiredService<VerificationWindow>();
             _window.Closed += OnClosed;

@@ -1,4 +1,4 @@
-﻿namespace CadLens.Core;
+﻿namespace Common;
 
 /// <summary>Composes host operations while preserving an unavailable result and its explanation.</summary>
 public static class HostResultExtensions

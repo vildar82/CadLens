@@ -1,41 +1,50 @@
-﻿using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.DatabaseServices;
+﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.GraphicsInterface;
+using Autodesk.AutoCAD.Runtime;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
-namespace CadLens.AutoCAD;
+namespace Common.AutoCAD;
 
-// Candidate for design decision 6; block/text and viewport-isolation checks remain mandatory.
-internal sealed class VerificationGraphics : DrawableOverrule, IVerificationGraphics
+/// <summary>Applies temporary colors through a drawable overrule without modifying the drawing.</summary>
+/// <param name="options">Colors supplied by the calling application.</param>
+public sealed class EntityHighlightService(EntityHighlightOptions options) : DrawableOverrule, IEntityHighlightService
 {
-    private static readonly EntityColor Accent = new(70, 210, 230);
-    private static readonly EntityColor Dimmed = new(65, 72, 80);
     private HashSet<ObjectId> _targets = [];
+    private HashSet<ObjectId> _inventory = [];
     private Database? _database;
     private bool _registered;
 
+    /// <inheritdoc />
     public void Apply(Database database, ObjectId[] targets, ObjectId[] inventory)
     {
         Clear(redraw: false);
         _database = database;
         _targets = [.. targets];
-        SetIdFilter(inventory);
+        _inventory = [.. inventory];
+        SetCustomFilter();
         AddOverrule(GetClass(typeof(Entity)), this, false);
         _registered = true;
         Overruling = true;
+
         Application.DocumentManager.MdiActiveDocument.Editor.Regen();
     }
 
+    /// <inheritdoc />
+    public override bool IsApplicable(RXObject overruledSubject) =>
+        overruledSubject is Entity entity && _inventory.Contains(entity.ObjectId);
+
+    /// <inheritdoc />
     public override int SetAttributes(Drawable drawable, DrawableTraits traits)
     {
-        var flags = base.SetAttributes(drawable, traits);
+        var drawableFlags = base.SetAttributes(drawable, traits);
 
         if (drawable is Entity entity && entity.Database == _database && traits is SubEntityTraits subTraits)
-            subTraits.TrueColor = _targets.Contains(entity.ObjectId) ? Accent : Dimmed;
+            subTraits.TrueColor = _targets.Contains(entity.ObjectId) ? options.Accent : options.Dimmed;
 
-        return flags;
+        return drawableFlags;
     }
 
+    /// <inheritdoc />
     public void Clear(bool redraw = true)
     {
         if (!_registered)
@@ -44,7 +53,8 @@ internal sealed class VerificationGraphics : DrawableOverrule, IVerificationGrap
         RemoveOverrule(GetClass(typeof(Entity)), this);
 
         _registered = false;
-        _targets.Clear();
+        _targets = [];
+        _inventory = [];
         var affectedDatabase = _database;
         _database = null;
 

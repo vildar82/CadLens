@@ -78,7 +78,10 @@ namespace Autodesk.AutoCAD.DatabaseServices
         ForWrite
     }
 
-    internal readonly record struct ObjectId(int Value, Database Database)
+    /// <summary>Test double for the native ObjectId type.</summary>
+    /// <param name="Value">Test identifier.</param>
+    /// <param name="Database">Owning test database.</param>
+    public readonly record struct ObjectId(int Value, Database Database)
     {
         internal bool IsValid => Database is not null && Database.Objects.ContainsKey(Value);
         internal bool IsErased => Database.Objects[Value].IsErased;
@@ -88,12 +91,14 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 
     // ReSharper disable once InconsistentNaming -- Matches the native AutoCAD API type.
-    internal class DBObject
+    /// <summary>Test double for the native DBObject type.</summary>
+    public class DBObject
     {
         internal bool IsErased { get; init; }
     }
 
-    internal sealed class Database
+    /// <summary>Test double for the native Database type.</summary>
+    public sealed class Database
     {
         internal Dictionary<int, DBObject> Objects { get; } = [];
         internal TransactionManager TransactionManager { get; } = new();
@@ -126,15 +131,22 @@ namespace Autodesk.AutoCAD.DatabaseServices
         }
     }
 
-    internal class Entity : DBObject;
+    /// <summary>Test double for the native Entity type.</summary>
+    public class Entity : DBObject;
 
-    internal sealed class SymbolTable(params ObjectId[] ids) : DBObject, IEnumerable
+    /// <summary>Test double for the native SymbolTable type.</summary>
+    /// <param name="ids">Contained test identifiers.</param>
+    public sealed class SymbolTable(params ObjectId[] ids) : DBObject, IEnumerable
     {
+        /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
     }
 
-    internal sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
+    /// <summary>Test double for the native BlockTableRecord type.</summary>
+    /// <param name="ids">Contained test identifiers.</param>
+    public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
+        /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
     }
 }

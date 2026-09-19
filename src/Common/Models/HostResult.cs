@@ -1,4 +1,4 @@
-﻿namespace CadLens.Core;
+﻿namespace Common;
 
 /// <summary>A successful value or an expected unavailable state.</summary>
 /// <typeparam name="T">Successful value type.</typeparam>

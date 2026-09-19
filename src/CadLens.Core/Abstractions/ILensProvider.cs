@@ -1,4 +1,6 @@
-﻿namespace CadLens.Core;
+﻿using Common;
+
+namespace CadLens.Core;
 
 /// <summary>Supplies immutable presentation data for a lens.</summary>
 public interface ILensProvider

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CadLens.Core;
+using Common;
 using Xunit;
 
 namespace CadLens.UI.Tests;
