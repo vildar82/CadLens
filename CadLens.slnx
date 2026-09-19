@@ -17,5 +17,7 @@
   </Folder>
   <Folder Name="/openspec/changes/autocad-bootstrap/">
     <File Path="openspec/changes/autocad-bootstrap/.openspec.yaml" />
+    <File Path="openspec/changes/autocad-bootstrap/proposal.md" />
+    <File Path="openspec/changes/autocad-bootstrap/specs/autocad-command/spec.md" />
   </Folder>
 </Solution>
