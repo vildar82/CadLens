@@ -1,0 +1,30 @@
+﻿name: Build and test
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore CadLens.slnx
+
+      - name: Build
+        run: dotnet build CadLens.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test CadLens.slnx --configuration Release --no-build --no-restore
