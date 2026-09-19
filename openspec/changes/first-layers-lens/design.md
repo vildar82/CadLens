@@ -34,7 +34,7 @@ This change introduces both a reusable exploration boundary and a first host-spe
 
 Use `net8.0` for Core and Lenses, overriding the root default; UI and AutoCAD retain `net8.0-windows`. Only UI and the host composition project need `UseWPF`; only AutoCAD sets `UseAutocad`. Keep each project's root namespace throughout its folders. New folder settings disable Rider Namespace Provider alongside the first C# file.
 
-Core describes a small fixed vocabulary: a lens identity, context identity, groups, metrics, detail fields, boolean filter descriptors, available actions, and navigation levels. A group carries an opaque identity and object references, not a layer object. No AutoCAD `ObjectId`, `DBObject`, WPF brush, or view instance crosses this boundary. UI maps generic icon roles and emphasis roles to its own resources. The Layers implementation in Lenses supplies the words and meaning of its filters and details; UI contains no tests for a lens named Layers or an AutoCAD primitive class.
+Core describes a small fixed vocabulary: a lens identity, groups, metrics, detail fields, boolean filter descriptors, available actions, and navigation levels. A group carries an opaque identity and object references, not a layer object. A `HostObjectId` wraps the native identifier as a value; shared projects do not reference the host API. Open `DBObject` instances, WPF brushes, and view instances do not cross this boundary. UI maps generic icon roles and emphasis roles to its own resources. The Layers implementation in Lenses supplies the words and meaning of its filters and details; UI contains no tests for a lens named Layers or an AutoCAD primitive class.
 
 The host registers one Layers provider through the Core lens interface using `Microsoft.Extensions.DependencyInjection`. Keep all registrations and service resolution in the AutoCAD composition boundary; Core, Lenses, UI views, and view models use constructor-injected interfaces without `IServiceProvider` or container dependencies. No assembly scanning or Generic Host is needed. Host and feature services expose interfaces at their boundaries. Expected unavailable states use a small typed result contract instead of exceptions for normal navigation.
 
@@ -42,11 +42,11 @@ Build one root service provider for the plugin lifetime with `ValidateScopes` an
 
 | Lifetime | Ownership |
 | --- | --- |
-| Plugin root | Composition/session owner and host dispatcher; no captured active document, window, or scoped feature service |
-| Explorer scope | Session controller, navigation state, Layers provider, snapshot adapter, visualization adapter, window, and root view model |
-| Short-lived operation/context | Read transactions, locks, live object resolution, cancellation generations, and revision-bound snapshots; never singleton document state |
+| Plugin root | Composition/session owner; no captured active document, window, or scoped feature service |
+| Explorer scope | Session controller, one queued host task service, navigation state, Layers provider, snapshot adapter, visualization adapter, window, and root view model |
+| Short-lived operation/context | Read transactions, locks, native object IDs, and snapshots of the current space; never singleton document state |
 
-The composition owner creates one explicit scope when opening the explorer, resolves the session graph on the AutoCAD UI thread, and retains the scope until the window closes. Repeated commands reuse it. A document/space switch keeps the window's session scope but cancels old operations, releases old document subscriptions/effects, and replaces its snapshot/context state. Scoped adapters must not capture the opening document permanently. Scope lifetime and document lifetime are deliberately different; do not assume nested DI scopes provide inherited state.
+The composition owner creates one explicit scope when opening the explorer, resolves the session graph on the AutoCAD UI thread, and retains the scope until the window closes. Repeated commands reuse it. A document/space switch keeps the window's session scope but clears old presentation and graphics. The view model ignores results from a refresh started before that reset. Scoped adapters must not capture the opening document permanently. Scope lifetime and document lifetime are deliberately different; do not assume nested DI scopes provide inherited state.
 
 Closing or failed initialization first stops new requests and performs host-sensitive cleanup on the proper AutoCAD thread/context, then disposes the scope exactly once. Coordinate in-flight callbacks before releasing their dependencies, without blocking the UI thread on an asynchronous task. Do not rely on DI disposal to provide the AutoCAD execution context. Container-owned dependencies are disposed by their scope rather than individually by consumers; AutoCAD-owned documents and databases are never owned by the container. Plugin termination closes the session before disposing the root provider. Test graph validation, fresh scoped instances after reopening, stale-context rejection, and disposal on normal and failed opens.
 
@@ -58,29 +58,27 @@ Alternatives: put concrete lens logic in Core, make UI reference Lenses, or crea
 
 ### 2. Read snapshots in the host, calculate in ordinary .NET
 
-The Layers snapshot source contract is defined alongside its implementation in Lenses, with the data-source adapter implemented in AutoCAD. Enumerate only entities directly owned by the resolved active-space block table record, using read-only transactions. Resolve model/paper context explicitly, including whether a layout viewport is active; do not infer scope from the screen rectangle. Read global and active-viewport frozen state separately.
+The Layers snapshot source contract is defined alongside its implementation in Lenses, with the data-source adapter implemented in AutoCAD. Enumerate only entities directly owned by the resolved active-space block table record, using read-only transactions. Use Database.CurrentSpaceId directly for the entity container; do not infer scope from CVPORT or the screen rectangle. Read global and active-viewport frozen state separately.
 
-Snapshots contain context identity, a revision, layer identities/names/status, and entity references with assigned layer and primitive-type key. Read actual runtime type identifiers into plain strings; map common types to friendly labels and preserve distinct labels for unknown/custom types. Count block references once, including external-reference insertions, without traversing definitions for inventory. Non-erased direct entities are counted even if their bounds cannot be obtained. Avoid conflating layer inclusion with whether a particular entity can currently draw.
+Snapshots contain the space label, layer identities/names/status, and entity IDs with assigned layer and primitive-type key. They do not contain document tokens, viewport keys, generations, or revision counters. Read actual runtime type identifiers into plain strings; map common types to friendly labels and preserve distinct labels for unknown/custom types. Count block references once, including external-reference insertions, without traversing definitions for inventory. Non-erased direct entities are counted even if their bounds cannot be obtained. Avoid conflating layer inclusion with whether a particular entity can currently draw.
 
-Core object references contain a document-session token and an opaque key; the host resolves these to live IDs. Handles alone are not globally unique. Never retain open database objects after a transaction. Retrieve extents lazily for Focus and cache them only for the current revision, avoiding expensive geometry reads for every list refresh.
+Core uses `HostObjectId`, a one-field wrapper around the native identifier. AutoCAD stores its actual `ObjectId`, without converting it to a string handle and back. Never retain open database objects after a transaction. Future hosts can use their native identifiers when they are implemented. Do not build that integration in advance.
 
 The Layers implementation filters snapshots and builds groups. Sort layer names predictably with ordinal case-insensitive ordering and identity as a tie-breaker; use a deterministic object-key order for Previous/Next. Navigation does not rescan the DWG. Type counts partition the included layer set exactly. Off and frozen filters combine conjunctively when both statuses apply; locked status does not exclude objects.
 
 Alternative: ask AutoCAD selection APIs for objects visible on screen. Rejected because the agreed scope includes off-screen objects and optionally hidden layers.
 
-### 3. Serialized host actions with context validation
+### 3. One queued AutoCAD task service
 
-All AutoCAD API work runs on AutoCAD's main thread in the appropriate document context. UI commands enqueue intent through the host adapter; they never directly open transactions. Use the existing local PikTools approach as a reference: main-thread dispatch, serialized requests, application-to-command-context transition, active-document checks, and exception capture inside the native callback. Do not bring the full PikTools dependency tree into this small plugin merely to reuse one adapter.
+`IHostTaskService` has one implementation, `AutoCadTaskService`. It owns the FIFO queue and calls `ExecuteInApplicationContext` directly on the AutoCAD dispatcher. It waits while an interactive command is busy, checks that the original document is still active, and locks the document for the synchronous action. No second execution service or context model is involved.
 
-Every request carries document token, active-space/viewport identity, and session generation. Validate these before executing and before publishing a result. Closing, switching context, or starting a newer load invalidates old work. Cancellation stops further managed work; it does not assume a running native call can be interrupted. Do not hold a document lock or transaction across an await. Obtain a lock only where required by the actual calling context and operation.
+The current operations read inventory and manage temporary graphics; they do not prompt for input or need a command-context transition. Managed exceptions are caught inside the native callback. Cancellation wakes the caller and prevents queued work from starting; it does not interrupt a running native operation. Closing rejects new requests, skips pending actions, and drains the running callback before disposal.
 
-Coalesce rapid emphasis changes so only the newest pending selection draws. During another interactive AutoCAD command, defer unsafe actions and keep the UI responsive. Never switch documents automatically to satisfy an old request.
-
-Alternative: invoke AutoCAD from WPF event handlers or `Task.Run`. Rejected because UI dispatch alone does not establish a valid document command context, and AutoCAD objects cannot be used as background calculation data.
+Use `ObjectId.GetObject<T>()` for typed reads, with an optional `true` for writing, and `GetObjects<T>()` for symbol tables or block contents. The caller owns a regular StartTransaction() transaction and materializes results before disposing it. ObjectId.GetObject() does not work with OpenCloseTransaction. These extensions skip erased/invalid IDs; they do not create hidden transactions or retain open objects.
 
 ### 4. One session controller and explicit invalidation
 
-One modeless window follows the active drawing. Repeated `CADLENS` brings it forward without recreating state in the same context. A fresh open creates a fresh session with both inclusion toggles disabled. A context switch clears selection and graphics, advances the generation, and loads the lens root for the new space; session toggles remain until the window closes.
+One modeless window follows the active drawing. Repeated `CADLENS` brings it forward without recreating state in the same context. A fresh open creates a fresh session with both inclusion toggles disabled. A context switch clears selection and graphics and discards late UI results; the current preview refreshes the new space on request; session toggles remain until the window closes.
 
 Subscribe to document activation/destruction, relevant layout/viewport transitions, and database changes while the session is open. Event handlers mark data dirty; collect again at a safe command boundary rather than reading inside database notifications. Reconcile context before every host action as protection against a missed notification. Coalesce edit bursts, including undo/redo, into one refresh. Preserve a selection only while its identities still exist and pass filters; otherwise return to the nearest valid ancestor. Revalidate targets before Focus and emphasis.
 
@@ -90,7 +88,7 @@ Close, document destruction, initialization failure, and plugin termination shar
 
 Use AutoCAD's `Application.ShowModelessWindow` host integration and owned-window behavior, following the nearby `AutocadWindowService` example. Avoid calling `Application.Run`, creating a second WPF Application, or replacing AutoCAD's application resources. Use a normal WPF window with custom chrome and WPF UI controls/resources scoped to that window. Do not rely on global topmost state or OS backdrop effects for correctness.
 
-Pin `WPF-UI` 4.3.0 initially; its published package includes .NET 8 support. Keep its conditional reference/version in `Directory.Build.props`. Host restore/build and modeless loading still verify actual compatibility; package metadata alone is insufficient. Use ordinary binding/commands and small view models initially; an additional MVVM framework is not necessary for this slice.
+Pin `WPF-UI` 4.3.0 initially; its published package includes .NET 8 support. Keep its conditional reference/version in `Directory.Build.props`. Host restore/build and modeless loading still verify actual compatibility; package metadata alone is insufficient. Use CommunityToolkit.Mvvm 8.4.0 for observable view models and asynchronous commands, as requested during implementation review. Keep the package reference centralized and conditional on the UI project; no MVVM dependency belongs in Core or Lenses.
 
 Start near the drawing area's left edge, using device-independent coordinates. Use a compact preferred width around 340 DIPs, constrained to available working area, with a scrollable/virtualized body and reachable header/footer. Handle DPI changes and resizing without clipping controls. Long layer names ellipsize with a full-name tooltip; breadcrumbs can collapse older ancestors while Back remains available.
 
@@ -125,7 +123,7 @@ Build the solution with zero warnings and check Rider inspections separately. Pa
 - Graphics overrule limitations for text, blocks, custom/proxy entities, and viewport caching -> early host verification; instance-aware rendering where needed; no silent success for unmet dimming requirements.
 - AutoCAD/WPF focus and DPI behavior -> use host window APIs and test dragging, typing, normal commands, and multiple monitors in AutoCAD.
 - Large DWGs can stall snapshot reads or redraw -> read minimal metadata once per revision, virtualize lists, coalesce work, measure actual host latency before adding complexity.
-- Document changes during queued actions -> context tokens, generation checks, cancellation, and idempotent cleanup.
+- Document changes during queued actions -> a document reference check inside the task service, UI reset, cancellation, and idempotent cleanup.
 - Locked viewports or invalid extents -> explicit unavailable Focus result; never modify drawing settings to force navigation.
 - Package or host integration differences -> pin dependencies, preserve the existing runtime baseline, and distinguish AutoCAD/Civil 3D host results from build evidence.
 

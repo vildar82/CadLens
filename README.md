@@ -51,7 +51,11 @@ Build from the repository root:
 dotnet build CadLens.slnx -c Debug
 ```
 
-The plugin is built at `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadLens.AutoCAD.dll`. Open a DWG in AutoCAD 2025 or 2026. If the build directory is not in `TRUSTEDPATHS`, copy the DLL into an existing trusted directory without disabling `SECURELOAD`. Run `NETLOAD` and select the DLL from that directory. Then enter `CADLENS` on the command line. The command now prints `Hello! CAD Lens is ready.` and must not modify the drawing.
+The plugin is built at `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadLens.AutoCAD.dll`. Open a DWG in AutoCAD 2025 or 2026. If the build directory is not in `TRUSTEDPATHS`, copy all DLLs from that output directory into an existing trusted directory without disabling `SECURELOAD`. Run `NETLOAD` and select the DLL from that directory. Then enter `CADLENS` on the command line. The command now opens the CAD Lens preview panel. Use Refresh to read the active-space inventory, Highlight selection to test temporary emphasis on objects preselected in the drawing, and Clear highlight to restore appearance. Repeated commands activate the existing panel. The preview must not modify stored drawing geometry or properties.
+
+## Explorer preview status
+
+The `first-layers-lens` change is in progress. The current panel uses CommunityToolkit.Mvvm and a WPF UI theme scoped to the window. It displays root inventory and selection-highlight controls; filters, drill-down navigation, object browsing, and Focus are not yet connected. See [implementation verification](openspec/changes/first-layers-lens/verification.md) for build/test evidence and the outstanding graphics gate.
 
 ## Verification of the first plugin
 
@@ -61,4 +65,4 @@ Separate installations of standard AutoCAD 2025 and 2026 were not found on this 
 
 ## GitHub Actions
 
-On every push to any branch, a Windows workflow restores dependencies, builds the solution, and runs `dotnet test`. There are no test projects in the solution yet; the test step will run test cases once a test project is added to `CadLens.slnx`.
+On every push to any branch, a Windows workflow restores dependencies, builds the solution, and runs `dotnet test`. Core, Lenses, managed host-queue, and UI tests run from `CadLens.slnx`. Native AutoCAD rendering and lifecycle checks are separate.

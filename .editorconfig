@@ -36,3 +36,9 @@ dotnet_diagnostic.IDE0005.severity = warning
 dotnet_diagnostic.IDE0060.severity = warning
 
 dotnet_diagnostic.IDE0130.severity = none
+
+# Keep short argument lists together; split long or multiline lists one item per line.
+resharper_csharp_wrap_arguments_style = chop_if_long
+resharper_csharp_wrap_parameters_style = chop_if_long
+resharper_csharp_wrap_after_invocation_lpar = true
+resharper_csharp_wrap_after_declaration_lpar = true

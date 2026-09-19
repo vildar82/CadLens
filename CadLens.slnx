@@ -9,8 +9,18 @@
   <Folder Name="/docs/">
     <File Path="docs/SDD.md" />
   </Folder>
-  <Folder Name="/src/" />
+  <Folder Name="/src/">
+    <Project Path="src/CadLens.Core/CadLens.Core.csproj" />
+    <Project Path="src/CadLens.Lenses/CadLens.Lenses.csproj" />
+    <Project Path="src/CadLens.UI/CadLens.UI.csproj" />
+  </Folder>
   <Folder Name="/src/AutoCAD/">
     <Project Path="src/AutoCAD/CadLens.AutoCAD/CadLens.AutoCAD.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CadLens.AutoCAD.Tests/CadLens.AutoCAD.Tests.csproj" />
+    <Project Path="tests/CadLens.Core.Tests/CadLens.Core.Tests.csproj" />
+    <Project Path="tests/CadLens.Lenses.Tests/CadLens.Lenses.Tests.csproj" />
+    <Project Path="tests/CadLens.UI.Tests/CadLens.UI.Tests.csproj" />
   </Folder>
 </Solution>

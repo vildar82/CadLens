@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <UseWPF>true</UseWPF>
+        <UseUi>true</UseUi>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../CadLens.Core/CadLens.Core.csproj"/>
+    </ItemGroup>
+
+</Project>

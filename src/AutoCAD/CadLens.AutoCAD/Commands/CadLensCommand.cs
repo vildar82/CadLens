@@ -1,25 +1,23 @@
-﻿using Autodesk.AutoCAD.ApplicationServices.Core;
-using Autodesk.AutoCAD.Runtime;
+﻿using Autodesk.AutoCAD.Runtime;
 using JetBrains.Annotations;
 
 namespace CadLens.AutoCAD;
 
 /// <summary>
-/// Command used to verify that CAD Lens is loaded in AutoCAD.
+/// Opens or activates the modeless CAD Lens panel.
 /// </summary>
 [UsedImplicitly]
 public sealed class CadLensCommand
 {
     private const string CommandName = "CADLENS";
-    private const string Greeting = "\nHello! CAD Lens is ready.";
 
     /// <summary>
-    /// Writes a greeting to the active drawing's command line.
+    /// Writes the greeting and opens the single panel for this plugin session.
     /// </summary>
     [UsedImplicitly]
-    [CommandMethod(CommandName, CommandFlags.NoUndoMarker)]
+    [CommandMethod(CommandName, CommandFlags.NoUndoMarker | CommandFlags.UsePickSet)]
     public void Execute()
     {
-        Application.DocumentManager.MdiActiveDocument.Editor.WriteMessage(Greeting);
+        CadLensApplication.OpenPanel();
     }
 }
