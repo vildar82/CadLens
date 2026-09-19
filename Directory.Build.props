@@ -1,0 +1,16 @@
+﻿<Project>
+    <PropertyGroup>
+        <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" PrivateAssets="all" ExcludeAssets="runtime"/>
+        <PackageReference Include="AutoCAD.NET" Version="25.0.1" ExcludeAssets="runtime" Condition="'$(UseAutocad)' == 'true'"/>
+    </ItemGroup>
+
+</Project>

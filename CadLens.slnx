@@ -1,18 +1,16 @@
 ﻿<Solution>
   <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
     <File Path=".gitignore" />
+    <File Path="AGENTS.md" />
+    <File Path="Directory.Build.props" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/SDD.md" />
   </Folder>
-  <Folder Name="/openspec/">
-    <File Path="openspec/config.yaml" />
-  </Folder>
-  <Folder Name="/openspec/specs/">
-    <File Path="openspec/specs/.gitkeep" />
-  </Folder>
-  <Folder Name="/openspec/changes/archive/">
-    <File Path="openspec/changes/archive/.gitkeep" />
+  <Folder Name="/src/" />
+  <Folder Name="/src/AutoCAD/">
+    <Project Path="src/AutoCAD/CadLens.AutoCAD/CadLens.AutoCAD.csproj" />
   </Folder>
 </Solution>
