@@ -15,4 +15,7 @@
   <Folder Name="/openspec/changes/archive/">
     <File Path="openspec/changes/archive/.gitkeep" />
   </Folder>
+  <Folder Name="/openspec/changes/autocad-bootstrap/">
+    <File Path="openspec/changes/autocad-bootstrap/.openspec.yaml" />
+  </Folder>
 </Solution>
