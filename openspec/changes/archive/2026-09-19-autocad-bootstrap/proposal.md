@@ -2,24 +2,24 @@
 
 ## Why
 
-Начать CAD Lens с маленького работающего плагина, который легко понять и проверить в AutoCAD, прежде чем добавлять линзы и интерфейс.
+Start CAD Lens with a small working plugin that is easy to understand and verify in AutoCAD before adding lenses and UI.
 
 ## What Changes
 
-- Добавить проект `src/AutoCAD/CadLens.AutoCAD` в решение `CadLens.slnx`.
-- Добавить команду `CADLENS`, которая выводит приветствие в AutoCAD.
-- Линзы, интерфейс, лента и установщик в это изменение не входят.
+- Add `src/AutoCAD/CadLens.AutoCAD` to `CadLens.slnx`.
+- Add a `CADLENS` command that prints a greeting in AutoCAD.
+- Lenses, UI, ribbon integration, and an installer are outside this change.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `autocad-command`: запуск команды `CADLENS` и вывод приветствия пользователю.
+- `autocad-command`: run `CADLENS` and print a greeting for the user.
 
 ### Modified Capabilities
 
-Нет.
+None.
 
 ## Impact
 
-Новый проект плагина AutoCAD и файл решения. Способ сборки, загрузки и проверки в AutoCAD обсудим на следующих шагах.
+A new AutoCAD plugin project and an updated solution file. Build, loading, and in-host verification were to be decided in the next planning steps.

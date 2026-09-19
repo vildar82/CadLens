@@ -1,21 +1,25 @@
-﻿# Спецификация autocad-command
+﻿# autocad-command Specification
 
 ## Purpose
 
-Команда CADLENS даёт пользователю минимальную проверку того, что плагин загружен и доступен в AutoCAD 2025 или 2026.
+The CADLENS command gives the user a minimal way to check that the plugin is loaded and available in AutoCAD 2025 or 2026.
 
 ## Requirements
 
-### Requirement: Доступность команды
-После загрузки плагина в поддерживаемой версии AutoCAD система SHALL регистрировать команду с именем `CADLENS`.
+### Requirement: Command availability
 
-#### Scenario: Команда доступна после загрузки
-- **WHEN** пользователь загрузил плагин в AutoCAD 2025 или 2026 и вводит `CADLENS` в командной строке
-- **THEN** AutoCAD запускает команду плагина
+After the plugin is loaded in a supported AutoCAD version, the system SHALL register a command named `CADLENS`.
 
-### Requirement: Приветствие без изменений чертежа
-При запуске `CADLENS` система SHALL вывести в командную строку AutoCAD приветствие с названием `CAD Lens`, завершить команду без дополнительных действий пользователя и не изменять содержимое открытого DWG.
+#### Scenario: Command is available after loading
 
-#### Scenario: Запуск команды с открытым чертежом
-- **WHEN** пользователь запускает `CADLENS` при открытом DWG
-- **THEN** в командной строке появляется приветствие с названием `CAD Lens`, команда завершается и содержимое DWG остаётся прежним
+- **WHEN** the user loads the plugin in AutoCAD 2025 or 2026 and enters `CADLENS` on the command line
+- **THEN** AutoCAD runs the plugin command
+
+### Requirement: English greeting without drawing changes
+
+When `CADLENS` runs, the system SHALL print an English greeting containing `CAD Lens` on the AutoCAD command line, finish without further user input, and leave the open DWG unchanged.
+
+#### Scenario: Command runs with a drawing open
+
+- **WHEN** the user runs `CADLENS` with a DWG open
+- **THEN** an English greeting containing `CAD Lens` appears on the command line, the command finishes, and the DWG remains unchanged

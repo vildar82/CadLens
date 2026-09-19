@@ -1,4 +1,4 @@
-﻿# .NET и Visual Studio
+﻿# .NET and Visual Studio
 .vs/
 .idea/
 **/bin/
@@ -7,5 +7,5 @@
 *.user
 *.suo
 
-# Локальный индекс CodeGraph
+# Local CodeGraph index
 .codegraph/
