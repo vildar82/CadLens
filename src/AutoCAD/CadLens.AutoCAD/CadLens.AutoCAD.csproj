@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <UseAutocad>true</UseAutocad>
+    </PropertyGroup>
+
+</Project>
