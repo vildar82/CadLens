@@ -1,18 +1,24 @@
-﻿# Правила CAD Lens
+﻿# CAD Lens Rules
 
-## Пространства имён
+## Language
 
-- В C#-проектах использовать только корневое пространство имён проекта. Имена папок не добавлять в namespace.
-- Для папок с кодом отключать в Rider Namespace Provider через проектный `.csproj.DotSettings`. При добавлении новой папки делать это вместе с её первым C#-файлом.
+- Use English in project instructions, documentation, specifications, code comments, and user-facing text.
+- Use English for GitHub Issues, Projects, milestones, and pull requests for this repository.
+- Discuss this project in English, including voice conversations when voice chat is available.
 
-## Предупреждения
+## Namespaces
 
-- Исправлять предупреждения компилятора, анализаторов и Rider, включая `is never used` у точек входа, вызываемых AutoCAD через атрибуты.
-- Для действительно неявно используемых классов и методов применять точечные аннотации `UsedImplicitly` или `PublicAPI`. Не отключать инспекции целиком ради таких случаев.
-- После изменения C#-кода собирать решение с нулём предупреждений. Отдельно проверять предупреждения Rider, которые сборка не показывает.
+- In C# projects, use only the project's root namespace. Do not add folder names to namespaces.
+- Disable Rider's Namespace Provider for code folders in the project's `.csproj.DotSettings`. When adding a new folder, do this alongside its first C# file.
 
-## Зависимости
+## Warnings
 
-- Версии и ссылки на NuGet-пакеты хранить в корневом `Directory.Build.props`.
-- В `.csproj` проектов, которым нужен API AutoCAD, задавать `UseAutocad=true`. Корневой `Directory.Build.props` подключает пакет по этому флагу. Остальным проектам пакет AutoCAD не подключать.
-- `JetBrains.Annotations` доступен всем проектам через корневой `Directory.Build.props`.
+- Fix compiler, analyzer, and Rider warnings, including `is never used` on entry points invoked by AutoCAD through attributes.
+- Apply `UsedImplicitly` or `PublicAPI` annotations only to classes and methods that are genuinely used implicitly. Do not disable inspections globally for these cases.
+- After changing C# code, build the solution with zero warnings. Check Rider warnings separately because some are not reported by the build.
+
+## Dependencies
+
+- Keep NuGet package versions and references in the root `Directory.Build.props`.
+- Set `UseAutocad=true` in each `.csproj` that needs the AutoCAD API. The root `Directory.Build.props` adds the package based on this property. Other projects must not reference the AutoCAD package.
+- Make `JetBrains.Annotations` available to all projects through the root `Directory.Build.props`.

@@ -1,64 +1,64 @@
 ﻿# CAD Lens
 
-CAD Lens — личный эксперимент с интерфейсом исследования чертежа AutoCAD. Идея вдохновлена линзами Civilization: один и тот же DWG можно рассматривать через разные визуальные слои, быстро переключая контекст без изменения самого чертежа.
+CAD Lens is a personal experiment in interfaces for exploring AutoCAD drawings. The idea is inspired by the lenses in Civilization: the same DWG can be viewed through different visual layers, letting users switch context quickly without changing the drawing itself.
 
-## Зачем проект
+## Why this project exists
 
-Проверить, может ли игровой подход к интерфейсу сделать исследование чужого чертежа нагляднее и приятнее. Первая ценность — быстро понять структуру DWG; полезные инструменты анализа будут появляться по мере развития проекта.
+The goal is to test whether a game-inspired interface can make an unfamiliar drawing easier and more enjoyable to explore. The first useful outcome is a quick understanding of the DWG's structure; more analysis tools may follow as the project develops.
 
-## Возможный пользовательский сценарий
+## Possible user scenario
 
-1. Пользователь открывает DWG и запускает команду `CADLENS`.
-2. Включается режим линз с компактной панелью поверх рабочей области.
-3. Линза Layers показывает число объектов на каждом учитываемом слое.
-4. Пользователь выбирает слой в легенде и видит временное выделение его объектов, не меняя свойства объектов или слоёв в DWG.
-5. При закрытии режима временная визуализация исчезает.
+1. The user opens a DWG and runs `CADLENS`.
+2. Lens mode opens with a compact panel over the drawing area.
+3. The Layers lens shows the number of objects on each included layer.
+4. The user selects a layer in the legend and sees its objects temporarily highlighted without changing object or layer properties in the DWG.
+5. Closing lens mode removes the temporary visualization.
 
-Это пример для обсуждения в OpenSpec Explore, а не согласованная спецификация первой функции.
+This is an example for discussion in OpenSpec Explore, not an approved specification for the first feature.
 
-## Направление развития
+## Possible directions
 
-- Geometry: визуальная классификация типов объектов.
-- Object Inspector: карточка объекта при наведении.
-- Blocks: экземпляры и вариации блоков.
-- Problems: дубли, разрывы, короткие сегменты и другие проверяемые проблемы.
-- History: изменения во время текущей сессии, если события AutoCAD дают достаточно данных.
-- Позже: Selection Lens, radial menu, minimap, игровые элементы и отдельные адаптеры для Civil 3D/Revit.
+- Geometry: visual classification of object types.
+- Object Inspector: an object card on hover.
+- Blocks: block instances and variations.
+- Problems: duplicates, gaps, short segments, and other detectable issues.
+- History: changes during the current session, if AutoCAD events provide enough information.
+- Later: Selection Lens, radial menu, minimap, game elements, and separate Civil 3D/Revit adapters.
 
-Это направления, а не обязательства первого релиза. Например, историческую дату создания каждого существующего объекта DWG нельзя обещать без отдельной проверки доступных данных.
+These are directions, not commitments for the first release. For example, a historical creation date for every existing DWG object cannot be promised without checking whether the data exists.
 
-## Технические границы первой версии
+## Technical boundaries of the first version
 
-- Хосты: AutoCAD 2025 и 2026 на Windows. Autodesk указывает для них .NET 8; AutoCAD 2027 использует .NET 10, поэтому его совместимость решается отдельно.
-- Язык и UI: C#, WPF. Способ размещения HUD и подсветки проверяется в AutoCAD до закрепления архитектуры.
-- Анализ отделяется от доступа к AutoCAD: снимок нужных данных читается в корректном контексте документа, а расчёт агрегатов работает с обычными моделями .NET.
-- Выход линзы описывает желаемую визуализацию. Временные эффекты должны очищаться при переключении линзы, смене документа и закрытии режима.
-- Изменение геометрии и свойств DWG в первом срезе не требуется.
+- Hosts: AutoCAD 2025 and 2026 on Windows. Autodesk lists .NET 8 for their original releases; compatibility with later .NET 10 host updates must be checked separately.
+- Language and UI: C# and WPF. HUD placement and highlighting must be tested in AutoCAD before the architecture is fixed.
+- Analysis is separate from AutoCAD access: read the required snapshot in the proper document context, then calculate aggregates over ordinary .NET models.
+- A lens result describes the desired visualization. Clear temporary effects when switching lenses or documents and when closing lens mode.
+- The first slice does not require changing DWG geometry or properties.
 
-## Работа через SDD
+## Spec-driven development
 
-Проект использует OpenSpec. Правила выбора и короткая инструкция находятся в [docs/SDD.md](docs/SDD.md). Сначала согласуем поведение и критерии в спецификации, затем реализуем один проверяемый срез и сверим результат со спецификацией.
+The project uses OpenSpec. The reasons for that choice and a short guide are in [docs/SDD.md](docs/SDD.md). We agree on behavior and verification criteria in a specification before implementing one testable slice, then compare the result with that specification.
 
-## Статус
+## Current status
 
-Первый плагин реализован; изменение `autocad-bootstrap` архивировано, а требования команды находятся в `openspec/specs/autocad-command/spec.md`. Результаты проверки и границы подтверждённой совместимости приведены ниже.
+The first plugin is implemented. The `autocad-bootstrap` change is archived, and the command requirements live in `openspec/specs/autocad-command/spec.md`. The verification record and its limits are below.
 
-## Сборка и ручной запуск первого плагина
+## Build and manually load the first plugin
 
-Из корня репозитория собрать решение:
+Build from the repository root:
 
 ```powershell
 dotnet build CadLens.slnx -c Debug
 ```
 
-Собранный плагин: `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadLens.AutoCAD.dll`. Для проверки открыть DWG в AutoCAD 2025 или 2026. Если каталог сборки не входит в `TRUSTEDPATHS`, скопировать DLL в уже доверенный каталог, не отключая `SECURELOAD`. Выполнить `NETLOAD` и выбрать DLL из разрешённого каталога. Затем ввести `CADLENS` в командной строке: появится приветствие с названием `CAD Lens`. Команда не должна изменять чертёж.
+The plugin is built at `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadLens.AutoCAD.dll`. Open a DWG in AutoCAD 2025 or 2026. If the build directory is not in `TRUSTEDPATHS`, copy the DLL into an existing trusted directory without disabling `SECURELOAD`. Run `NETLOAD` and select the DLL from that directory. Then enter `CADLENS` on the command line. The command now prints `Hello! CAD Lens is ready.` and must not modify the drawing.
 
-## Проверка первого плагина
+## Verification of the first plugin
 
-19 сентября 2026 года плагин загружен через `NETLOAD` в Autodesk Civil 3D 2026 на базе AutoCAD 2026 (`acad.exe`, версия 25.1s, .NET 8.0.31). В новом `Чертеж1.dwg` команда `CADLENS` вывела «Привет! CAD Lens готов к работе.»; `DBMOD` до и после выполнения равнялся `0`. Временная копия DLL и настройки журналирования после проверки убраны.
+On September 19, 2026, the plugin was loaded with `NETLOAD` in Autodesk Civil 3D 2026 based on AutoCAD 2026 (`acad.exe`, version 25.1s, .NET 8.0.31). In a new drawing, `CADLENS` printed the greeting used at that time, which contained `CAD Lens`; `DBMOD` was `0` before and after the command. The temporary DLL copy and logging settings used for the check were removed afterward. The greeting text was subsequently changed to English; that wording has not yet been checked in the host.
 
-Отдельная установка обычного AutoCAD 2026 и AutoCAD 2025 здесь не обнаружена. Совместимость с ними пока не подтверждена в хосте; для завершения первого среза достаточно выполненной проверки в Civil 3D 2026.
+Separate installations of standard AutoCAD 2025 and 2026 were not found on this machine. Compatibility with those installations has not been verified in the host. The Civil 3D 2026 check was sufficient to finish the first slice.
 
 ## GitHub Actions
 
-При каждом push в любую ветку workflow на Windows восстанавливает зависимости, собирает решение и запускает `dotnet test`. Тестовых проектов в решении пока нет; шаг тестирования начнёт выполнять их после добавления в `CadLens.slnx`.
+On every push to any branch, a Windows workflow restores dependencies, builds the solution, and runs `dotnet test`. There are no test projects in the solution yet; the test step will run test cases once a test project is added to `CadLens.slnx`.

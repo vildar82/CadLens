@@ -5,16 +5,16 @@ using JetBrains.Annotations;
 namespace CadLens.AutoCAD;
 
 /// <summary>
-/// Команда для проверки загрузки CAD Lens в AutoCAD.
+/// Command used to verify that CAD Lens is loaded in AutoCAD.
 /// </summary>
 [UsedImplicitly]
 public sealed class CadLensCommand
 {
     private const string CommandName = "CADLENS";
-    private const string Greeting = "\nПривет! CAD Lens готов к работе.";
+    private const string Greeting = "\nHello! CAD Lens is ready.";
 
     /// <summary>
-    /// Выводит приветствие в командную строку активного чертежа.
+    /// Writes a greeting to the active drawing's command line.
     /// </summary>
     [UsedImplicitly]
     [CommandMethod(CommandName, CommandFlags.NoUndoMarker)]

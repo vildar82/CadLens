@@ -1,6 +1,6 @@
 ﻿root = true
 
-# Общие настройки текстовых файлов.
+# Shared settings for text files.
 [*]
 charset = utf-8-bom
 end_of_line = crlf
