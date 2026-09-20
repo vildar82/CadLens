@@ -8,7 +8,7 @@ Provide a compact drawing-centered interface for exploring a lens through groups
 
 ### Requirement: Single compact floating panel
 
-The explorer SHALL use one floating panel with a draggable header and a close button. Opening details SHALL replace the panel's previous content rather than open additional detail panels. The panel SHALL display the active lens and current space. Content that exceeds the available panel area SHALL remain reachable by scrolling.
+The explorer SHALL use one floating panel with a draggable header and a close button, with one exploration state following the active drawing. It SHALL NOT store separate selection or navigation state for each viewport. Opening details SHALL replace the panel's previous content rather than open additional detail panels. The panel SHALL display the active lens and current space. Content that exceeds the available panel area SHALL remain reachable by scrolling.
 
 #### Scenario: Move the panel
 
@@ -55,7 +55,7 @@ The explorer SHALL provide Previous, Next, and a one-based position counter for 
 
 ### Requirement: Explicit view focus
 
-Selecting groups, types, and objects SHALL leave the view unchanged. A separate Focus action SHALL fit the current group or object when usable bounds exist. Missing or invalid bounds SHALL produce a clear unavailable state or explanation without moving the view or failing the session.
+Selecting groups, types, and objects SHALL leave the view unchanged. A separate Focus action SHALL fit the current group or object in the active view only when usable bounds exist; other viewport cameras SHALL remain unchanged. Missing or invalid bounds SHALL produce a clear unavailable state or explanation without moving the view or failing the session.
 
 #### Scenario: Focus a group
 

@@ -29,14 +29,6 @@ This is an example for discussion in OpenSpec Explore, not an approved specifica
 
 These are directions, not commitments for the first release. For example, a historical creation date for every existing DWG object cannot be promised without checking whether the data exists.
 
-### Independent state per viewport (deferred)
-
-For tiled model-space viewports, keep each viewport's selected lens, group/type/object, filters, and navigation state. The panel follows the active viewport and restores its state when the user switches viewports. Each viewport retains its own highlighting and dimming, including while another viewport is active.
-
-Switching viewports must not move the camera. Explicit Focus affects only the active viewport. The proposed initial scope keeps state for the current CAD Lens session, without saving it in the DWG.
-
-Before implementation, verify that temporary graphics can remain independent in multiple visible viewports. This is a future feature outside `first-layers-lens`; it does not change the current specification or implementation.
-
 ## Technical boundaries of the first version
 
 - Hosts: AutoCAD 2025 and 2026 on Windows. Autodesk lists .NET 8 for their original releases; compatibility with later .NET 10 host updates must be checked separately.
@@ -44,6 +36,10 @@ Before implementation, verify that temporary graphics can remain independent in 
 - Analysis is separate from AutoCAD access: read the required snapshot in the proper document context, then calculate aggregates over ordinary .NET models.
 - A lens result describes the desired visualization. Clear temporary effects when switching lenses or documents and when closing lens mode.
 - The first slice does not require changing DWG geometry or properties.
+
+## Highlighting across views
+
+CAD Lens uses one exploration session for the active drawing. Highlighting and dimming apply to the current inventory objects in every view where those objects are visible, respecting each viewport's visibility settings. Separate selection and navigation state per viewport is outside the scope. Switching drawings or spaces clears the old effects; Focus moves only the active view.
 
 ## Shared libraries
 
@@ -73,7 +69,7 @@ The plugin is built at `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/Cad
 
 ## Explorer preview status
 
-The `first-layers-lens` change is in progress. The current panel uses CommunityToolkit.Mvvm and a WPF UI theme scoped to the window. It supports inclusion filters, group/type/object navigation, breadcrumbs, Back, and Previous/Next with an object counter. Browsing changes panel content without moving the view. Focus explicitly fits the current group or object using live bounds, with an explanation for unavailable bounds, locked layout viewports, or unsupported views. Hidden objects remain hidden. Opening a layer, type, or object now requests temporary emphasis through the existing graphics preview; Back restores broader targets and All clears the effect. This user-requested trial still needs native graphics and viewport-isolation verification; Highlight selection still operates on objects preselected in the drawing. The user confirmed that Focus now works in the tested case; the full native scenario matrix remains open. See [implementation verification](openspec/changes/first-layers-lens/verification.md) for build/test evidence and the outstanding graphics gate.
+The `first-layers-lens` change is in progress. The current panel uses CommunityToolkit.Mvvm and a WPF UI theme scoped to the window. It supports inclusion filters, group/type/object navigation, breadcrumbs, Back, and Previous/Next with an object counter. Browsing changes panel content without moving the view. Focus explicitly fits the current group or object using live bounds, with an explanation for unavailable bounds, locked layout viewports, or unsupported views. Hidden objects remain hidden. Opening a layer, type, or object now requests temporary emphasis through the existing graphics preview; Back restores broader targets and All clears the effect. This user-requested trial still needs native graphics verification across multiple viewports; Highlight selection still operates on objects preselected in the drawing. The user confirmed that Focus now works in the tested case; the full native scenario matrix remains open. See [implementation verification](openspec/changes/first-layers-lens/verification.md) for build/test evidence and the outstanding graphics gate.
 
 ## Verification of the first plugin
 

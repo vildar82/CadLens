@@ -1,5 +1,11 @@
 ﻿# Implementation verification
 
+## Current graphics scope decision (September 20)
+
+The user approved shared highlighting and dimming across views of the active drawing and removed the separate-context-per-viewport idea. This supersedes historical references below to viewport isolation as a requirement or implementation blocker. The active-space inventory and target set apply wherever their objects are visible; each viewport retains its native visibility. One exploration session follows the active drawing, document/space changes clear effects, and Focus affects only the active view.
+
+The existing database/object-filtered graphics adapter is consistent with this scope; no rendering code changed for this decision. A two-viewport native check remains pending to verify shared emphasis, hidden-object preservation, unchanged cameras, and cleanup. This planning change does not itself constitute host verification.
+
 ## Current preview
 
 `CADLENS` opens or activates the single modeless panel. `CADLENSVERIFY` has been removed at the user's request. Refresh reads the active-space inventory; Highlight selection captures the drawing's preselection before queuing work, then revalidates the objects before applying the rendering candidate. Clear highlight removes the owned effect without moving the camera.
@@ -125,3 +131,30 @@ Document leaving/destruction detaches that drawing's subscriptions, cancels the 
 Managed tests cover no-drawing command disablement/recovery, retained filters with cleared navigation on drawing switch, and existing refresh reconciliation/cancellation behavior. They do not exercise native database events, their timing, redraw behavior, or shutdown. Tasks 6.2 and 6.3 remain open for host checks. Manual trial: open CADLENS without clicking Refresh; create/erase objects, Undo/Redo, rename a layer, switch drawings/layouts, then close the last drawing and open another. Check counts, nearest-valid selection, cleared old effects, and restored command availability.
 
 Validation: Debug and Release builds completed with zero warnings/errors, and all 50 tests passed in each configuration (Core 7, Lenses 5, host queue/extensions 11, UI/composition 27), none skipped. Final JetBrains InspectCode has no warning/error findings. Strict OpenSpec validation and git diff --check passed. Native automatic refresh has not been exercised in this session.
+## Closure check at e924464 (September 20)
+
+Fresh Debug and Release solution builds each passed with zero warnings and errors. All 50 tests passed in each configuration, none skipped (Core 7, Lenses 5, AutoCAD stubs 11, UI/composition 27). Strict validation of first-layers-lens passed. Rider inspections and native host scenarios were not rerun for this check.
+
+The change is not ready to archive. Source inspection confirms EntityHighlightService applies colors in SetAttributes using database and object membership, without a viewport filter. Tasks 2.3-2.5 therefore still require native graphics acceptance and viewport-isolation work. CadLensCommand also does not print the greeting required by the command delta; the previously recorded user removal is preserved and the requirement needs reconciliation before closure.
+
+Next host acceptance pass: record the exact host/version; exercise layer/type/object emphasis, Back/All/close cleanup, adjacent viewports, drawing/layout switching, edit/erase/Undo/Redo refresh, and unchanged entity/layer properties. Record results individually rather than treating successful managed tests as host evidence. No pending task has been marked complete by this check.
+## User-confirmed navigation and cleanup check (September 20)
+
+The user confirmed the requested layer -> type -> object -> Back -> All -> close scenario: emphasis follows the selection, navigation leaves the camera unchanged, and closing removes the temporary effect completely. This is user-reported native evidence; the exact host/version and drawing fixture were not supplied with the confirmation.
+
+This confirms the tested navigation/cleanup case only. It does not establish adjacent-viewport isolation, all entity/color fixtures, automatic refresh, document/layout switching, or unchanged stored drawing properties. Tasks with those additional acceptance criteria remain open.
+## User-confirmed full-row click fix (September 20)
+
+Moved row padding inside the navigation button and gave its template a transparent hit-testable surface spanning the row. The change applies to layer, type, and object entries. The Debug solution build passed with zero warnings and errors; git diff --check passed.
+
+After the fix, the user confirmed that everything now works and that they checked everything. This confirms the row-click retest and records their overall acceptance of the checks they performed. No detailed fixture list or exact host/version accompanied this report, so it does not independently close the previously identified viewport-isolation implementation gap or command-greeting specification mismatch.
+## All-viewport regeneration correction (September 20)
+
+The user reported that the revised two-view test failed: highlighting appeared only in the current view. The previous assumption that database/object filtering alone was sufficient was not confirmed by the host.
+
+EntityHighlightService now uses the document's ActiveX Regen with AcRegenType.acAllViewports (1), via GetAcadDocument, when applying or removing effects. This replaces both Editor.Regen calls without switching viewports or moving cameras. Autodesk documents the all-viewports option at https://help.autodesk.com/cloudhelp/2025/JPN/AutoCAD-ActiveX-Reference/files/GUID-CCF21523-F711-4FA0-9D5B-4A3D3F61D37F.htm. The call is synchronous and uses the existing host execution/cleanup paths; shutdown still skips regeneration.
+
+The normal output was locked by the running AutoCAD process. A separate Debug solution build at C:\dev\temp\CadLens-validation\all-viewports passed with zero warnings/errors, and all 50 existing tests passed, none skipped. These tests do not execute native COM regeneration. The candidate still requires a fresh-host two-viewport retest of apply, All/clear, and close, including visibility and camera preservation.
+## User-confirmed all-viewport regeneration retest (September 20)
+
+After the all-viewport regeneration correction, the user confirmed the requested two-visible-viewport highlighting and clearing retest passed. This confirms the fix in the tested host scenario. The exact host/version and drawing fixture were not supplied with this confirmation; hidden-object, camera-preservation, and other rendering fixtures were not separately reported. The previously reported active-view-only highlighting failure is resolved in this user-tested case.

@@ -1,4 +1,5 @@
-﻿using Autodesk.AutoCAD.DatabaseServices;
+﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Runtime;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -26,7 +27,7 @@ public sealed class EntityHighlightService(EntityHighlightOptions options) : Dra
         _registered = true;
         Overruling = true;
 
-        Application.DocumentManager.MdiActiveDocument.Editor.Regen();
+        RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument);
     }
 
     /// <inheritdoc />
@@ -65,6 +66,14 @@ public sealed class EntityHighlightService(EntityHighlightOptions options) : Dra
         var document = Application.DocumentManager.MdiActiveDocument;
 
         if (document is not null && document.Database == affectedDatabase)
-            document.Editor.Regen();
+            RegenerateAllViewports(document);
+    }
+
+    private static void RegenerateAllViewports(Document document)
+    {
+        // ActiveX AcRegenType.acAllViewports; Editor.Regen refreshes only the active view.
+        const int allViewports = 1;
+        dynamic drawing = document.GetAcadDocument();
+        drawing.Regen(allViewports);
     }
 }

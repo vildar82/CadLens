@@ -75,12 +75,18 @@ Selecting a layer SHALL show its total count and counts grouped by primitive typ
 
 ### Requirement: Temporary emphasis and dimming
 
-Selecting a layer SHALL emphasize its drawable objects and dim other drawable objects in the active drawing view. Selecting a type SHALL narrow emphasis to that type within the selected layer. Selecting an individual object SHALL emphasize that object. Inclusion in counts SHALL NOT override actual visibility: off or frozen objects SHALL remain hidden, remain available in included counts and navigation, and have their hidden status explained in details. Focus SHALL NOT unhide them. Temporary visualization SHALL NOT modify object or layer properties.
+Selecting a layer SHALL emphasize its drawable objects and dim other drawable objects from the current active-space inventory across all views of the active drawing where those objects are visible. The same target set SHALL apply across viewports, respecting actual visibility in each viewport. Selecting a type SHALL narrow emphasis to that type within the selected layer. Selecting an individual object SHALL emphasize that object. Inclusion in counts SHALL NOT override actual visibility: off or frozen objects SHALL remain hidden, remain available in included counts and navigation, and have their hidden status explained in details. Focus SHALL NOT unhide them. Temporary visualization SHALL NOT modify object or layer properties.
 
 #### Scenario: Select a layer and then a type
 
 - **WHEN** the user selects Roads and then its Polylines group
 - **THEN** the visible Roads objects are initially emphasized, followed by only its visible polylines, with other drawable objects dimmed
+
+#### Scenario: Shared emphasis across viewports
+
+- **WHEN** two viewports show the same model-space objects and the user selects a layer, type, or object in CAD Lens
+- **THEN** the selected objects are emphasized and other inventory objects are dimmed in both viewports wherever they are visible, without changing either camera
+- **AND** objects hidden in either viewport remain hidden there, and clearing or closing removes the effect from both viewports
 
 #### Scenario: Inspect included hidden geometry
 
