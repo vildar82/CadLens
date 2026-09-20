@@ -1,436 +1,243 @@
 ﻿using System.Collections.Immutable;
-using CadLens.Core;
+using System.Windows;
 using Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace CadLens.UI;
 
-/// <summary>Drawing overview and asynchronous operations for the modeless panel.</summary>
+/// <summary>Discovers lens modules and coordinates their lifetime without knowing their content.</summary>
 public sealed class ExplorerViewModel : ObservableObject, IDisposable
 {
-    private readonly IExplorerActions _actions;
-    private readonly NavigationState _navigation = new();
-    private ImmutableHashSet<string> _enabledFilters = [];
-    private ImmutableArray<FilterOption> _filters = [];
-    private string _emptyMessage = "Refresh to explore the active space.";
     private readonly CancellationTokenSource _lifetime = new();
-    private CancellationTokenSource? _pendingRequest;
-    private TaskCompletionSource? _operationSettled;
-    private string _status = "Activate Layers to explore the drawing.";
-    private string _spaceLabel = "Active drawing";
-    private string _lensLabel = "Overview";
-    private string? _lensId;
-    private ImmutableArray<LensNode> _groups = [];
-    private bool _isBusy;
-    private bool _isLensActive;
+    private CancellationTokenSource? _activationRequest;
+    private TaskCompletionSource? _activationSettled;
+    private LensOption? _selectedLens;
+    private string _status = "Activate a lens to explore the drawing.";
     private bool _isCleanupPending;
-    private bool _disposed;
+    private bool _cleanupRequired;
     private bool _hasDrawing = true;
+    private bool _disposed;
     private int _contextVersion;
 
-    /// <summary>Creates toolkit commands for the injected host operations.</summary>
-    /// <param name="actions">Context-checked host operations.</param>
-    public ExplorerViewModel(IExplorerActions actions)
+    /// <summary>Creates toolbar controls from the scoped module registrations.</summary>
+    /// <param name="lenses">Independent lens implementations in display order.</param>
+    public ExplorerViewModel(IEnumerable<ILens> lenses)
     {
-        _actions = actions;
-        ToggleLensCommand = new AsyncRelayCommand(ToggleLensAsync, CanToggleLens, AsyncRelayCommandOptions.AllowConcurrentExecutions);
-        ReadCommand = new AsyncRelayCommand(() => RunAsync(ReadInventoryAsync), CanRun);
-        EmphasizeCommand = new AsyncRelayCommand(() => RunAsync(_actions.EmphasizeAsync), CanRun);
-        ClearCommand = new AsyncRelayCommand(() => RunAsync(ClearEffectsAsync), CanRun);
-        FocusCommand = new AsyncRelayCommand(
-            () => RunAsync(token => _actions.FocusAsync(Current!.Objects, token)),
-            () => CanRun() && Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus));
-        EnterCommand = new AsyncRelayCommand<LensNode>(node => NavigateAsync(() => Enter(node)), node => CanRun() && node is not null && Items.Contains(node));
-        BackCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(_navigation.Path.Count - 1)), () => CanRun() && Current is not null);
-        RootCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(0)), () => CanRun() && Current is not null);
-        BreadcrumbCommand = new AsyncRelayCommand<LensNode>(
-            node => NavigateAsync(() => GoBackTo(_navigation.Path.ToList().IndexOf(node!) + 1)),
-            node => CanRun() && node is not null && _navigation.Path.Contains(node));
-        PreviousCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(-1)), () => CanRun() && _navigation.CanPrevious);
-        NextCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(1)), () => CanRun() && _navigation.CanNext);
-        ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
-            filter => RunAsync(token => ToggleFilterAsync(filter!, token)),
-            filter => CanRun() && filter is not null && Filters.Contains(filter));
+        Lenses = [.. lenses.Select(lens => new LensOption(lens))];
+
+        if (Lenses.IsEmpty)
+            throw new InvalidOperationException("Register at least one lens in DI.");
+
+        if (Lenses.Select(lens => lens.Descriptor.Id).Distinct(StringComparer.Ordinal).Count() != Lenses.Length)
+            throw new InvalidOperationException("Registered lens identities must be unique.");
+
+        ToggleLensCommand = new AsyncRelayCommand<LensOption>(ToggleLensAsync, CanToggleLens, AsyncRelayCommandOptions.AllowConcurrentExecutions);
     }
 
-    /// <summary>Activates exploration or collapses it even while drawing work is pending.</summary>
-    public IAsyncRelayCommand ToggleLensCommand { get; }
+    /// <summary>Registered lens modules, without creating their views or reading a drawing.</summary>
+    public ImmutableArray<LensOption> Lenses { get; }
 
-    /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
-    public bool IsLensActive
-    {
-        get => _isLensActive;
-        private set
-        {
-            if (SetProperty(ref _isLensActive, value))
-                NotifyCommands();
-        }
-    }
+    /// <summary>Activates a module, switches modules, or collapses the active module.</summary>
+    public IAsyncRelayCommand<LensOption> ToggleLensCommand { get; }
 
-    /// <summary>Whether cancellation and queued graphics cleanup are still settling.</summary>
+    /// <summary>Whether a module currently occupies the expanded panel.</summary>
+    public bool IsLensActive => _selectedLens?.IsActive == true;
+
+    /// <summary>The selected module's own WPF content; the shell imposes no view-model contract.</summary>
+    public FrameworkElement? ActiveView => IsLensActive ? _selectedLens!.Lens.View : null;
+
+    /// <summary>Whether previous work and module cleanup are still settling.</summary>
     public bool IsCleanupPending
     {
         get => _isCleanupPending;
         private set
         {
             if (SetProperty(ref _isCleanupPending, value))
-                NotifyCommands();
+                ToggleLensCommand.NotifyCanExecuteChanged();
         }
     }
 
-    /// <summary>Current operation result or explanation.</summary>
+    /// <summary>Activation or cleanup status shown by the shared chrome.</summary>
     public string Status
     {
         get => _status;
         private set => SetProperty(ref _status, value);
     }
 
-    /// <summary>Active space supplied by the lens.</summary>
-    public string SpaceLabel
-    {
-        get => _spaceLabel;
-        private set => SetProperty(ref _spaceLabel, value);
-    }
-
-    /// <summary>Title supplied by the active lens.</summary>
-    public string LensLabel
-    {
-        get => _lensLabel;
-        private set => SetProperty(ref _lensLabel, value);
-    }
-
-    /// <summary>Groups from the most recent inventory.</summary>
-    public ImmutableArray<LensNode> Groups
-    {
-        get => _groups;
-        private set
-        {
-            SetProperty(ref _groups, value);
-            OnPropertyChanged(nameof(GroupCount));
-            OnPropertyChanged(nameof(ObjectCount));
-            OnPropertyChanged(nameof(HasGroups));
-        }
-    }
-
-    /// <summary>Children at the current exploration level.</summary>
-    public ImmutableArray<LensNode> Items => _navigation.Items;
-
-    /// <summary>Current group or object details.</summary>
-    public LensNode? Current => _navigation.Current;
-
-    /// <summary>Selected ancestors including the current node.</summary>
-    public IReadOnlyList<LensNode> Breadcrumbs => _navigation.Path;
-
-    /// <summary>Whether object browsing controls apply.</summary>
-    public bool IsObject => _navigation.Position > 0;
-
-    /// <summary>One-based position within the current object set.</summary>
-    public string ObjectPosition => $"{_navigation.Position} of {_navigation.ObjectCount}";
-
-    /// <summary>Whether details replace the root list.</summary>
-    public bool HasCurrent => Current is not null;
-
-    /// <summary>Whether the current result has no root groups.</summary>
-    public bool IsEmpty => Groups.IsEmpty;
-
-    /// <summary>Lens-provided explanation for an empty inventory.</summary>
-    public string EmptyMessage => _emptyMessage;
-
-    /// <summary>Lens options and their current inclusion state.</summary>
-    public ImmutableArray<FilterOption> Filters => _filters;
-
-    /// <summary>Enters a displayed child and updates temporary emphasis without moving the view.</summary>
-    public IAsyncRelayCommand<LensNode> EnterCommand { get; }
-
-    /// <summary>Returns to the parent level.</summary>
-    public IAsyncRelayCommand BackCommand { get; }
-
-    /// <summary>Returns to the root list.</summary>
-    public IAsyncRelayCommand RootCommand { get; }
-
-    /// <summary>Returns to the chosen ancestor.</summary>
-    public IAsyncRelayCommand<LensNode> BreadcrumbCommand { get; }
-
-    /// <summary>Shows the previous object.</summary>
-    public IAsyncRelayCommand PreviousCommand { get; }
-
-    /// <summary>Shows the next object.</summary>
-    public IAsyncRelayCommand NextCommand { get; }
-
-    /// <summary>Reloads inventory with one inclusion option toggled.</summary>
-    public IAsyncRelayCommand<FilterOption> ToggleFilterCommand { get; }
-
-    /// <summary>Number of included groups.</summary>
-    public int GroupCount => Groups.Length;
-
-    /// <summary>Number of included objects.</summary>
-    public int ObjectCount => Groups.Sum(group => group.Count);
-
-    /// <summary>Whether the inventory contains groups.</summary>
-    public bool HasGroups => !Groups.IsEmpty;
-
-    /// <summary>Whether a host operation is pending.</summary>
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set
-        {
-            if (!SetProperty(ref _isBusy, value))
-                return;
-
-            NotifyCommands();
-        }
-    }
-
-    /// <summary>Refreshes the active-space inventory.</summary>
-    public IAsyncRelayCommand ReadCommand { get; }
-
-    /// <summary>Highlights the drawing selection.</summary>
-    public IAsyncRelayCommand EmphasizeCommand { get; }
-
-    /// <summary>Removes temporary rendering.</summary>
-    public IAsyncRelayCommand ClearCommand { get; }
-
-    /// <summary>Explicitly fits the selected group's or object's live bounds.</summary>
-    public IAsyncRelayCommand FocusCommand { get; }
-
-    /// <summary>Clears presentation when the document or space changes.</summary>
-    /// <param name="hasDrawing">Whether drawing-dependent commands can run.</param>
+    /// <summary>Forwards context invalidation to all modules, including inactive ones.</summary>
+    /// <param name="hasDrawing">Whether drawing-dependent activation is available.</param>
     public void ResetContext(bool hasDrawing = true)
     {
+        if (_disposed)
+            return;
+
         _contextVersion++;
         _hasDrawing = hasDrawing;
-        _pendingRequest?.Cancel();
-        Groups = [];
-        _navigation.Reset([], false);
-        NotifyNavigation();
-        SpaceLabel = hasDrawing ? "Active drawing" : "No active drawing";
-        Status = !hasDrawing
-            ? "Open a drawing to explore its objects."
-            : IsLensActive ? "Drawing context changed. Updating the current space." : "Drawing context changed. Activate Layers to explore.";
+
+        foreach (var option in Lenses)
+        {
+            try
+            {
+                option.Lens.OnContextChanged(hasDrawing);
+            }
+            catch (Exception exception)
+            {
+                Status = $"{option.Descriptor.Label}: {exception.Message}";
+            }
+        }
+
+        ToggleLensCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Lets the active module decide what drawing edits mean for its own UI and services.</summary>
+    public void OnDrawingChanged()
+    {
+        if (_disposed || !_hasDrawing || !IsLensActive || IsCleanupPending)
+            return;
+
+        try
+        {
+            _selectedLens!.Lens.OnDrawingChanged();
+        }
+        catch (Exception exception)
+        {
+            Status = $"{_selectedLens!.Descriptor.Label}: {exception.Message}";
+        }
     }
 
     /// <inheritdoc />
-    public void Dispose()
+    public void Dispose() => Close(false);
+
+    /// <summary>Closes every module before the host queue and DI scope are disposed.</summary>
+    /// <param name="hostTerminating">Whether the host is shutting down.</param>
+    public void Close(bool hostTerminating)
     {
         if (_disposed)
             return;
 
         _disposed = true;
+        _contextVersion++;
         _lifetime.Cancel();
-        _lifetime.Dispose();
-        NotifyCommands();
-    }
+        _activationRequest?.Cancel();
 
-    private bool CanRun() => !_disposed && IsLensActive && _hasDrawing && !IsBusy && !IsCleanupPending;
-
-    private bool CanToggleLens() => !_disposed && (IsLensActive || (_hasDrawing && !IsCleanupPending && !IsBusy));
-
-    private async Task ToggleLensAsync()
-    {
-        if (!CanToggleLens())
-            return;
-
-        if (!IsLensActive)
+        foreach (var option in Lenses)
         {
-            IsLensActive = true;
-            await RunAsync(ReadInventoryAsync);
-            return;
+            option.IsActive = false;
+
+            try
+            {
+                option.Lens.Close(hostTerminating);
+            }
+            catch (Exception exception)
+            {
+                System.Diagnostics.Trace.TraceError("Lens disposal failed: {0}", exception);
+            }
         }
 
-        _contextVersion++;
-        IsCleanupPending = true;
-        IsLensActive = false;
-        _pendingRequest?.Cancel();
-        Status = "Clearing temporary effects… Finish any active AutoCAD command to continue.";
+        _activationRequest?.Dispose();
+        _lifetime.Dispose();
+        NotifyLensState();
+    }
+
+    private bool CanToggleLens(LensOption? lens) =>
+        !_disposed && lens is not null && Lenses.Contains(lens) && !IsCleanupPending &&
+        (_hasDrawing || (IsLensActive && ReferenceEquals(lens, _selectedLens)));
+
+    private async Task ToggleLensAsync(LensOption? lens)
+    {
+        if (!CanToggleLens(lens))
+            return;
+
+        var collapseOnly = IsLensActive && ReferenceEquals(lens, _selectedLens);
+
+        if (_cleanupRequired && !await DeactivateAsync())
+            return;
+
+        if (collapseOnly || _disposed || !_hasDrawing)
+            return;
+
+        await ActivateAsync(lens!);
+    }
+
+    private async Task ActivateAsync(LensOption option)
+    {
+        var version = _contextVersion;
+        var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _activationSettled = settled;
+        _activationRequest = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _selectedLens = option;
+        _cleanupRequired = true;
+        option.IsActive = true;
+        Status = $"{option.Descriptor.Label} is active.";
+        NotifyLensState();
 
         try
         {
-            if (_operationSettled is not null)
-                await _operationSettled.Task;
-
-            _lifetime.Token.ThrowIfCancellationRequested();
-            var message = await ClearEffectsAsync(_lifetime.Token);
-
-            if (!_disposed)
-                Status = message;
+            await option.Lens.ActivateAsync(_activationRequest.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Deactivation or close owns the next visible state.
         }
         catch (Exception exception)
         {
-            if (!_disposed)
-                Status = $"Cleanup did not complete: {exception.Message}";
+            if (!_disposed && version == _contextVersion)
+                Status = $"Unable to activate {option.Descriptor.Label}: {exception.Message}";
         }
         finally
         {
+            if (ReferenceEquals(_activationSettled, settled))
+                _activationSettled = null;
+
+            settled.TrySetResult();
+        }
+    }
+
+    private async Task<bool> DeactivateAsync()
+    {
+        var version = ++_contextVersion;
+        IsCleanupPending = true;
+        _selectedLens!.IsActive = false;
+        _activationRequest?.Cancel();
+        Status = "Clearing lens effects… Finish any active drawing command to continue.";
+        NotifyLensState();
+
+        try
+        {
+            if (_activationSettled is not null)
+                await _activationSettled.Task;
+
+            _lifetime.Token.ThrowIfCancellationRequested();
+            var result = await _selectedLens.Lens.DeactivateAsync(_lifetime.Token);
+            _cleanupRequired = result is not HostResult<bool>.Success { Value: true };
+
+            if (!_disposed && version == _contextVersion)
+                Status = result.Match(
+                    cleared => cleared ? "Lens effects cleared." : "Cleanup did not complete.",
+                    reason => $"Cleanup unavailable: {reason}");
+
+            return !_disposed && version == _contextVersion && !_cleanupRequired;
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed && version == _contextVersion)
+                Status = $"Cleanup did not complete: {exception.Message}";
+
+            return false;
+        }
+        finally
+        {
+            _activationRequest?.Dispose();
+            _activationRequest = null;
             IsCleanupPending = false;
         }
     }
 
-    private async Task<string> ClearEffectsAsync(CancellationToken cancellationToken)
+    private void NotifyLensState()
     {
-        var result = await _actions.ClearAsync(cancellationToken);
-
-        return result.Match(_ => "Temporary effects cleared.", reason => $"Cleanup unavailable: {reason}");
-    }
-
-    private void NotifyCommands()
-    {
+        OnPropertyChanged(nameof(IsLensActive));
+        OnPropertyChanged(nameof(ActiveView));
         ToggleLensCommand.NotifyCanExecuteChanged();
-        ReadCommand.NotifyCanExecuteChanged();
-        EmphasizeCommand.NotifyCanExecuteChanged();
-        ClearCommand.NotifyCanExecuteChanged();
-        FocusCommand.NotifyCanExecuteChanged();
-        EnterCommand.NotifyCanExecuteChanged();
-        BackCommand.NotifyCanExecuteChanged();
-        RootCommand.NotifyCanExecuteChanged();
-        BreadcrumbCommand.NotifyCanExecuteChanged();
-        PreviousCommand.NotifyCanExecuteChanged();
-        NextCommand.NotifyCanExecuteChanged();
-        ToggleFilterCommand.NotifyCanExecuteChanged();
-    }
-
-    private async Task<string> ReadInventoryAsync(CancellationToken cancellationToken)
-    {
-        var version = _contextVersion;
-        await _actions.EmphasizeObjectsAsync([], cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (_disposed || !IsLensActive || version != _contextVersion)
-            return string.Empty;
-
-        var result = await _actions.ReadAsync(_enabledFilters, cancellationToken);
-
-        if (_disposed || !IsLensActive || version != _contextVersion)
-            return string.Empty;
-
-        if (result is not HostResult<LensPresentation>.Success success)
-        {
-            Groups = [];
-            _navigation.Reset([], false);
-            NotifyNavigation();
-            SpaceLabel = "Unavailable";
-            return ((HostResult<LensPresentation>.Unavailable)result).Reason;
-        }
-
-        SpaceLabel = success.Value.SpaceLabel;
-        LensLabel = success.Value.Label;
-        Groups = success.Value.Groups;
-        _emptyMessage = success.Value.EmptyMessage;
-        _filters = success.Value.Filters.Select(filter => new FilterOption(filter, _enabledFilters.Contains(filter.Id))).ToImmutableArray();
-        _navigation.Reset(Groups, _lensId == success.Value.LensId);
-        _lensId = success.Value.LensId;
-        OnPropertyChanged(nameof(Filters));
-        OnPropertyChanged(nameof(EmptyMessage));
-        NotifyNavigation();
-
-        if (Current is not null)
-            return await _actions.EmphasizeObjectsAsync(Current.Objects, cancellationToken);
-
-        return HasGroups ? "Open a group to highlight its objects." : success.Value.EmptyMessage;
-    }
-
-    private Task NavigateAsync(Action navigate) => RunAsync(token =>
-    {
-        navigate();
-        return _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token);
-    });
-
-    private void Enter(LensNode? node)
-    {
-        if (node is not null && _navigation.Enter(node.Id))
-            NotifyNavigation();
-    }
-
-    private void GoBackTo(int depth)
-    {
-        _navigation.GoBackTo(depth);
-        NotifyNavigation();
-    }
-
-    private void MoveObject(int offset)
-    {
-        _navigation.MoveObject(offset);
-        NotifyNavigation();
-    }
-
-    private async Task<string> ToggleFilterAsync(FilterOption filter, CancellationToken cancellationToken)
-    {
-        _enabledFilters = filter.IsEnabled ? _enabledFilters.Remove(filter.Descriptor.Id) : _enabledFilters.Add(filter.Descriptor.Id);
-        _filters = Filters.Select(option => option with { IsEnabled = _enabledFilters.Contains(option.Descriptor.Id) }).ToImmutableArray();
-        OnPropertyChanged(nameof(Filters));
-
-        var version = _contextVersion;
-
-        try
-        {
-            return await ReadInventoryAsync(cancellationToken);
-        }
-        catch
-        {
-            if (!_disposed && IsLensActive && version == _contextVersion)
-            {
-                Groups = [];
-                _navigation.Reset([], false);
-                NotifyNavigation();
-            }
-
-            throw;
-        }
-    }
-
-    private void NotifyNavigation()
-    {
-        OnPropertyChanged(nameof(Items));
-        OnPropertyChanged(nameof(Current));
-        OnPropertyChanged(nameof(Breadcrumbs));
-        OnPropertyChanged(nameof(HasCurrent));
-        OnPropertyChanged(nameof(IsObject));
-        OnPropertyChanged(nameof(ObjectPosition));
-        OnPropertyChanged(nameof(IsEmpty));
-        NotifyCommands();
-    }
-
-    private async Task RunAsync(Func<CancellationToken, Task<string>> action)
-    {
-        if (!CanRun())
-            return;
-
-        var version = _contextVersion;
-        var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _operationSettled = settled;
-        IsBusy = true;
-        using var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
-        _pendingRequest = request;
-
-        try
-        {
-            Status = "Working… Finish any active AutoCAD command to continue.";
-            var message = await action(request.Token);
-
-            if (!_disposed && IsLensActive && version == _contextVersion)
-                Status = message;
-        }
-        catch (OperationCanceledException)
-        {
-            if (!_disposed && IsLensActive && version == _contextVersion)
-                Status = "The request was cancelled.";
-        }
-        catch (Exception exception)
-        {
-            if (!_disposed && IsLensActive && version == _contextVersion)
-                Status = $"Unable to complete the operation: {exception.Message}";
-        }
-        finally
-        {
-            if (ReferenceEquals(_pendingRequest, request))
-            {
-                _pendingRequest = null;
-                IsBusy = false;
-                _operationSettled = null;
-            }
-
-            settled.TrySetResult();
-        }
     }
 }

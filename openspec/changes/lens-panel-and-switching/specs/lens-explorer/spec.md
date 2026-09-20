@@ -4,7 +4,7 @@
 
 ### Requirement: Single compact floating panel
 
-The explorer SHALL use one floating panel with a draggable header and a close button, with one exploration state following the active drawing. It SHALL NOT store separate selection or navigation state for each viewport. The panel SHALL provide a compact lens bar and expanded content within the same window. Layers SHALL be the only available lens, without controls for unimplemented lenses. The lens control SHALL visibly distinguish active and inactive states. Dragging, closing, and the lens control SHALL remain accessible in both modes. When expanded, the panel SHALL display the active lens and current space. Opening details SHALL replace the content rather than open additional detail panels. Content that exceeds the available panel area SHALL remain reachable by scrolling.
+The explorer SHALL use one floating panel with a draggable header and a close button, with one exploration state following the active drawing. It SHALL NOT store separate selection or navigation state for each viewport. The panel SHALL provide a compact lens bar and expanded content within the same window. The lens controls SHALL be generated from registered lens modules. Layers SHALL remain the only production lens implementation, without controls for unregistered lenses. The lens control SHALL visibly distinguish active and inactive states. Dragging, closing, and the lens control SHALL remain accessible in both modes. When expanded, the panel SHALL display the active lens and current space. Opening details SHALL replace the content rather than open additional detail panels. Content that exceeds the available panel area SHALL remain reachable by scrolling.
 
 #### Scenario: Move the panel
 
@@ -30,7 +30,7 @@ The explorer SHALL use one floating panel with a draggable header and a close bu
 
 ### Requirement: Lens activation and deactivation
 
-The Layers control SHALL toggle between inactive compact mode and active expanded mode. Activating SHALL show the Layers explorer without moving any drawing camera. Deactivating SHALL hide the content and remove all temporary visualization owned by the session without changing drawing geometry or properties. Pending work or automatic refresh SHALL NOT reactivate the lens, expand the panel, or restore effects while the lens is inactive. Closing SHALL remain available in either mode and SHALL end the session and remove its effects.
+Each registered lens control SHALL toggle between inactive compact mode and active expanded mode. Activating SHALL show the selected lens explorer without moving any drawing camera. Deactivating SHALL hide the content and remove all temporary visualization owned by the session without changing drawing geometry or properties. Pending work or automatic refresh SHALL NOT reactivate the lens, expand the panel, or restore effects while the lens is inactive. Closing SHALL remain available in either mode and SHALL end the session and remove its effects.
 
 #### Scenario: First activation
 
@@ -88,3 +88,46 @@ Collapsing SHALL preserve the current navigation position and inclusion settings
 
 - **WHEN** the last drawing closes while the panel is compact
 - **THEN** the panel remains compact and no lens action accesses the closed drawing or activates drawing-dependent content
+
+### Requirement: Discover and switch registered lenses
+
+Adding a lens SHALL require implementing ILens and registering the module and its dependencies in DI. Each lens SHALL own its WPF view, view model, data models, services, and commands. The shell SHALL discover its identity and label without creating its view or loading drawing data, generate its toolbar control, and display its view in a ContentControl. The shared contract SHALL be limited to identity, view, lifecycle, and context/drawing-change notifications. It SHALL NOT require a common inventory presentation, navigation, filters, Focus, or highlighting methods. No lens-specific change to the window, shell view model, or host owner SHALL be required.
+
+Only one lens SHALL be active at a time. Switching SHALL cancel and settle pending work and clear the old lens's effects before loading the new lens. Failed cleanup SHALL leave the panel inactive and report the failure; a later activation attempt SHALL retry cleanup. Each lens SHALL own its session state. Layers SHALL retain its navigation and inclusion settings. Context changes SHALL invalidate all saved paths, and closing SHALL discard all lens state.
+
+#### Scenario: Add another registered lens
+
+- **WHEN** another self-contained lens module and its dependencies are registered in DI
+- **THEN** its labeled control appears without a panel code change or startup drawing read
+- **AND** selecting it displays its own XAML and runs its own view model and services
+
+#### Scenario: Switch while a lens operation is pending
+
+- **WHEN** the user selects a different lens during a pending read or emphasis
+- **THEN** the old request is canceled and its late result cannot publish content or recreate effects
+- **AND** the new lens loads only after the old work settles and cleanup succeeds
+
+#### Scenario: Cleanup fails during switching
+
+- **WHEN** the old lens cleanup fails or is unavailable
+- **THEN** the next lens is not activated and the compact status explains the failure
+- **AND** a later lens activation request retries cleanup before loading
+
+#### Scenario: Return to a previous lens
+
+- **WHEN** the user switches back to a previously used lens in the same drawing context
+- **THEN** its module-owned state is restored; Layers refreshes its filters and valid navigation from current data
+- **AND** state from the intervening lens is not applied to it
+
+#### Scenario: Unrelated lens content
+
+- **WHEN** a registered lens supplies a different WPF layout and commands unrelated to drawing exploration
+- **THEN** the shell displays that view and its bindings without requiring Layers models or actions
+
+#### Scenario: Module close and drawing notifications
+
+- **WHEN** the drawing context changes
+- **THEN** every module receives context invalidation without automatic activation
+- **AND** drawing edits are forwarded only to the active module, which decides how to react
+- **WHEN** the panel closes or the host terminates
+- **THEN** modules cancel their own work and synchronously release effects before the shared host queue is disposed

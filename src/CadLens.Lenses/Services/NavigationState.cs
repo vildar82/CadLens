@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace CadLens.Core;
+namespace CadLens.Lenses;
 
 /// <summary>Owns a generic exploration path without performing host actions.</summary>
 public sealed class NavigationState

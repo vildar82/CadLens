@@ -1,14 +1,14 @@
 ﻿using Common;
 
-namespace CadLens.Core;
+namespace CadLens.Lenses;
 
-/// <summary>Supplies immutable presentation data for a lens.</summary>
-public interface ILensProvider
+/// <summary>Supplies the Layers explorer inventory.</summary>
+public interface ILayersProvider
 {
     /// <summary>Builds the presentation for the current drawing and options.</summary>
     /// <param name="enabledFilters">Enabled filter identities.</param>
     /// <param name="cancellationToken">Cancellation of managed work.</param>
-    Task<HostResult<LensPresentation>> LoadAsync(
+    Task<HostResult<LayersPresentation>> LoadAsync(
         IReadOnlySet<string> enabledFilters,
         CancellationToken cancellationToken);
 }

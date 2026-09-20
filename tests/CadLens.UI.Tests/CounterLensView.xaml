@@ -1,0 +1,9 @@
+﻿<UserControl x:Class="CadLens.UI.Tests.CounterLensView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="20">
+        <TextBlock Text="Independent counter lens" Foreground="White" FontSize="20" />
+        <TextBlock Text="{Binding Count}" Foreground="White" FontSize="32" Margin="0,12" />
+        <Button Content="Increment" Command="{Binding IncrementCommand}" />
+    </StackPanel>
+</UserControl>

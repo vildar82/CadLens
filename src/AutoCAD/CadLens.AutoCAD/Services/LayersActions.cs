@@ -1,14 +1,21 @@
-﻿using System.Collections.Immutable;
+﻿using CadLens.UI;
+using CadLens.Lenses;
+using System.Collections.Immutable;
 using CadLens.Core;
-using CadLens.UI;
 using Common;
 using Common.AutoCAD;
 
 namespace CadLens.AutoCAD;
 
-internal sealed class ExplorerActions(ILensProvider lens, IEntityHighlightActions highlights, IHostActions host) : IExplorerActions
+internal sealed class LayersActions(
+    ILayersProvider lens,
+    IEntityHighlightActions highlights,
+    IEntityHighlightService graphics,
+    IHostActions host) : ILayersActions
 {
-    public Task<HostResult<LensPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
+    public void ClearImmediately(bool redraw) => graphics.Clear(redraw);
+
+    public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
         lens.LoadAsync(enabledFilters, cancellationToken);
 
     public async Task<string> EmphasizeAsync(CancellationToken cancellationToken)

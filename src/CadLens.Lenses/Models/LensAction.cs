@@ -1,4 +1,4 @@
-﻿namespace CadLens.Core;
+﻿namespace CadLens.Lenses;
 
 /// <summary>An action supported by a presentation node.</summary>
 public enum LensAction

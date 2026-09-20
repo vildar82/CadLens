@@ -1,4 +1,4 @@
-﻿namespace CadLens.Core;
+﻿namespace CadLens.Lenses;
 
 /// <summary>Semantic icon roles mapped to resources by the UI.</summary>
 public enum IconRole

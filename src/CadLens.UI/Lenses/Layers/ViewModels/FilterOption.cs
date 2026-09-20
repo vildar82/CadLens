@@ -1,4 +1,4 @@
-﻿using CadLens.Core;
+﻿using CadLens.Lenses;
 
 namespace CadLens.UI;
 

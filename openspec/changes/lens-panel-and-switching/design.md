@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md for motivation and the two delta specifications for observable behavior. ExplorerWindow currently has a fixed initial size of 370 by 660 with a 450 minimum height. ExplorerViewModel already owns navigation, inclusion settings, cancellation, and a context version. NavigationState.Reset reconciles saved node identities with refreshed data. ExplorerOwner observes document changes and schedules automatic reads. ReadInventoryAsync currently clears effects, reads, restores navigation, and reapplies selection emphasis.
+See proposal.md for motivation and the two delta specifications for observable behavior. ExplorerWindow currently has a fixed initial size of 370 by 660 with a 450 minimum height. The original ExplorerViewModel owned both navigation and the panel lifecycle; these responsibilities are now split between LayersViewModel and the shared shell. NavigationState.Reset reconciles saved node identities with refreshed data. ExplorerOwner observes document changes and schedules automatic reads. ReadInventoryAsync currently clears effects, reads, restores navigation, and reapplies selection emphasis.
 
 These existing paths need activation awareness; hiding the content alone would allow background refresh to reapply effects while compact.
 
@@ -10,13 +10,13 @@ These existing paths need activation awareness; hiding the content alone would a
 
 Goals: extend the current window and session, keep activation state explicit, reuse navigation reconciliation and the native work queue, and make compact mode genuinely small.
 
-Non-goals: a lens registry, multiple providers, a new session framework, another host execution service, persistent preferences, or graphics-adapter redesign.
+Non-goals: runtime assembly discovery, additional production lens implementations, a new session framework, another host execution service, persistent preferences, or graphics-adapter redesign.
 
 ## Decisions
 
 ### 1. One window with a persistent lens bar
 
-Keep ExplorerWindow and its existing scoped resources. Place a compact bar above the existing exploration content. The bar contains a drag area, a Layers icon and label, and Close. Use a styled ToggleButton with a visible keyboard focus indicator and an accessible name. Keep the toggle and Close interactive within the window chrome.
+Keep ExplorerWindow as shared chrome. Place a compact bar above a ContentControl hosting the selected module view. Move the existing exploration content and its resources into LayersView. The bar contains a drag area, a scrollable list of registered lens toggles, and Close. Labels come from module descriptors, without a drawing read. Use a styled ToggleButton with a visible keyboard focus indicator and an accessible name. Keep the toggle and Close interactive within the window chrome.
 
 Compact mode contains only the bar. Expanded mode shows the current space, filters, navigation, list/details, and existing actions beneath it. Do not duplicate Layers information in a separate dashboard.
 
@@ -34,9 +34,9 @@ Alternative: collapse content inside the existing tall window. Rejected because 
 
 ### 3. One activation property, separate from busy state
 
-Add one lens-active state to ExplorerViewModel, initially false. Derive expanded visibility and checked appearance from it rather than storing independent expanded and active flags. Busy state remains separate.
+Add one lens-active state to ExplorerViewModel, initially false. Derive expanded visibility from the selected LensOption.IsActive and each button checked appearance from its own LensOption.IsActive. Busy state remains separate.
 
-Activation sets the lens active and starts a fresh read using existing inclusion settings. A fresh read on each activation ensures edits made while compact are reflected without adding cache invalidation machinery. Use NavigationState.Reset with path preservation in the same context; apply emphasis only to the resulting current node. At the root, leave effects clear.
+Activation sets the lens active and starts a fresh read using existing inclusion settings. A fresh read on each activation ensures edits made while compact are reflected without adding cache invalidation machinery. The Layers module uses NavigationState.Reset with path preservation in the same context; apply emphasis only to the resulting current node. At the root, leave effects clear.
 
 Deactivation immediately marks the lens inactive, invalidates outstanding results, and cancels the current read/action while retaining navigation and filters. It then requests cleanup through the existing host action path. Do not call ResetContext on collapse because that discards the path.
 
@@ -56,7 +56,7 @@ Alternative: cancellation alone. Rejected because it does not remove an effect a
 
 ### 5. Keep automatic refresh inactive while compact
 
-ExplorerOwner continues observing the active document for lifecycle safety. Its idle refresh gate and the view model's drawing commands also require an active lens. Context changes still cancel work, clear effects, and discard navigation from the old context without activating an inactive lens. An active lens retains existing refresh-to-root behavior on context changes.
+ExplorerOwner continues observing the active document for lifecycle safety. Its idle drawing-change notifications require an active lens. The owner does not inspect or invoke lens commands. Context changes still cancel work, clear effects, and discard navigation from the old context without activating an inactive lens. Each module handles its context notification. Layers retains refresh-to-root behavior and coalesces edits while its own work is busy.
 
 Every activation reads fresh data, so compact-mode edits need no background inventory reads. Any retained refresh-pending flag must coalesce with activation rather than issue an immediate duplicate read. Preserve current inclusion settings across collapse; opening a new session retains the existing default-off filters.
 
@@ -64,9 +64,15 @@ Alternative: continue reading and merely suppress rendering while compact. Rejec
 
 ### 6. Keep command and provider composition small
 
-Keep the sole LayersLensProvider registration and existing composition root. CADLENS still opens or activates the same window; the view model's inactive default supplies compact startup. Repeated command invocation only brings the current window forward and does not toggle its mode.
+Keep LayersLensProvider as the sole production lens, but make composition support any number of provider/action registrations. CADLENS still opens or activates the same window; the view model's inactive default supplies compact startup. Repeated command invocation only brings the current window forward and does not toggle its mode.
 
-No extra metadata model, dynamic discovery, provider collection, or dependency is needed for one lens. A later second-lens change can introduce selection between real providers.
+ILens is a WPF module contract in CadLens.UI. It exposes only a descriptor, its own FrameworkElement view, activation/deactivation, context and drawing-edit notifications, and synchronous close. No common presentation DTO, filter model, command set, or view-model base class is required. Modules and their constructor dependencies are registered in DI; ExplorerViewModel consumes IEnumerable<ILens> and ExplorerWindow uses a ContentControl to host ActiveView.
+
+The shared shell tracks toolbar selection and lifecycle ordering only. It cancels the outgoing activation lifetime and waits for activation to settle before deactivation, which must settle any additional module-owned work. Successful cleanup is required before another module can activate. Failed cleanup is reported and retried on the next activation attempt. Close notifies every module before the host queue and DI scope are disposed, with a host-termination flag to prevent unsafe redraw during shutdown.
+
+LayersLens composes LayersView and LayersViewModel in the CadLens.UI/Lenses/Layers folder. No project per lens is required. Its provider and presentation/navigation models live in CadLens.Lenses; its AutoCAD service implements ILayersActions. Those contracts are private to the Layers architecture and impose no requirements on other modules. Each module owns its state and context invalidation. Views are created lazily on the WPF thread; enumeration alone performs no drawing reads.
+
+The bar binds an ItemsControl to immutable module options in registration order, with horizontal scrolling when needed. Reject empty registrations and duplicate identities before drawing access. No runtime assembly discovery, additional host queue, or new NuGet dependency is needed.
 
 ## Risks / Trade-offs
 

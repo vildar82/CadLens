@@ -26,3 +26,10 @@
 - [ ] 4.2 In AutoCAD, verify fresh-load compact startup, activation, layer/type/object navigation, collapse cleanup, restoration, root behavior, repeated CADLENS invocation, and close/reopen. Verify cameras remain unchanged except for explicit Focus and drawing geometry/properties remain unchanged; record host/version and outcomes.
 - [ ] 4.3 In AutoCAD, verify collapse during pending work or an active command, edits/deletion while compact, document/space switches, last-drawing closure, and close during pending work. Confirm no stale effects return and record any failures separately from the accepted hatch/block rendering limitations.
 - [x] 4.4 Update user documentation and add a concise verification record describing compact startup, toggle behavior, restoration, and actual checks. Run openspec validate lens-panel-and-switching --strict and keep unexecuted checks unchecked; do not archive the change as part of implementation.
+
+## 5. Independent lens modules
+
+- [x] 5.1 Replace universal provider/action contracts with ILens identity, own view, lifecycle, and notifications; register modules through DI and keep production limited to Layers.
+- [x] 5.2 Move exploration XAML, view model, provider, presentation/navigation models, and actions into the Layers implementation; keep the shared UI independent of Layers assemblies.
+- [x] 5.3 Preserve cancellation, cleanup ordering, failure/retry, close, and context guards when switching arbitrary modules; keep Layers refresh coalescing inside the module.
+- [x] 5.4 Verify a Counter fixture with independent XAML, view model, service, and Increment command through DI and the real shell ContentControl. Update the extension guide and record actual verification limits.

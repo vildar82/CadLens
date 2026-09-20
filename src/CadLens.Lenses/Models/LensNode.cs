@@ -1,6 +1,7 @@
-﻿using System.Collections.Immutable;
+﻿using CadLens.Core;
+using System.Collections.Immutable;
 
-namespace CadLens.Core;
+namespace CadLens.Lenses;
 
 /// <summary>A generic group or object with immutable presentation and target data.</summary>
 /// <param name="Id">Stable identity within the parent.</param>

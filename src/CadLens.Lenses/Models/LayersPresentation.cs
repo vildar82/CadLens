@@ -1,16 +1,14 @@
 ﻿using System.Collections.Immutable;
 
-namespace CadLens.Core;
+namespace CadLens.Lenses;
 
-/// <summary>A lens result that can be rendered without host or feature types.</summary>
-/// <param name="LensId">Lens identity.</param>
+/// <summary>Detached inventory and display options for the Layers explorer.</summary>
 /// <param name="Label">Lens title.</param>
 /// <param name="SpaceLabel">Active-space description.</param>
 /// <param name="Groups">Root groups.</param>
 /// <param name="Filters">Lens-provided boolean options.</param>
 /// <param name="EmptyMessage">Explanation for an empty result.</param>
-public sealed record LensPresentation(
-    string LensId,
+public sealed record LayersPresentation(
     string Label,
     string SpaceLabel,
     ImmutableArray<LensNode> Groups,

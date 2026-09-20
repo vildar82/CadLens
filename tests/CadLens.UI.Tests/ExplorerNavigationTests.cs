@@ -1,11 +1,12 @@
-﻿using System.Collections.Immutable;
+﻿using CadLens.Lenses;
+using System.Collections.Immutable;
 using CadLens.Core;
 using Common;
 using Xunit;
 
 namespace CadLens.UI.Tests;
 
-/// <summary>Explorer behavior using a provider unrelated to Layers or AutoCAD.</summary>
+/// <summary>Layers exploration behavior over a detached inventory fixture.</summary>
 public sealed class ExplorerNavigationTests
 {
     /// <summary>Navigation restores broader emphasis and never invokes Focus.</summary>
@@ -13,8 +14,8 @@ public sealed class ExplorerNavigationTests
     public async Task BrowseObjectsAndReturnThroughBreadcrumbs()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         var group = model.Items[0];
         model.EnterCommand.Execute(group);
         var type = model.Items[0];
@@ -52,8 +53,8 @@ public sealed class ExplorerNavigationTests
     public async Task FiltersReconcileSelectionAndStartOffInNewSessions()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         Assert.All(model.Filters, filter => Assert.False(filter.IsEnabled));
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         Assert.Equal(new[] { "archived" }, actions.Enabled.Order());
@@ -67,8 +68,8 @@ public sealed class ExplorerNavigationTests
         Assert.Empty(actions.EmphasisTargets);
         Assert.False(model.Filters[0].IsEnabled);
         Assert.True(model.Filters[1].IsEnabled);
-        using var reopened = new ExplorerViewModel(actions);
-        await reopened.ToggleLensCommand.ExecuteAsync(null);
+        using var reopened = new LayersViewModel(actions);
+        await ToggleAsync(reopened);
         Assert.Empty(actions.Enabled);
         Assert.All(reopened.Filters, filter => Assert.False(filter.IsEnabled));
     }
@@ -78,8 +79,8 @@ public sealed class ExplorerNavigationTests
     public async Task RefreshReconcilesObjectsAndSingletonEndpoints()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         model.EnterCommand.Execute(model.Items[0]);
         model.EnterCommand.Execute(model.Items[0]);
         model.EnterCommand.Execute(model.Items[1]);
@@ -100,16 +101,16 @@ public sealed class ExplorerNavigationTests
     public async Task ContextChangeRejectsPendingFilterResult()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         model.EnterCommand.Execute(model.Items[0]);
-        actions.Pending = new TaskCompletionSource<HostResult<LensPresentation>>();
+        actions.Pending = new TaskCompletionSource<HostResult<LayersPresentation>>();
         var pending = model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         Assert.False(model.EnterCommand.CanExecute(model.Items[0]));
         Assert.False(model.BackCommand.CanExecute(null));
         Assert.False(model.ToggleFilterCommand.CanExecute(model.Filters[1]));
         model.ResetContext();
-        actions.Pending.SetResult(new HostResult<LensPresentation>.Success(CreatePresentation(false, true)));
+        actions.Pending.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, true)));
         await pending;
         Assert.Empty(model.Items);
         Assert.Empty(model.Breadcrumbs);
@@ -122,8 +123,8 @@ public sealed class ExplorerNavigationTests
     public async Task EmptyResultKeepsFiltersAndExplanation()
     {
         var actions = new Actions { Empty = true };
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         Assert.True(model.IsEmpty);
         Assert.Equal("Nothing matches these options.", model.EmptyMessage);
         Assert.Equal(2, model.Filters.Length);
@@ -134,10 +135,10 @@ public sealed class ExplorerNavigationTests
     public async Task FailedFilterReadClearsStaleSelection()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         model.EnterCommand.Execute(model.Items[0]);
-        actions.Pending = new TaskCompletionSource<HostResult<LensPresentation>>();
+        actions.Pending = new TaskCompletionSource<HostResult<LayersPresentation>>();
         var pending = model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         actions.Pending.SetException(new InvalidOperationException("read failed"));
         await pending;
@@ -154,9 +155,9 @@ public sealed class ExplorerNavigationTests
     public async Task FocusIsExplicitAndUsesCurrentTargets()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
+        using var model = new LayersViewModel(actions);
         Assert.False(model.FocusCommand.CanExecute(null));
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        await ToggleAsync(model);
         Assert.False(model.FocusCommand.CanExecute(null));
         model.EnterCommand.Execute(model.Items[0]);
         Assert.True(model.FocusCommand.CanExecute(null));
@@ -180,8 +181,8 @@ public sealed class ExplorerNavigationTests
     public async Task FocusUnavailableKeepsSelection()
     {
         var actions = new Actions { FocusMessage = "No usable bounds." };
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         model.EnterCommand.Execute(model.Items[0]);
         var selected = model.Current;
         await model.FocusCommand.ExecuteAsync(null);
@@ -195,8 +196,8 @@ public sealed class ExplorerNavigationTests
     public async Task ContextChangeCancelsPendingFocus()
     {
         var actions = new Actions { PendingFocus = new TaskCompletionSource<string>() };
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         model.EnterCommand.Execute(model.Items[0]);
         var pending = model.FocusCommand.ExecuteAsync(null);
         Assert.False(model.NextCommand.CanExecute(null));
@@ -214,8 +215,8 @@ public sealed class ExplorerNavigationTests
     public async Task FocusRequiresProviderAction()
     {
         var actions = new Actions { AllowFocus = false };
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         model.EnterCommand.Execute(model.Items[0]);
         Assert.False(model.FocusCommand.CanExecute(null));
     }
@@ -225,8 +226,8 @@ public sealed class ExplorerNavigationTests
     public async Task ContextChangeCancelsNavigationHighlight()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.True(model.IsBusy);
@@ -246,8 +247,8 @@ public sealed class ExplorerNavigationTests
     public async Task FailedHighlightKeepsNavigationUsable()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         actions.PendingEmphasis.SetException(new InvalidOperationException("Graphics failed."));
@@ -266,8 +267,8 @@ public sealed class ExplorerNavigationTests
     public async Task ClosingCancelsNavigationHighlight()
     {
         var actions = new Actions();
-        var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.Dispose();
@@ -283,8 +284,8 @@ public sealed class ExplorerNavigationTests
     public async Task ClosingLastDrawingDisablesActionsUntilActivation()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.ResetContext(false);
         Assert.Empty(model.Groups);
@@ -307,8 +308,8 @@ public sealed class ExplorerNavigationTests
     public async Task DrawingSwitchKeepsFiltersAndResetsNavigation()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.ResetContext(false);
@@ -325,14 +326,14 @@ public sealed class ExplorerNavigationTests
     public async Task NewSessionDoesNoDrawingWorkUntilActivation()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
+        using var model = new LayersViewModel(actions);
         Assert.False(model.IsLensActive);
         Assert.False(model.ReadCommand.CanExecute(null));
         await model.ReadCommand.ExecuteAsync(null);
         await model.EmphasizeCommand.ExecuteAsync(null);
         Assert.Equal(0, actions.ReadCount);
         Assert.Equal(0, actions.HostCalls);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        await ToggleAsync(model);
         Assert.True(model.IsLensActive);
         Assert.Equal(1, actions.ReadCount);
         Assert.Null(model.Current);
@@ -347,18 +348,18 @@ public sealed class ExplorerNavigationTests
     public async Task ReactivationRestoresValidNavigation(bool eraseSelected)
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[1]);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        await ToggleAsync(model);
         Assert.False(model.IsLensActive);
         Assert.Empty(actions.EmphasisTargets);
         Assert.Equal("second", model.Current!.Id);
         actions.SingleObject = eraseSelected;
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        await ToggleAsync(model);
         Assert.Equal(eraseSelected ? "type" : "second", model.Current!.Id);
         Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
         Assert.True(model.Filters[0].IsEnabled);
@@ -372,26 +373,25 @@ public sealed class ExplorerNavigationTests
     public async Task CompactContextAndRootRemainUnselected(bool changeContext)
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
 
         if (changeContext)
             await model.EnterCommand.ExecuteAsync(model.Items[0]);
 
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        await ToggleAsync(model);
         var reads = actions.ReadCount;
 
         if (changeContext)
         {
             model.ResetContext(false);
-            Assert.False(model.ToggleLensCommand.CanExecute(null));
             model.ResetContext();
         }
 
         Assert.False(model.IsLensActive);
         await model.ReadCommand.ExecuteAsync(null);
         Assert.Equal(reads, actions.ReadCount);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        await ToggleAsync(model);
         Assert.Equal(reads + 1, actions.ReadCount);
         Assert.Null(model.Current);
         Assert.Empty(actions.EmphasisTargets);
@@ -402,17 +402,15 @@ public sealed class ExplorerNavigationTests
     public async Task CollapseWaitsForLateEmphasisAndCleanup()
     {
         var actions = new Actions();
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
         var emphasis = model.EnterCommand.ExecuteAsync(model.Items[0]);
-        Assert.True(model.ToggleLensCommand.CanExecute(null));
-        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
+        var collapse = ToggleAsync(model);
         Assert.False(model.IsLensActive);
         Assert.True(model.IsCleanupPending);
         Assert.True(actions.EmphasisToken.IsCancellationRequested);
-        Assert.False(model.ToggleLensCommand.CanExecute(null));
         Assert.Equal(0, actions.ClearCount);
         actions.PendingEmphasis.SetResult("Old emphasis completed.");
         await emphasis;
@@ -424,18 +422,17 @@ public sealed class ExplorerNavigationTests
         await collapse;
         Assert.False(model.IsCleanupPending);
         Assert.Empty(actions.EmphasisTargets);
-        Assert.True(model.ToggleLensCommand.CanExecute(null));
     }
 
     /// <summary>Late activation inventory cannot publish content after collapse.</summary>
     [Fact]
     public async Task CollapseRejectsLateActivationInventory()
     {
-        var actions = new Actions { Pending = new TaskCompletionSource<HostResult<LensPresentation>>() };
-        using var model = new ExplorerViewModel(actions);
-        var activation = model.ToggleLensCommand.ExecuteAsync(null);
-        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
-        actions.Pending.SetResult(new HostResult<LensPresentation>.Success(CreatePresentation(false, false)));
+        var actions = new Actions { Pending = new TaskCompletionSource<HostResult<LayersPresentation>>() };
+        using var model = new LayersViewModel(actions);
+        var activation = ToggleAsync(model);
+        var collapse = ToggleAsync(model);
+        actions.Pending.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, false)));
         await Task.WhenAll(activation, collapse);
         Assert.False(model.IsLensActive);
         Assert.Empty(model.Groups);
@@ -450,9 +447,9 @@ public sealed class ExplorerNavigationTests
     public async Task CleanupFailureIsReported(bool throws)
     {
         var actions = new Actions { PendingClear = new TaskCompletionSource<HostResult<bool>>() };
-        using var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
-        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
+        var collapse = ToggleAsync(model);
 
         if (throws)
             actions.PendingClear.SetException(new InvalidOperationException("fixture cleanup failure"));
@@ -471,18 +468,42 @@ public sealed class ExplorerNavigationTests
     public async Task CloseDuringCleanupRejectsLateCompletion()
     {
         var actions = new Actions { PendingClear = new TaskCompletionSource<HostResult<bool>>() };
-        var model = new ExplorerViewModel(actions);
-        await model.ToggleLensCommand.ExecuteAsync(null);
-        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
+        var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
+        var collapse = ToggleAsync(model);
         model.Dispose();
-        Assert.True(actions.ClearToken.IsCancellationRequested);
         actions.PendingClear.SetResult(new HostResult<bool>.Success(true));
         await collapse;
-        Assert.False(model.ToggleLensCommand.CanExecute(null));
         Assert.DoesNotContain("effects cleared", model.Status);
     }
 
-    private static LensPresentation CreatePresentation(bool single, bool hidden)
+    /// <summary>Layers coalesces edits during its own work and never refreshes after collapse.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DrawingEditsCoalesceWhileLayersAreBusy(bool collapse)
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        var completion = new TaskCompletionSource<HostResult<LayersPresentation>>();
+        actions.Pending = completion;
+        var read = model.ReadCommand.ExecuteAsync(null);
+        model.OnDrawingChanged();
+        model.OnDrawingChanged();
+        var cleanup = collapse ? model.DeactivateAsync(CancellationToken.None) : Task.CompletedTask;
+        actions.Pending = null;
+        completion.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, false)));
+        await read;
+        await cleanup;
+        Assert.Equal(collapse ? 2 : 3, actions.ReadCount);
+    }
+
+    private static Task ToggleAsync(LayersViewModel model) => model.IsLensActive
+        ? model.DeactivateAsync(CancellationToken.None)
+        : model.ActivateAsync(CancellationToken.None);
+
+    private static LayersPresentation CreatePresentation(bool single, bool hidden)
     {
         var first = new LensNode("first", "First", [new HostObjectId(1)], [], [new DetailField("Category", "Fixture")], [LensAction.Focus]);
         var second = new LensNode("second", "Second", [new HostObjectId(2)], [], first.Fields, [LensAction.Focus]);
@@ -491,8 +512,7 @@ public sealed class ExplorerNavigationTests
         var group = new LensNode("group", "Fixture group", type.Objects, [type], [], [LensAction.Focus]);
         ImmutableArray<LensNode> groups = hidden ? [group, group with { Id = "hidden", Label = "Archived group" }] : [group];
 
-        return new LensPresentation(
-            "fixture",
+        return new LayersPresentation(
             "Fixture",
             "Test space",
             groups,
@@ -501,8 +521,10 @@ public sealed class ExplorerNavigationTests
             "Nothing matches these options.");
     }
 
-    private sealed class Actions : IExplorerActions
+    private sealed class Actions : ILayersActions
     {
+        public void ClearImmediately(bool redraw) => EmphasisTargets = [];
+
         internal IReadOnlySet<string> Enabled { get; private set; } = new HashSet<string>();
         internal int ReadCount { get; private set; }
         internal int ClearCount { get; private set; }
@@ -521,9 +543,9 @@ public sealed class ExplorerNavigationTests
         internal ImmutableArray<HostObjectId> FocusTargets { get; private set; }
         internal CancellationToken FocusToken { get; private set; }
         internal TaskCompletionSource<string>? PendingFocus { get; init; }
-        internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
+        internal TaskCompletionSource<HostResult<LayersPresentation>>? Pending { get; set; }
 
-        public Task<HostResult<LensPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken)
+        public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken)
         {
             ReadCount++;
             Enabled = enabledFilters;
@@ -535,7 +557,7 @@ public sealed class ExplorerNavigationTests
             if (!AllowFocus)
                 presentation = presentation with { Groups = [.. presentation.Groups.Select(group => group with { Actions = [] })] };
 
-            return Pending?.Task ?? Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(presentation));
+            return Pending?.Task ?? Task.FromResult<HostResult<LayersPresentation>>(new HostResult<LayersPresentation>.Success(presentation));
         }
 
         public Task<string> EmphasizeAsync(CancellationToken cancellationToken)

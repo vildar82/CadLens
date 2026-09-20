@@ -28,14 +28,12 @@ internal sealed class ExplorerOwner
         services.AddScoped<IEntityHighlightService, EntityHighlightService>();
         services.AddScoped<IEntityHighlightActions, EntityHighlightActions>();
         services.AddScoped<IHostActions, AutoCadHostActions>();
-        services.AddScoped<IExplorerActions, ExplorerActions>();
     });
 
     private IServiceScope? _scope;
     private ExplorerWindow? _window;
     private ExplorerViewModel? _viewModel;
     private IHostTaskService? _requests;
-    private IEntityHighlightService? _graphics;
     private Document? _observedDocument;
     private bool _refreshPending;
     private bool _closing;
@@ -58,7 +56,6 @@ internal sealed class ExplorerOwner
         try
         {
             _requests = _scope.ServiceProvider.GetRequiredService<IHostTaskService>();
-            _graphics = _scope.ServiceProvider.GetRequiredService<IEntityHighlightService>();
             _viewModel = _scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
             _viewModel.PropertyChanged += OnLensStateChanged;
             _window = _scope.ServiceProvider.GetRequiredService<ExplorerWindow>();
@@ -149,8 +146,7 @@ internal sealed class ExplorerOwner
         if (args.DBObject is Viewport && _observedDocument?.Editor.IsQuiescent == true)
             return;
 
-        if (args.DBObject is Entity or LayerTableRecord)
-            _refreshPending = true;
+        _refreshPending = true;
     }
 
     private void OnObjectErased(object sender, ObjectErasedEventArgs args) => _refreshPending = true;
@@ -165,12 +161,12 @@ internal sealed class ExplorerOwner
             ObserveDocument(Application.DocumentManager.MdiActiveDocument);
 
             if (!_refreshPending || _observedDocument?.Editor.IsQuiescent != true ||
-                _viewModel?.ReadCommand.CanExecute(null) != true)
+                _viewModel?.IsLensActive != true || _viewModel.IsCleanupPending)
                 return;
 
             _refreshPending = false;
-            // The view model contains async errors; drawing reads use the existing host queue.
-            _ = _viewModel.ReadCommand.ExecuteAsync(null);
+            // The active module decides how to react; the owner does not know its commands.
+            _viewModel.OnDrawingChanged();
         }
         catch (Exception exception)
         {
@@ -188,11 +184,7 @@ internal sealed class ExplorerOwner
         }
     }
 
-    private void ResetContext(bool hasDrawing)
-    {
-        _viewModel?.ResetContext(hasDrawing);
-        _graphics?.Clear();
-    }
+    private void ResetContext(bool hasDrawing) => _viewModel?.ResetContext(hasDrawing);
 
     private async Task CloseSessionAsync()
     {
@@ -208,7 +200,7 @@ internal sealed class ExplorerOwner
             if (_viewModel is not null)
             {
                 _viewModel.PropertyChanged -= OnLensStateChanged;
-                _viewModel.Dispose();
+                _viewModel.Close(_terminated);
             }
 
             drained = _requests?.StopAsync() ?? Task.CompletedTask;
@@ -227,8 +219,6 @@ internal sealed class ExplorerOwner
                 if (_window.IsVisible)
                     _window.Close();
             }
-
-            _graphics?.Clear(redraw: !_terminated);
         }
         catch (Exception exception)
         {
@@ -251,7 +241,6 @@ internal sealed class ExplorerOwner
             _window = null;
             _viewModel = null;
             _requests = null;
-            _graphics = null;
             _closing = false;
 
             if (_terminated && !_rootDisposed)

@@ -1,18 +1,19 @@
 ﻿using System.Collections.Immutable;
-using CadLens.Core;
 using Common;
 
 namespace CadLens.Lenses;
 
 /// <summary>Builds the Layers lens from a host-independent inventory.</summary>
 /// <param name="source">Detached snapshot source.</param>
-public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILensProvider
+public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersProvider
 {
     /// <summary>Option identity for globally or viewport-frozen layers.</summary>
     public const string IncludeFrozen = "include-frozen";
 
     /// <summary>Option identity for switched-off layers.</summary>
     public const string IncludeOff = "include-off";
+
+    private const string LensLabel = "Layers";
 
     private static readonly ImmutableArray<BooleanFilter> Filters =
     [
@@ -25,7 +26,7 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILensProv
     ];
 
     /// <inheritdoc />
-    public async Task<HostResult<LensPresentation>> LoadAsync(
+    public async Task<HostResult<LayersPresentation>> LoadAsync(
         IReadOnlySet<string> enabledFilters,
         CancellationToken cancellationToken)
     {
@@ -41,7 +42,7 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILensProv
             cancellationToken));
     }
 
-    private static HostResult<LensPresentation> BuildPresentation(
+    private static HostResult<LayersPresentation> BuildPresentation(
         LayersSnapshot snapshot,
         bool includeFrozen,
         bool includeOff,
@@ -50,15 +51,14 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILensProv
         cancellationToken.ThrowIfCancellationRequested();
 
         var groups = CreateLayerGroups(snapshot, includeFrozen, includeOff, cancellationToken);
-        var presentation = new LensPresentation(
-            "layers",
-            "Layers",
+        var presentation = new LayersPresentation(
+            LensLabel,
             snapshot.SpaceLabel,
             groups,
             Filters,
             "No layers contain included objects in the current space.");
 
-        return new HostResult<LensPresentation>.Success(presentation);
+        return new HostResult<LayersPresentation>.Success(presentation);
     }
 
     private static ImmutableArray<LensNode> CreateLayerGroups(

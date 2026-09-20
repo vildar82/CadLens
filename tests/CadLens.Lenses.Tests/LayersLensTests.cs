@@ -100,20 +100,20 @@ public sealed class LayersLensTests
         var provider = new LayersLensProvider(new UnavailableSource());
         var result = await provider.LoadAsync(new HashSet<string>(), default);
 
-        Assert.Equal("No drawing.", Assert.IsType<HostResult<LensPresentation>.Unavailable>(result).Reason);
+        Assert.Equal("No drawing.", Assert.IsType<HostResult<LayersPresentation>.Unavailable>(result).Reason);
     }
 
     private static EntitySnapshot Entity(string key, string layer, string type) =>
         new(new HostObjectId(key), layer, type);
 
-    private static async Task<LensPresentation> Load(
+    private static async Task<LayersPresentation> Load(
         ImmutableArray<LayerSnapshot> layers,
         ImmutableArray<EntitySnapshot> entities,
         IReadOnlySet<string> filters)
     {
         var provider = new LayersLensProvider(new Source(new LayersSnapshot("Model", layers, entities)));
         var result = await provider.LoadAsync(filters, default);
-        return Assert.IsType<HostResult<LensPresentation>.Success>(result).Value;
+        return Assert.IsType<HostResult<LayersPresentation>.Success>(result).Value;
     }
 
     private sealed class Source(LayersSnapshot snapshot) : ILayersSnapshotSource

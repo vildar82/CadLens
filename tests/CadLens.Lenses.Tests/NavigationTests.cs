@@ -1,8 +1,9 @@
 ﻿using System.Collections.Immutable;
+using CadLens.Core;
 using Common;
 using Xunit;
 
-namespace CadLens.Core.Tests;
+namespace CadLens.Lenses.Tests;
 
 /// <summary>Navigation is independent of concrete lenses and host actions.</summary>
 public sealed class NavigationTests
@@ -11,9 +12,9 @@ public sealed class NavigationTests
     [Fact]
     public async Task NonLayerLensSuppliesGroupsFieldsFiltersAndActions()
     {
-        ILensProvider provider = new FakeLens();
+        ILayersProvider provider = new FakeLens();
         var result = await provider.LoadAsync(new HashSet<string>(), default);
-        var presentation = Assert.IsType<HostResult<LensPresentation>.Success>(result).Value;
+        var presentation = Assert.IsType<HostResult<LayersPresentation>.Success>(result).Value;
         Assert.Equal("Issues", presentation.Label);
         Assert.Equal("Severity", presentation.Groups[0].Fields[0].Label);
         Assert.Equal(IconRole.Group, presentation.Filters[0].Icon);
@@ -89,15 +90,14 @@ public sealed class NavigationTests
             [LensAction.Focus]);
     }
 
-    private sealed class FakeLens : ILensProvider
+    private sealed class FakeLens : ILayersProvider
     {
-        public Task<HostResult<LensPresentation>> LoadAsync(
+        public Task<HostResult<LayersPresentation>> LoadAsync(
             IReadOnlySet<string> enabledFilters,
             CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<LensPresentation>>(
-                new HostResult<LensPresentation>.Success(
-                    new LensPresentation(
-                        "issues",
+            Task.FromResult<HostResult<LayersPresentation>>(
+                new HostResult<LayersPresentation>.Success(
+                    new LayersPresentation(
                         "Issues",
                         "Example",
                         [Group([Object("1")])],

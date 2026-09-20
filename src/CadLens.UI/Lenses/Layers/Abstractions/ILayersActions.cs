@@ -1,16 +1,21 @@
-﻿using System.Collections.Immutable;
+﻿using CadLens.Lenses;
+using System.Collections.Immutable;
 using CadLens.Core;
 using Common;
 
 namespace CadLens.UI;
 
 /// <summary>Host operations for the modeless drawing explorer.</summary>
-public interface IExplorerActions
+public interface ILayersActions
 {
+    /// <summary>Detaches owned graphics synchronously at context and lifetime boundaries.</summary>
+    /// <param name="redraw">Whether the current host view can be regenerated.</param>
+    void ClearImmediately(bool redraw);
+
     /// <summary>Reads the active-space inventory without changing the drawing.</summary>
     /// <param name="enabledFilters">Enabled lens option identities.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<HostResult<LensPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken);
+    Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken);
 
     /// <summary>Applies the candidate rendering effect to the current implied selection.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>

@@ -1,4 +1,4 @@
-﻿namespace CadLens.Core;
+﻿namespace CadLens.Lenses;
 
 /// <summary>A lens-provided label and value for the generic detail panel.</summary>
 /// <param name="Label">Field label.</param>

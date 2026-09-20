@@ -1,4 +1,4 @@
-﻿namespace CadLens.Core;
+﻿namespace CadLens.Lenses;
 
 /// <summary>A lens-specific inclusion option; sessions start with all options disabled.</summary>
 /// <param name="Id">Stable option identity.</param>
