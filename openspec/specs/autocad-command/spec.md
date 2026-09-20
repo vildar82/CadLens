@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The CADLENS command gives the user a minimal way to check that the plugin is loaded and available in AutoCAD 2025 or 2026.
+The CADLENS command opens or activates the Layers explorer in AutoCAD 2025 or 2026 without changing drawing geometry or properties.
 
 ## Requirements
 
@@ -15,11 +15,20 @@ After the plugin is loaded in a supported AutoCAD version, the system SHALL regi
 - **WHEN** the user loads the plugin in AutoCAD 2025 or 2026 and enters `CADLENS` on the command line
 - **THEN** AutoCAD runs the plugin command
 
-### Requirement: English greeting without drawing changes
+### Requirement: Open the explorer without drawing changes
 
-When `CADLENS` runs, the system SHALL print an English greeting containing `CAD Lens` on the AutoCAD command line, finish without further user input, and leave the open DWG unchanged.
+When `CADLENS` runs with a drawing open in AutoCAD 2025 or 2026, the system SHALL open the explorer with the Layers lens active, and return control to AutoCAD without requiring command-line input. The command SHALL leave DWG geometry and properties unchanged.
 
 #### Scenario: Command runs with a drawing open
 
 - **WHEN** the user runs `CADLENS` with a DWG open
-- **THEN** an English greeting containing `CAD Lens` appears on the command line, the command finishes, and the DWG remains unchanged
+- **THEN** the Layers explorer opens for the active space, and the command finishes without changing DWG geometry or properties
+
+### Requirement: Repeated invocation
+
+The system SHALL reuse the existing explorer for the active document when `CADLENS` is invoked again, without creating duplicate panels or temporary effects.
+
+#### Scenario: Explorer is already open
+
+- **WHEN** the user runs `CADLENS` again in the same document
+- **THEN** the existing panel is brought forward with its exploration state preserved

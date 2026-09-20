@@ -10,7 +10,7 @@ Composition validation and queued modeless reads are complete using managed test
 
 The latest graphics correction passed a Debug solution build with zero warnings/errors, all 50 managed tests, and focused JetBrains inspections with no warning/error findings. Earlier Debug/Release results are recorded below; they do not constitute a new Release run for that correction. Native COM rendering is covered only by the user-reported retest, not those managed tests.
 
-The feature remains in progress rather than archived because the remaining acceptance criteria have not been individually established. Historical entries below describe the state at the time; this summary and the later user confirmations supersede outdated pending-test and greeting statements.
+The user explicitly accepted closure after the remaining verification limits were disclosed. The change is archived with 20 unchecked acceptance tasks retained as unverified, not marked passed. Historical entries below describe the state at the time; this summary and the later user confirmations supersede outdated pending-test and greeting statements.
 
 ## Current graphics scope decision (September 20)
 
