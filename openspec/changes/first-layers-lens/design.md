@@ -78,7 +78,7 @@ Use `ObjectId.GetObject<T>()` for typed reads, with an optional `true` for writi
 
 ### 4. One session controller and explicit invalidation
 
-One modeless window follows the active drawing. Repeated `CADLENS` brings it forward without recreating state in the same context. A fresh open creates a fresh session with both inclusion toggles disabled. A context switch clears selection and graphics and discards late UI results; the current preview refreshes the new space on request; session toggles remain until the window closes.
+CADLENS opens or activates the explorer without printing a greeting or requesting command-line input. One modeless window follows the active drawing. Repeated `CADLENS` brings it forward without recreating state in the same context. A fresh open creates a fresh session with both inclusion toggles disabled. A context switch clears selection and graphics and discards late UI results; the current preview refreshes the new space on request; session toggles remain until the window closes.
 
 Subscribe to document activation/destruction, relevant layout/viewport transitions, and database changes while the session is open. Event handlers mark data dirty; collect again at a safe command boundary rather than reading inside database notifications. Reconcile context before every host action as protection against a missed notification. Coalesce edit bursts, including undo/redo, into one refresh. Preserve a selection only while its identities still exist and pass filters; otherwise return to the nearest valid ancestor. Revalidate targets before Focus and emphasis.
 

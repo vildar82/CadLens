@@ -25,7 +25,7 @@ CAD Lens currently only confirms that the plugin is loaded. The first Layers len
 
 ### Modified Capabilities
 
-- `autocad-command`: Extend the greeting-only command contract to launch the explorer while preserving command availability and leaving DWG geometry and properties unchanged.
+- `autocad-command`: Replace the greeting-only command contract with opening or activating the explorer without a greeting while preserving command availability and leaving DWG geometry and properties unchanged.
 
 ## Impact
 

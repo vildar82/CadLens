@@ -1,10 +1,22 @@
 ﻿# Implementation verification
 
+## Current acceptance summary
+
+The user confirmed layer/type/object navigation, Back/All/close cleanup without camera movement, full-row clicks, and shared highlighting/clearing in two visible viewports after the regeneration correction. The user also gave general acceptance after the automatic-refresh test was requested; no detailed fixture results or exact host/version were supplied for these recent confirmations.
+
+The active command delta now replaces the intentionally removed greeting with opening/activating the explorer without additional command-line input. The bootstrap main spec remains historical until this change is synchronized; the greeting mismatch is no longer an open implementation issue.
+
+Composition validation and queued modeless reads are complete using managed tests, validated registrations, and successful user host runs. Remaining unchecked tasks include broader entity/color/proxy coverage, viewport-specific hidden-state and paper-space cases, detailed Focus edge cases, DPI/keyboard checks, lifecycle failure/shutdown cases, current performance/resource measurements, and geometry/layer/DBMOD comparisons. These are verification limits, not observed failures.
+
+The latest graphics correction passed a Debug solution build with zero warnings/errors, all 50 managed tests, and focused JetBrains inspections with no warning/error findings. Earlier Debug/Release results are recorded below; they do not constitute a new Release run for that correction. Native COM rendering is covered only by the user-reported retest, not those managed tests.
+
+The feature remains in progress rather than archived because the remaining acceptance criteria have not been individually established. Historical entries below describe the state at the time; this summary and the later user confirmations supersede outdated pending-test and greeting statements.
+
 ## Current graphics scope decision (September 20)
 
 The user approved shared highlighting and dimming across views of the active drawing and removed the separate-context-per-viewport idea. This supersedes historical references below to viewport isolation as a requirement or implementation blocker. The active-space inventory and target set apply wherever their objects are visible; each viewport retains its native visibility. One exploration session follows the active drawing, document/space changes clear effects, and Focus affects only the active view.
 
-The existing database/object-filtered graphics adapter is consistent with this scope; no rendering code changed for this decision. A two-viewport native check remains pending to verify shared emphasis, hidden-object preservation, unchanged cameras, and cleanup. This planning change does not itself constitute host verification.
+The existing database/object-filtered graphics adapter is consistent with this scope; no rendering code changed for this decision. The user subsequently confirmed shared emphasis and clearing in two visible viewports; hidden-object preservation and the remaining detailed fixtures were not separately reported. This planning change does not itself constitute host verification.
 
 ## Current preview
 
@@ -12,7 +24,7 @@ The existing database/object-filtered graphics adapter is consistent with this s
 
 The panel now uses CommunityToolkit.Mvvm 8.4.0, locally scoped WPF UI resources, a compact inventory, explicit busy/error feedback, and a clearer visual hierarchy. This is still a preview: inclusion toggles, drill-down, breadcrumbs and object browsing are connected. Explicit Focus and navigation emphasis are connected for the user-requested preview trial; native graphics acceptance remains open. See the latest Focus implementation record below for verification limits. The complete first-layers-lens change remains open.
 
-The greeting was removed in a concurrent local edit. That edit is preserved. The existing greeting scenario is therefore not marked verified or complete; the main specification has not been changed.
+The greeting was removed in a concurrent local edit. That edit is preserved. The active command delta now removes the greeting requirement; the bootstrap main specification is retained until synchronization.
 
 ## Lifetime behavior
 
