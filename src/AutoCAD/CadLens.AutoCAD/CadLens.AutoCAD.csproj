@@ -2,6 +2,14 @@
 
     <PropertyGroup>
         <UseAutocad>true</UseAutocad>
+        <UseWPF>true</UseWPF>
+        <UseDi>true</UseDi>
     </PropertyGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="../../Common.AutoCAD/Common.AutoCAD.csproj"/>
+        <ProjectReference Include="../../CadLens.Core/CadLens.Core.csproj"/>
+        <ProjectReference Include="../../CadLens.Lenses/CadLens.Lenses.csproj"/>
+        <ProjectReference Include="../../CadLens.UI/CadLens.UI.csproj"/>
+    </ItemGroup>
 </Project>

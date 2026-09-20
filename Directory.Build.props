@@ -6,11 +6,21 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" PrivateAssets="all" ExcludeAssets="runtime"/>
         <PackageReference Include="AutoCAD.NET" Version="25.0.1" ExcludeAssets="runtime" Condition="'$(UseAutocad)' == 'true'"/>
+        <PackageReference Include="WPF-UI" Version="4.3.0" Condition="'$(UseUi)' == 'true'"/>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" Condition="'$(UseUi)' == 'true'"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" Condition="'$(UseDi)' == 'true'"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1"/>
+        <PackageReference Include="xunit" Version="2.9.2"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all"/>
     </ItemGroup>
 
 </Project>

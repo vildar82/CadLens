@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <UseWPF>true</UseWPF>
+        <RootNamespace>CadLens.AutoCAD</RootNamespace>
+        <IsTestProject>true</IsTestProject>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../../src/Common/Common.csproj" />
+        <Compile Include="../../src/Common.AutoCAD/Abstractions/IHostTaskService.cs" Link="IHostTaskService.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Services/AutoCadTaskService.cs" Link="AutoCadTaskService.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Extensions/DatabaseObjectExtensions.cs" Link="DatabaseObjectExtensions.cs" />
+    </ItemGroup>
+</Project>
