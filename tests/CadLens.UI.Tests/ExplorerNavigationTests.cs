@@ -8,7 +8,7 @@ namespace CadLens.UI.Tests;
 /// <summary>Explorer behavior using a provider unrelated to Layers or AutoCAD.</summary>
 public sealed class ExplorerNavigationTests
 {
-    /// <summary>Navigation preserves ancestors and never invokes host graphics.</summary>
+    /// <summary>Navigation restores broader emphasis and never invokes Focus.</summary>
     [Fact]
     public async Task BrowseObjectsAndReturnThroughBreadcrumbs()
     {
@@ -19,26 +19,32 @@ public sealed class ExplorerNavigationTests
         model.EnterCommand.Execute(group);
         var type = model.Items[0];
         model.EnterCommand.Execute(type);
+        Assert.Equal(type.Objects, actions.EmphasisTargets);
         model.EnterCommand.Execute(model.Items[0]);
+        Assert.Equal(new HostObjectId(1), Assert.Single(actions.EmphasisTargets));
 
         Assert.Equal("1 of 2", model.ObjectPosition);
         Assert.False(model.PreviousCommand.CanExecute(null));
         Assert.True(model.NextCommand.CanExecute(null));
         Assert.Equal("Category", model.Current!.Fields[0].Label);
         model.NextCommand.Execute(null);
+        Assert.Equal(new HostObjectId(2), Assert.Single(actions.EmphasisTargets));
         Assert.Equal("2 of 2", model.ObjectPosition);
         Assert.False(model.NextCommand.CanExecute(null));
         model.PreviousCommand.Execute(null);
         Assert.Equal("1 of 2", model.ObjectPosition);
         model.BackCommand.Execute(null);
         Assert.Same(type, model.Current);
+        Assert.Equal(type.Objects, actions.EmphasisTargets);
         model.BreadcrumbCommand.Execute(group);
         Assert.Same(group, model.Current);
+        Assert.Equal(group.Objects, actions.EmphasisTargets);
         model.RootCommand.Execute(null);
         Assert.Null(model.Current);
         Assert.Empty(model.Breadcrumbs);
         Assert.False(model.BackCommand.CanExecute(null));
         Assert.Equal(0, actions.HostCalls);
+        Assert.Empty(actions.EmphasisTargets);
     }
 
     /// <summary>Filters are independent, preserve valid paths, and remove excluded selections.</summary>
@@ -58,6 +64,7 @@ public sealed class ExplorerNavigationTests
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         Assert.Null(model.Current);
         Assert.Equal(new[] { "extra" }, actions.Enabled.Order());
+        Assert.Empty(actions.EmphasisTargets);
         Assert.False(model.Filters[0].IsEnabled);
         Assert.True(model.Filters[1].IsEnabled);
         using var reopened = new ExplorerViewModel(actions);
@@ -81,6 +88,7 @@ public sealed class ExplorerNavigationTests
         actions.SingleObject = true;
         await model.ReadCommand.ExecuteAsync(null);
         Assert.Equal("type", model.Current!.Id);
+        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
         model.EnterCommand.Execute(model.Items[0]);
         Assert.Equal("1 of 1", model.ObjectPosition);
         Assert.False(model.PreviousCommand.CanExecute(null));
@@ -137,16 +145,146 @@ public sealed class ExplorerNavigationTests
         Assert.Null(model.Current);
         Assert.True(model.Filters[0].IsEnabled);
         Assert.Contains("read failed", model.Status);
+        Assert.Empty(actions.EmphasisTargets);
         Assert.True(model.ReadCommand.CanExecute(null));
+    }
+
+    /// <summary>Only explicit Focus sends the selected group's or object's identifiers to the host.</summary>
+    [Fact]
+    public async Task FocusIsExplicitAndUsesCurrentTargets()
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        Assert.False(model.FocusCommand.CanExecute(null));
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.False(model.FocusCommand.CanExecute(null));
+        model.EnterCommand.Execute(model.Items[0]);
+        Assert.True(model.FocusCommand.CanExecute(null));
+        Assert.Equal(0, actions.HostCalls);
+        await model.FocusCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current!.Objects, actions.FocusTargets);
+        Assert.Equal(2, actions.FocusTargets.Length);
+        model.EnterCommand.Execute(model.Items[0]);
+        model.EnterCommand.Execute(model.Items[0]);
+        model.NextCommand.Execute(null);
+        Assert.Equal(1, actions.HostCalls);
+        await model.FocusCommand.ExecuteAsync(null);
+        Assert.Equal(new HostObjectId(2), Assert.Single(actions.FocusTargets));
+        Assert.Equal("2 of 2", model.ObjectPosition);
+        model.RootCommand.Execute(null);
+        Assert.False(model.FocusCommand.CanExecute(null));
+    }
+
+    /// <summary>Unavailable bounds are explained without losing navigation or leaving commands busy.</summary>
+    [Fact]
+    public async Task FocusUnavailableKeepsSelection()
+    {
+        var actions = new Actions { FocusMessage = "No usable bounds." };
+        using var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        model.EnterCommand.Execute(model.Items[0]);
+        var selected = model.Current;
+        await model.FocusCommand.ExecuteAsync(null);
+        Assert.Same(selected, model.Current);
+        Assert.Equal("No usable bounds.", model.Status);
+        Assert.True(model.FocusCommand.CanExecute(null));
+    }
+
+    /// <summary>A context switch cancels the queued focus and rejects its late status.</summary>
+    [Fact]
+    public async Task ContextChangeCancelsPendingFocus()
+    {
+        var actions = new Actions { PendingFocus = new TaskCompletionSource<string>() };
+        using var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        model.EnterCommand.Execute(model.Items[0]);
+        var pending = model.FocusCommand.ExecuteAsync(null);
+        Assert.False(model.NextCommand.CanExecute(null));
+        Assert.False(model.FocusCommand.CanExecute(null));
+        model.ResetContext();
+        Assert.True(actions.FocusToken.IsCancellationRequested);
+        actions.PendingFocus.SetResult("Old focus finished.");
+        await pending;
+        Assert.Contains("context changed", model.Status);
+        Assert.False(model.FocusCommand.CanExecute(null));
+    }
+
+    /// <summary>Generic providers can omit Focus even when their nodes contain objects.</summary>
+    [Fact]
+    public async Task FocusRequiresProviderAction()
+    {
+        var actions = new Actions { AllowFocus = false };
+        using var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        model.EnterCommand.Execute(model.Items[0]);
+        Assert.False(model.FocusCommand.CanExecute(null));
+    }
+
+    /// <summary>Pending emphasis serializes navigation and context changes cancel its native request.</summary>
+    [Fact]
+    public async Task ContextChangeCancelsNavigationHighlight()
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.True(model.IsBusy);
+        Assert.False(model.BackCommand.CanExecute(null));
+        Assert.False(model.FocusCommand.CanExecute(null));
+        model.ResetContext();
+        Assert.True(actions.EmphasisToken.IsCancellationRequested);
+        actions.PendingEmphasis.SetResult("Old highlight completed.");
+        await pending;
+        Assert.Null(model.Current);
+        Assert.Contains("context changed", model.Status);
+        Assert.False(model.IsBusy);
+    }
+
+    /// <summary>A graphics failure is reported without breaking navigation or implicitly focusing.</summary>
+    [Fact]
+    public async Task FailedHighlightKeepsNavigationUsable()
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
+        actions.PendingEmphasis.SetException(new InvalidOperationException("Graphics failed."));
+        await pending;
+        Assert.Contains("Graphics failed", model.Status);
+        Assert.NotNull(model.Current);
+        Assert.True(model.BackCommand.CanExecute(null));
+        actions.PendingEmphasis = null;
+        await model.RootCommand.ExecuteAsync(null);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal(0, actions.HostCalls);
+    }
+
+    /// <summary>Closing the panel cancels outstanding emphasis and ignores its eventual result.</summary>
+    [Fact]
+    public async Task ClosingCancelsNavigationHighlight()
+    {
+        var actions = new Actions();
+        var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
+        model.Dispose();
+        Assert.True(actions.EmphasisToken.IsCancellationRequested);
+        actions.PendingEmphasis.SetResult("Late highlight.");
+        await pending;
+        Assert.DoesNotContain("Late highlight", model.Status);
+        Assert.False(model.RootCommand.CanExecute(null));
     }
 
     private static LensPresentation CreatePresentation(bool single, bool hidden)
     {
-        var first = new LensNode("first", "First", [new HostObjectId(1)], [], [new DetailField("Category", "Fixture")], []);
-        var second = new LensNode("second", "Second", [new HostObjectId(2)], [], first.Fields, []);
+        var first = new LensNode("first", "First", [new HostObjectId(1)], [], [new DetailField("Category", "Fixture")], [LensAction.Focus]);
+        var second = new LensNode("second", "Second", [new HostObjectId(2)], [], first.Fields, [LensAction.Focus]);
         ImmutableArray<LensNode> objects = single ? [first] : [first, second];
-        var type = new LensNode("type", "Fixture type", [.. objects.SelectMany(node => node.Objects)], objects, [], []);
-        var group = new LensNode("group", "Fixture group", type.Objects, [type], [], []);
+        var type = new LensNode("type", "Fixture type", [.. objects.SelectMany(node => node.Objects)], objects, [], [LensAction.Focus]);
+        var group = new LensNode("group", "Fixture group", type.Objects, [type], [], [LensAction.Focus]);
         ImmutableArray<LensNode> groups = hidden ? [group, group with { Id = "hidden", Label = "Archived group" }] : [group];
 
         return new LensPresentation(
@@ -165,6 +303,14 @@ public sealed class ExplorerNavigationTests
         internal bool SingleObject { get; set; }
         internal bool Empty { get; init; }
         internal int HostCalls { get; private set; }
+        internal ImmutableArray<HostObjectId> EmphasisTargets { get; private set; } = [];
+        internal TaskCompletionSource<string>? PendingEmphasis { get; set; }
+        internal CancellationToken EmphasisToken { get; private set; }
+        internal bool AllowFocus { get; init; } = true;
+        internal string FocusMessage { get; init; } = "Focused.";
+        internal ImmutableArray<HostObjectId> FocusTargets { get; private set; }
+        internal CancellationToken FocusToken { get; private set; }
+        internal TaskCompletionSource<string>? PendingFocus { get; init; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
 
         public Task<HostResult<LensPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken)
@@ -174,6 +320,9 @@ public sealed class ExplorerNavigationTests
 
             if (Empty)
                 presentation = presentation with { Groups = [] };
+
+            if (!AllowFocus)
+                presentation = presentation with { Groups = [.. presentation.Groups.Select(group => group with { Actions = [] })] };
 
             return Pending?.Task ?? Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(presentation));
         }
@@ -188,6 +337,23 @@ public sealed class ExplorerNavigationTests
         {
             HostCalls++;
             return Task.FromResult("Cleared");
+        }
+
+        public Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
+        {
+            EmphasisTargets = objects;
+            EmphasisToken = cancellationToken;
+
+            return PendingEmphasis?.Task ?? Task.FromResult("Selection updated.");
+        }
+
+        public Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
+        {
+            HostCalls++;
+            FocusTargets = objects;
+            FocusToken = cancellationToken;
+
+            return PendingFocus?.Task ?? Task.FromResult(FocusMessage);
         }
     }
 }

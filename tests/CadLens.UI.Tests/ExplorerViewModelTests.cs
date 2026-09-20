@@ -110,7 +110,7 @@ public sealed class ExplorerViewModelTests
             [new HostObjectId(index)],
             [],
             [new DetailField("Category", "Example category"), new DetailField("Visibility", "Hidden: frozen. Inclusion does not reveal this object.")],
-            [])).ToImmutableArray();
+            [LensAction.Focus])).ToImmutableArray();
         return new LensPresentation("fixture", "Layers", "Model space", groups, [new BooleanFilter("frozen", "Include frozen", "Include hidden frozen objects", IconRole.Snowflake), new BooleanFilter("off", "Include off", "Include hidden switched-off objects", IconRole.Lightbulb)], "No objects.");
     }
 
@@ -136,5 +136,11 @@ public sealed class ExplorerViewModelTests
         }
 
         public Task<string> ClearAsync(CancellationToken cancellationToken) => Task.FromResult("Cleared.");
+
+        public Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult("Selection updated.");
+
+        public Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult("Focused.");
     }
 }

@@ -237,8 +237,8 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <ui:Button Content="Focus" IsEnabled="False" Margin="0,6" ToolTipService.ShowOnDisabled="True"
-                                           ToolTip="Focus is not available in this preview." />
+                                <ui:Button Content="Focus" Command="{Binding FocusCommand}" Margin="0,6" ToolTipService.ShowOnDisabled="True"
+                                           ToolTip="Fit the current group or object. Hidden objects remain hidden; locked viewports are not changed." />
                                 <StackPanel Orientation="Horizontal" Visibility="{Binding IsObject, Converter={StaticResource BooleanVisibility}}">
                                     <ui:Button Content="Previous" Command="{Binding PreviousCommand}" Style="{StaticResource QuietButton}" />
                                     <TextBlock Text="{Binding ObjectPosition}" VerticalAlignment="Center" Margin="8,0" />

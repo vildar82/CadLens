@@ -15,7 +15,8 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     private ImmutableArray<FilterOption> _filters = [];
     private string _emptyMessage = "Refresh to explore the active space.";
     private readonly CancellationTokenSource _lifetime = new();
-    private string _status = "Select objects in your drawing, then highlight them here.";
+    private CancellationTokenSource? _pendingRequest;
+    private string _status = "Refresh, then open a group to highlight its objects.";
     private string _spaceLabel = "Active drawing";
     private string _lensLabel = "Overview";
     private string? _lensId;
@@ -32,14 +33,17 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         ReadCommand = new AsyncRelayCommand(() => RunAsync(ReadInventoryAsync), CanRun);
         EmphasizeCommand = new AsyncRelayCommand(() => RunAsync(_actions.EmphasizeAsync), CanRun);
         ClearCommand = new AsyncRelayCommand(() => RunAsync(_actions.ClearAsync), CanRun);
-        EnterCommand = new RelayCommand<LensNode>(Enter, node => CanRun() && node is not null && Items.Contains(node));
-        BackCommand = new RelayCommand(() => GoBackTo(_navigation.Path.Count - 1), () => CanRun() && Current is not null);
-        RootCommand = new RelayCommand(() => GoBackTo(0), () => CanRun() && Current is not null);
-        BreadcrumbCommand = new RelayCommand<LensNode>(
-            node => GoBackTo(_navigation.Path.ToList().IndexOf(node!) + 1),
+        FocusCommand = new AsyncRelayCommand(
+            () => RunAsync(token => _actions.FocusAsync(Current!.Objects, token)),
+            () => CanRun() && Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus));
+        EnterCommand = new AsyncRelayCommand<LensNode>(node => NavigateAsync(() => Enter(node)), node => CanRun() && node is not null && Items.Contains(node));
+        BackCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(_navigation.Path.Count - 1)), () => CanRun() && Current is not null);
+        RootCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(0)), () => CanRun() && Current is not null);
+        BreadcrumbCommand = new AsyncRelayCommand<LensNode>(
+            node => NavigateAsync(() => GoBackTo(_navigation.Path.ToList().IndexOf(node!) + 1)),
             node => CanRun() && node is not null && _navigation.Path.Contains(node));
-        PreviousCommand = new RelayCommand(() => MoveObject(-1), () => CanRun() && _navigation.CanPrevious);
-        NextCommand = new RelayCommand(() => MoveObject(1), () => CanRun() && _navigation.CanNext);
+        PreviousCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(-1)), () => CanRun() && _navigation.CanPrevious);
+        NextCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(1)), () => CanRun() && _navigation.CanNext);
         ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
             filter => RunAsync(token => ToggleFilterAsync(filter!, token)),
             filter => CanRun() && filter is not null && Filters.Contains(filter));
@@ -106,23 +110,23 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Lens options and their current inclusion state.</summary>
     public ImmutableArray<FilterOption> Filters => _filters;
 
-    /// <summary>Enters a displayed child without invoking host actions.</summary>
-    public IRelayCommand<LensNode> EnterCommand { get; }
+    /// <summary>Enters a displayed child and updates temporary emphasis without moving the view.</summary>
+    public IAsyncRelayCommand<LensNode> EnterCommand { get; }
 
     /// <summary>Returns to the parent level.</summary>
-    public IRelayCommand BackCommand { get; }
+    public IAsyncRelayCommand BackCommand { get; }
 
     /// <summary>Returns to the root list.</summary>
-    public IRelayCommand RootCommand { get; }
+    public IAsyncRelayCommand RootCommand { get; }
 
     /// <summary>Returns to the chosen ancestor.</summary>
-    public IRelayCommand<LensNode> BreadcrumbCommand { get; }
+    public IAsyncRelayCommand<LensNode> BreadcrumbCommand { get; }
 
     /// <summary>Shows the previous object.</summary>
-    public IRelayCommand PreviousCommand { get; }
+    public IAsyncRelayCommand PreviousCommand { get; }
 
     /// <summary>Shows the next object.</summary>
-    public IRelayCommand NextCommand { get; }
+    public IAsyncRelayCommand NextCommand { get; }
 
     /// <summary>Reloads inventory with one inclusion option toggled.</summary>
     public IAsyncRelayCommand<FilterOption> ToggleFilterCommand { get; }
@@ -158,10 +162,14 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Removes temporary rendering.</summary>
     public IAsyncRelayCommand ClearCommand { get; }
 
+    /// <summary>Explicitly fits the selected group's or object's live bounds.</summary>
+    public IAsyncRelayCommand FocusCommand { get; }
+
     /// <summary>Clears presentation when the document or space changes.</summary>
     public void ResetContext()
     {
         _contextVersion++;
+        _pendingRequest?.Cancel();
         Groups = [];
         _navigation.Reset([], false);
         NotifyNavigation();
@@ -188,6 +196,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         ReadCommand.NotifyCanExecuteChanged();
         EmphasizeCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
+        FocusCommand.NotifyCanExecuteChanged();
         EnterCommand.NotifyCanExecuteChanged();
         BackCommand.NotifyCanExecuteChanged();
         RootCommand.NotifyCanExecuteChanged();
@@ -200,6 +209,12 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     private async Task<string> ReadInventoryAsync(CancellationToken cancellationToken)
     {
         var version = _contextVersion;
+        await _actions.EmphasizeObjectsAsync([], cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_disposed || version != _contextVersion)
+            return string.Empty;
+
         var result = await _actions.ReadAsync(_enabledFilters, cancellationToken);
 
         if (_disposed || version != _contextVersion)
@@ -224,29 +239,33 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Filters));
         OnPropertyChanged(nameof(EmptyMessage));
         NotifyNavigation();
-        return HasGroups ? "Inventory updated for the current space." : success.Value.EmptyMessage;
+
+        if (Current is not null)
+            return await _actions.EmphasizeObjectsAsync(Current.Objects, cancellationToken);
+
+        return HasGroups ? "Open a group to highlight its objects." : success.Value.EmptyMessage;
     }
+
+    private Task NavigateAsync(Action navigate) => RunAsync(token =>
+    {
+        navigate();
+        return _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token);
+    });
 
     private void Enter(LensNode? node)
     {
-        if (CanRun() && node is not null && _navigation.Enter(node.Id))
+        if (node is not null && _navigation.Enter(node.Id))
             NotifyNavigation();
     }
 
     private void GoBackTo(int depth)
     {
-        if (!CanRun())
-            return;
-
         _navigation.GoBackTo(depth);
         NotifyNavigation();
     }
 
     private void MoveObject(int offset)
     {
-        if (!CanRun())
-            return;
-
         _navigation.MoveObject(offset);
         NotifyNavigation();
     }
@@ -289,11 +308,13 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
 
         var version = _contextVersion;
         IsBusy = true;
+        using var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _pendingRequest = request;
 
         try
         {
             Status = "Working… Finish any active AutoCAD command to continue.";
-            var message = await action(_lifetime.Token);
+            var message = await action(request.Token);
 
             if (!_disposed && version == _contextVersion)
                 Status = message;
@@ -310,6 +331,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            _pendingRequest = null;
             IsBusy = false;
         }
     }

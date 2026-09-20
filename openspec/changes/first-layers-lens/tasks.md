@@ -28,14 +28,16 @@
 
 - [x] 4.1 Implement generic navigation state for groups, types, and individual objects, with breadcrumbs, Back, Previous/Next, and a one-based counter; verify ancestor restoration, root effect clearing, singleton/end-point controls, and no implicit Focus calls during navigation.
 - [ ] 4.2 Connect generic emphasis requests to the verified host visualization adapter; verify layer-to-type-to-object navigation narrows emphasis, Back expands it correctly, and excluding the selected layer clears its effects and returns to the list.
+  - Navigation now sends explicit targets through the existing highlight queue for the user-requested trial. Managed tests cover narrowing, ancestor/root restoration, filter/refresh cleanup, and cancellation. Native rendering and viewport isolation are still unverified; the task is not complete.
 - [ ] 4.3 Implement lazy live-object bounds resolution and explicit Focus using active-view coordinates, aspect ratio, and named padding; verify groups and objects fit in ordinary and twisted views, invalid/erased targets are reported, and locked viewports are not unlocked.
+  - September 20: implemented queued live-bounds Focus, active-view fitting with padding/aspect preservation, context cancellation, and unavailable results. Added fitting/UI tests. Native ordinary/twisted views, hidden geometry, deleted targets, and locked-viewport checks remain open.
 - [ ] 4.4 Preserve actual visibility independently of inventory inclusion; verify off/frozen objects remain navigable with explanatory details, Focus does not reveal them, and exploring a layer never changes AutoCAD's current layer.
 
 ## 5. Compact UI
 
 - [x] 5.1 Build the single floating panel with a draggable header, close control, lens/space labels, virtualized content, and generic detail rendering; verify with fake-provider fixtures that details replace the list and no view references concrete Layers or AutoCAD types.
 - [ ] 5.2 Bind breadcrumbs, Back, counts, object details, Previous/Next, counter, and explicit Focus availability; verify the full navigation path against the `lens-explorer` scenarios and confirm selection does not move the view.
-  - Navigation bindings and unit tests are complete. Focus stays disabled pending task 4.3; native emphasis remains gated on tasks 2.3-2.5 and 4.2. AutoCAD checks are performed by the user.
+  - Navigation and explicit Focus bindings have managed tests. Native Focus verification remains pending task 4.3; navigation emphasis is connected for the user-requested trial, with native graphics acceptance still pending tasks 2.3-2.5 and 4.2. AutoCAD checks are performed by the user.
 - [x] 5.3 Render generic boolean filter descriptors as the snowflake/lightbulb controls for Layers, with labels/tooltips and clear inactive states; verify both start off in a new session, each updates results independently, and locked layers have no exclusion control.
 
 - [ ] 5.4 Apply the compact tactical layout with softer corners, readable accent colors, keyboard focus indication, and restrained transitions; inspect rendered states with long names, empty results, many groups, hidden objects, and unavailable actions, and verify scrolling keeps the header and close control reachable.

@@ -1,4 +1,5 @@
-﻿using CadLens.AutoCAD;
+﻿using System.Collections.Immutable;
+using CadLens.AutoCAD;
 using CadLens.Core;
 using CadLens.Lenses;
 using Common;
@@ -81,6 +82,7 @@ public sealed class ExplorerCompositionTests
     {
         services.AddScoped<ILayersSnapshotSource, SnapshotSource>();
         services.AddScoped<IEntityHighlightActions, Highlights>();
+        services.AddScoped<IHostActions, HostActions>();
         services.AddScoped<IExplorerActions, ExplorerActions>();
     }
 
@@ -94,8 +96,20 @@ public sealed class ExplorerCompositionTests
         public void Dispose() => DisposeCount++;
     }
 
+    private sealed class HostActions : IHostActions
+    {
+        public Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
+        public Task<HostResult<bool>> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+    }
+
     private sealed class Highlights : IEntityHighlightActions
     {
+        public Task<HostResult<int>> EmphasizeAsync(Autodesk.AutoCAD.DatabaseServices.ObjectId[] objects, CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<int>>(new HostResult<int>.Success(objects.Length));
+
         public Task<HostResult<int>> EmphasizeSelectionAsync(CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<int>>(new HostResult<int>.Success(0));
 

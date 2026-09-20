@@ -1,4 +1,5 @@
-﻿using CadLens.Core;
+﻿using System.Collections.Immutable;
+using CadLens.Core;
 using Common;
 
 namespace CadLens.UI;
@@ -15,7 +16,17 @@ public interface IExplorerActions
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     Task<string> EmphasizeAsync(CancellationToken cancellationToken);
 
+    /// <summary>Updates emphasis for the panel selection; empty targets clear it.</summary>
+    /// <param name="objects">Current group or object targets.</param>
+    /// <param name="cancellationToken">Request cancellation.</param>
+    Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken);
+
     /// <summary>Removes the candidate rendering effect.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     Task<string> ClearAsync(CancellationToken cancellationToken);
+
+    /// <summary>Fits the current selection without changing visibility.</summary>
+    /// <param name="objects">Selected group or object identifiers.</param>
+    /// <param name="cancellationToken">Panel lifetime cancellation.</param>
+    Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken);
 }
