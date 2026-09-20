@@ -15,6 +15,7 @@
     <Project Path="src/CadLens.Core/CadLens.Core.csproj" />
     <Project Path="src/CadLens.Lenses/CadLens.Lenses.csproj" />
     <Project Path="src/CadLens.UI/CadLens.UI.csproj" />
+    <Project Path="src/CadLens.Preview/CadLens.Preview.csproj" />
   </Folder>
   <Folder Name="/src/AutoCAD/">
     <Project Path="src/AutoCAD/CadLens.AutoCAD/CadLens.AutoCAD.csproj" />

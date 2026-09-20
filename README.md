@@ -102,3 +102,30 @@ Separate installations of standard AutoCAD 2025 and 2026 were not found on this 
 ## GitHub Actions
 
 On every push to any branch, a Windows workflow restores dependencies, builds the solution, and runs `dotnet test`. Core, Lenses, managed host-queue, and UI tests run from `CadLens.slnx`. Native AutoCAD rendering and lifecycle checks are separate.
+
+## Standalone UI preview
+
+Run the real CAD Lens WPF window with sample data, without AutoCAD:
+
+```powershell
+dotnet run --project src/CadLens.Preview
+```
+
+The window starts compact. Click Layers to browse sample layers, primitive types, and objects.
+Navigation, inclusion filters, resizing, and compact/expanded modes use the production UI code.
+Focus and highlight actions only display simulated status messages; there is no drawing or camera.
+The preview appears in the taskbar and closes with its window. Set CadLens.Preview as the startup
+project in Rider for quick runs. Changes in CadLens.UI are shared with the AutoCAD plugin.
+
+Optional scenarios (restart to change):
+
+```powershell
+dotnet run --project src/CadLens.Preview -- --slow
+dotnet run --project src/CadLens.Preview -- --empty
+dotnet run --project src/CadLens.Preview -- --error
+```
+
+`--slow` adds a 1.8-second cancellable delay to simulated operations for busy-state inspection.
+`--empty` returns no inventory; `--error` simulates an unavailable inventory. Flags can be combined.
+Default sample data includes long names, eight visible layers, and additional frozen/off layers.
+This is a UI development host, not verification of native AutoCAD graphics or lifecycle behavior.
