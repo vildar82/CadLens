@@ -1,0 +1,79 @@
+﻿<ResourceDictionary x:Class="CadLens.UI.QuietTheme" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <BooleanToVisibilityConverter x:Key="BooleanVisibility" />
+    <SolidColorBrush x:Key="QuietText" Color="#EEF5F8" />
+    <SolidColorBrush x:Key="QuietMuted" Color="#9EB5BE" />
+    <SolidColorBrush x:Key="QuietAccent" Color="#78E3CE" />
+    <Style x:Key="QuietControl" TargetType="ButtonBase">
+        <Setter Property="Foreground" Value="{StaticResource QuietText}" />
+        <Setter Property="Background" Value="#18232C" />
+        <Setter Property="BorderBrush" Value="#34434B" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ButtonBase">
+                    <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+                            <Border x:Name="FocusRing" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="3" Margin="-7,-3"
+                                    Visibility="Collapsed" IsHitTestVisible="False" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Surface" Property="Background" Value="#23333D" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="#78E3CE" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Surface" Property="Background" Value="#0C141A" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="#78E3CE" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="#7B909A" />
+                            <Setter TargetName="Surface" Property="Background" Value="#141C23" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="#2B3942" />
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="QuietButton" TargetType="Button" BasedOn="{StaticResource QuietControl}" />
+    <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource QuietButton}">
+        <Setter Property="Background" Value="#28413F" />
+        <Setter Property="BorderBrush" Value="#78E3CE" />
+        <Setter Property="Foreground" Value="#78E3CE" />
+    </Style>
+    <Style x:Key="QuietToggle" TargetType="ToggleButton" BasedOn="{StaticResource QuietControl}">
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="#28413F" />
+                <Setter Property="BorderBrush" Value="#78E3CE" />
+                <Setter Property="Foreground" Value="#78E3CE" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="QuietRow" TargetType="Button" BasedOn="{StaticResource QuietButton}">
+        <Setter Property="Background" Value="#18232C" />
+        <Setter Property="BorderBrush" Value="#34434B" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="11,8" />
+        <Setter Property="MinHeight" Value="39" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+</ResourceDictionary>

@@ -111,11 +111,13 @@ Run the real CAD Lens WPF window with sample data, without AutoCAD:
 dotnet run --project src/CadLens.Preview
 ```
 
-The window starts compact. Click Layers to browse sample layers, primitive types, and objects.
-Navigation, inclusion filters, resizing, and compact/expanded modes use the production UI code.
+The window starts compact with the approved Quiet rail design, based on concept A.
+Click Layers to browse sample layers, primitive types, and objects. The shared UI keeps the
+original dark palette and mint accent, with explicit inclusion labels, hover/press/focus
+feedback, and fixed bottom actions. The AutoCAD plugin and preview use the same XAML.
 Focus and highlight actions only display simulated status messages; there is no drawing or camera.
 The preview appears in the taskbar and closes with its window. Set CadLens.Preview as the startup
-project in Rider for quick runs. Changes in CadLens.UI are shared with the AutoCAD plugin.
+project in Rider for quick runs. An in-app variant selector is not implemented yet.
 
 Optional scenarios (restart to change):
 

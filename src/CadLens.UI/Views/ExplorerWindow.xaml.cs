@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using JetBrains.Annotations;
 
@@ -86,6 +87,16 @@ public partial class ExplorerWindow
     }
 
     private void CloseClicked(object sender, RoutedEventArgs e) => Close();
+
+    private void ShowStatus(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ToolTip: ToolTip tooltip } button)
+        {
+            tooltip.PlacementTarget = button;
+            tooltip.StaysOpen = false;
+            tooltip.IsOpen = true;
+        }
+    }
 
     [DllImport("user32.dll")]
     private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
