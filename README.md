@@ -29,6 +29,14 @@ This is an example for discussion in OpenSpec Explore, not an approved specifica
 
 These are directions, not commitments for the first release. For example, a historical creation date for every existing DWG object cannot be promised without checking whether the data exists.
 
+### Independent state per viewport (deferred)
+
+For tiled model-space viewports, keep each viewport's selected lens, group/type/object, filters, and navigation state. The panel follows the active viewport and restores its state when the user switches viewports. Each viewport retains its own highlighting and dimming, including while another viewport is active.
+
+Switching viewports must not move the camera. Explicit Focus affects only the active viewport. The proposed initial scope keeps state for the current CAD Lens session, without saving it in the DWG.
+
+Before implementation, verify that temporary graphics can remain independent in multiple visible viewports. This is a future feature outside `first-layers-lens`; it does not change the current specification or implementation.
+
 ## Technical boundaries of the first version
 
 - Hosts: AutoCAD 2025 and 2026 on Windows. Autodesk lists .NET 8 for their original releases; compatibility with later .NET 10 host updates must be checked separately.
