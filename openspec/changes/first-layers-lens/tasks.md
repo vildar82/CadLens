@@ -7,6 +7,7 @@
 - [x] 1.3 Define the minimal Core lens/presentation contracts, native object ID wrappers and typed host-action results; verify a fake non-layer lens can supply groups, fields, filters, and actions without AutoCAD or WPF types.
 - [x] 1.4 Add Core/Lenses test projects and centrally configured test dependencies; run a real initial contract test and verify test discovery reports executed tests rather than an empty successful run.
 - [ ] 1.5 Add `Microsoft.Extensions.DependencyInjection` with an exact compatible version and conditional host reference in `Directory.Build.props`; establish the AutoCAD composition root with scope/build validation and an explorer-scope factory, then verify restore and provider validation, rejection of singleton-to-scoped dependencies, and no container dependency in Core/Lenses/UI. Extend graph validation as concrete implementations are registered.
+  - September 20: added five managed composition tests for missing registrations, singleton/scoped validation, root resolution, fresh session scopes/disposal, and assembly boundaries. Native adapter construction and the full host graph remain unverified; this task stays open.
 
 ## 2. Early AutoCAD integration checks
 
@@ -32,9 +33,11 @@
 
 ## 5. Compact UI
 
-- [ ] 5.1 Build the single floating panel with a draggable header, close control, lens/space labels, virtualized content, and generic detail rendering; verify with fake-provider fixtures that details replace the list and no view references concrete Layers or AutoCAD types.
+- [x] 5.1 Build the single floating panel with a draggable header, close control, lens/space labels, virtualized content, and generic detail rendering; verify with fake-provider fixtures that details replace the list and no view references concrete Layers or AutoCAD types.
 - [ ] 5.2 Bind breadcrumbs, Back, counts, object details, Previous/Next, counter, and explicit Focus availability; verify the full navigation path against the `lens-explorer` scenarios and confirm selection does not move the view.
-- [ ] 5.3 Render generic boolean filter descriptors as the snowflake/lightbulb controls for Layers, with labels/tooltips and clear inactive states; verify both start off in a new session, each updates results independently, and locked layers have no exclusion control.
+  - Navigation bindings and unit tests are complete. Focus stays disabled pending task 4.3; native emphasis remains gated on tasks 2.3-2.5 and 4.2. AutoCAD checks are performed by the user.
+- [x] 5.3 Render generic boolean filter descriptors as the snowflake/lightbulb controls for Layers, with labels/tooltips and clear inactive states; verify both start off in a new session, each updates results independently, and locked layers have no exclusion control.
+
 - [ ] 5.4 Apply the compact tactical layout with softer corners, readable accent colors, keyboard focus indication, and restrained transitions; inspect rendered states with long names, empty results, many groups, hidden objects, and unavailable actions, and verify scrolling keeps the header and close control reachable.
 - [ ] 5.5 Verify the hosted panel at multiple DPI settings and constrained working areas, including dragging between monitors where available; confirm full-name tooltips, breadcrumb navigation, keyboard use, and normal AutoCAD input remain usable, recording any unavailable test environment explicitly.
 
@@ -47,7 +50,7 @@
 
 ## 7. Integrated verification and handoff
 
-- [ ] 7.1 Run the complete solution tests and build in Debug and Release with zero compiler/analyzer warnings, then check Rider inspections separately; record executed-test counts and fix findings, distinguishing any unavailable inspection tooling from a passing check.
+- [x] 7.1 Run the complete solution tests and build in Debug and Release with zero compiler/analyzer warnings, then check Rider inspections separately; record executed-test counts and fix findings, distinguishing any unavailable inspection tooling from a passing check.
 - [ ] 7.2 Run the command, inventory/filter, navigation, Focus, and lifecycle scenarios from all three delta specs in supported AutoCAD hosts; record exact host/version and scenario outcomes, and label Civil 3D evidence separately rather than treating it as standard AutoCAD 2025/2026 coverage.
 - [ ] 7.3 On a representative large drawing, measure snapshot time and redraw/navigation responsiveness, then repeatedly switch selections and open/close the explorer; record object counts, timings, and resource behavior, and resolve observed freezes, unbounded growth, or stale effects.
 - [ ] 7.4 Compare geometry/layer properties and `DBMOD` before/after read-only exploration and cleanup; verify Focus separately as an intentional view operation, and perform a clean-load smoke check using the packaged dependency output.

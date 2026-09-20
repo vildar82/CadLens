@@ -2,12 +2,12 @@
 
 namespace CadLens.UI;
 
-/// <summary>A locally themed modeless shell used to verify host integration first.</summary>
-public partial class VerificationWindow
+/// <summary>The locally themed modeless drawing explorer.</summary>
+public partial class ExplorerWindow
 {
     /// <summary>Creates the panel without changing application-wide WPF resources.</summary>
-    /// <param name="viewModel">Constructor-injected check commands.</param>
-    public VerificationWindow(VerificationViewModel viewModel)
+    /// <param name="viewModel">Constructor-injected explorer commands.</param>
+    public ExplorerWindow(ExplorerViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;

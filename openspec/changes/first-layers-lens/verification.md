@@ -4,7 +4,7 @@
 
 `CADLENS` opens or activates the single modeless panel. `CADLENSVERIFY` has been removed at the user's request. Refresh reads the active-space inventory; Highlight selection captures the drawing's preselection before queuing work, then revalidates the objects before applying the rendering candidate. Clear highlight removes the owned effect without moving the camera.
 
-The panel now uses CommunityToolkit.Mvvm 8.4.0, locally scoped WPF UI resources, a compact inventory, explicit busy/error feedback, and a clearer visual hierarchy. This is still a preview: inclusion toggles, drill-down, breadcrumbs, object browsing, and Focus are not connected to the panel yet. The complete first-layers-lens change remains open.
+The panel now uses CommunityToolkit.Mvvm 8.4.0, locally scoped WPF UI resources, a compact inventory, explicit busy/error feedback, and a clearer visual hierarchy. This is still a preview: inclusion toggles, drill-down, breadcrumbs and object browsing are connected. Focus is disabled and navigation does not yet drive native emphasis. The complete first-layers-lens change remains open.
 
 The greeting was removed in a concurrent local edit. That edit is preserved. The existing greeting scenario is therefore not marked verified or complete; the main specification has not been changed.
 
@@ -59,3 +59,27 @@ The user subsequently confirmed that ordinary REGEN finishes quickly after closi
 With the HashSet applicability filter, the user reported that the change helped. The same inventory size (4,389 identifiers), now with 279 targets, took 3.7 ms to collect, 2.3 ms to register, and 527.8 ms to regenerate. The 4,396 SetAttributes calls accumulated 1.3 ms in the base implementation and 2.0 ms in the color override. Reported regeneration time improved by approximately 40 times. Because the target selection differs, this is not an identical-workload benchmark, and it does not establish the internal implementation or complexity of SetIdFilter.
 
 The HashSet filter is retained. Diagnostic instrumentation and its option have been removed. This user check confirms the practical performance improvement on the tested drawing; it does not close the separate block/text, viewport-isolation, DBMOD, and lifecycle verification gates.
+## September 20 verification attempt
+
+At commit `7512653`, a fresh `dotnet build CadLens.slnx -c Debug --nologo` completed with zero warnings and errors. `dotnet test CadLens.slnx -c Debug --no-build --nologo` passed all 28 tests (Core 7, Lenses 5, host 11, UI 5), with none skipped. Rider inspections were not rerun.
+
+Civil 3D 2026 was launched and a new blank metric drawing was opened. The automation could not visibly enter commands afterward, including after a session reset and renewed window selection. Loading the rebuilt plugin was not confirmed; no graphics scenario was executed or marked passed. The native checks in tasks 2.3-2.5 remain open. Source inspection also confirms that the current overrule has no viewport-specific rendering filter.
+
+## Explorer navigation and filters
+
+The panel renders generic child lists and detail fields using the existing NavigationState. Back, ancestor/root breadcrumbs, Previous/Next and a one-based counter are connected. Generic filter descriptors provide the snowflake/lightbulb controls and tooltips; enabled identities flow through ExplorerActions to the lens provider. Both options start disabled in a new view model. Refresh preserves valid ancestors, excluded selections return to the root, and failed filter reads clear stale navigation. Context changes and disposal reject late successful reads.
+
+Tasks 5.1 and 5.3 are complete for the managed UI. Task 5.2 remains open for actual Focus availability. Focus is visibly disabled with an explanation; navigation does not invoke host graphics or move the view. The separate Highlight selection action retains its preselection behavior. Tasks 2.3-2.5, 4.2 and native lifecycle checks remain open for user-run AutoCAD verification.
+
+Debug build: zero warnings and errors. All 36 tests pass (Core 7, Lenses 5, host 11, UI 13). Added coverage exercises navigation, breadcrumbs, endpoints/singletons, filter independence and fresh-session defaults, refresh reconciliation, empty results, pending context changes and failed filter reads. Standalone WPF renders cover root and detail states at 370 x 660 and 300 x 450 DIPs; long details scroll and the header/close control stays outside scrolling content. This does not establish host behavior or multi-monitor DPI support.
+
+Manual handoff: load the rebuilt output, run CADLENS and Refresh; open a layer, a type and an object; use Previous/Next, Back and breadcrumbs; toggle frozen/off inclusion separately and together. Check that excluded selected layers return to the root, hidden objects remain hidden, and browsing leaves the drawing view unchanged. Focus remains unavailable in this slice.
+
+JetBrains InspectCode 2026.2.2 completed after the final UI changes with no warning/error issues. The previous unused-property and XAML resource warnings are resolved by consuming the descriptors and using a local button template; the lifetime test no longer combines using with explicit disposal. `openspec validate first-layers-lens --strict` passes. Release was not rerun for this slice.
+## Remaining-task verification, September 20
+
+Added five tests against the actual ExplorerComposition and ExplorerActions sources, with native snapshot/highlight operations replaced at their interfaces. They verify missing-registration rejection, singleton-to-scoped rejection at build time, rejection of scoped resolution from the root, fresh scoped state and reset filters after reopening, exactly-once disposal of the fixture source, and absence of DI/AutoCAD references in Core/Lenses/UI. They do not certify native adapter construction, window hosting, or ExplorerOwner event cleanup; task 1.5 remains open for the complete native graph.
+
+Debug and Release solution builds both completed with zero warnings/errors. All 41 tests passed in each configuration (Core 7, Lenses 5, host queue/extensions 11, UI/composition 18), with none skipped. JetBrains InspectCode completed with zero warning/error results (29 informational notes). OpenSpec strict validation passed. This completes task 7.1 for the current implementation.
+
+Full explorer integration remains blocked by tasks 2.3-2.5, as required by design decision 6. Source inspection confirms the current SetAttributes overrule has no per-viewport filter. Native text/block/color rendering, adjacent viewport isolation, cleanup/property comparisons, and overrule coexistence were not executed in this session. No native computer-control surface is available in the current tool session. Focus, navigation-driven emphasis, automatic context/edit refresh, and their host verification remain unfinished. No spec gate was relaxed and no main specification was changed or archived.

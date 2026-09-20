@@ -7,10 +7,10 @@ namespace CadLens.AutoCAD;
 [UsedImplicitly]
 public sealed class CadLensApplication : IExtensionApplication
 {
-    private static VerificationOwner? _owner;
+    private static ExplorerOwner? _owner;
 
     /// <inheritdoc />
-    public void Initialize() => _owner = new VerificationOwner();
+    public void Initialize() => _owner = new ExplorerOwner();
 
     /// <inheritdoc />
     public void Terminate()

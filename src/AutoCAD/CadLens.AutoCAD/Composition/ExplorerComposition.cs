@@ -12,8 +12,8 @@ internal static class ExplorerComposition
         var services = new ServiceCollection();
         services.AddScoped<NavigationState>();
         services.AddScoped<ILensProvider, LayersLensProvider>();
-        services.AddScoped<VerificationViewModel>();
-        services.AddScoped<VerificationWindow>();
+        services.AddScoped<ExplorerViewModel>();
+        services.AddScoped<ExplorerWindow>();
 
         registerHost(services);
 

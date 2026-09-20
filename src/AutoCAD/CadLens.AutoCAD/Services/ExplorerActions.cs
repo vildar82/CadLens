@@ -5,10 +5,10 @@ using Common.AutoCAD;
 
 namespace CadLens.AutoCAD;
 
-internal sealed class VerificationActions(ILensProvider lens, IEntityHighlightActions highlights) : IVerificationActions
+internal sealed class ExplorerActions(ILensProvider lens, IEntityHighlightActions highlights) : IExplorerActions
 {
-    public Task<HostResult<LensPresentation>> ReadAsync(CancellationToken cancellationToken) =>
-        lens.LoadAsync(new HashSet<string>(), cancellationToken);
+    public Task<HostResult<LensPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
+        lens.LoadAsync(enabledFilters, cancellationToken);
 
     public async Task<string> EmphasizeAsync(CancellationToken cancellationToken)
     {

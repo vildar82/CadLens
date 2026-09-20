@@ -65,7 +65,7 @@ The plugin is built at `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/Cad
 
 ## Explorer preview status
 
-The `first-layers-lens` change is in progress. The current panel uses CommunityToolkit.Mvvm and a WPF UI theme scoped to the window. It displays root inventory and selection-highlight controls; filters, drill-down navigation, object browsing, and Focus are not yet connected. See [implementation verification](openspec/changes/first-layers-lens/verification.md) for build/test evidence and the outstanding graphics gate.
+The `first-layers-lens` change is in progress. The current panel uses CommunityToolkit.Mvvm and a WPF UI theme scoped to the window. It supports inclusion filters, group/type/object navigation, breadcrumbs, Back, and Previous/Next with an object counter. Navigation currently changes panel content only. Focus is disabled, and automatic navigation emphasis remains pending native graphics verification; Highlight selection still operates on objects preselected in the drawing. See [implementation verification](openspec/changes/first-layers-lens/verification.md) for build/test evidence and the outstanding graphics gate.
 
 ## Verification of the first plugin
 

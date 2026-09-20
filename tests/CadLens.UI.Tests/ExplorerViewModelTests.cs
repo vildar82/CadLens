@@ -10,14 +10,14 @@ using Xunit;
 namespace CadLens.UI.Tests;
 
 /// <summary>Toolkit command lifetime and standalone layout verification.</summary>
-public sealed class VerificationViewModelTests
+public sealed class ExplorerViewModelTests
 {
     /// <summary>A pending action disables all commands and close rejects late results.</summary>
     [Fact]
     public async Task PendingCommandsAreDisabledAndLateResultsIgnored()
     {
         var actions = new Actions();
-        using var viewModel = new VerificationViewModel(actions);
+        var viewModel = new ExplorerViewModel(actions);
         var running = viewModel.EmphasizeCommand.ExecuteAsync(null);
         Assert.True(viewModel.IsBusy);
         Assert.False(viewModel.ReadCommand.CanExecute(null));
@@ -35,7 +35,7 @@ public sealed class VerificationViewModelTests
     public async Task ContextChangeRejectsLateInventory()
     {
         var actions = new Actions { DelayInventory = true };
-        using var viewModel = new VerificationViewModel(actions);
+        using var viewModel = new ExplorerViewModel(actions);
         var running = viewModel.ReadCommand.ExecuteAsync(null);
         viewModel.ResetContext();
         actions.InventoryCompletion.SetResult(new HostResult<LensPresentation>.Success(Presentation()));
@@ -49,7 +49,7 @@ public sealed class VerificationViewModelTests
     public async Task FailuresAreShownAndCommandsRecover()
     {
         var actions = new Actions();
-        using var viewModel = new VerificationViewModel(actions);
+        using var viewModel = new ExplorerViewModel(actions);
         var running = viewModel.EmphasizeCommand.ExecuteAsync(null);
         actions.Completion.SetException(new InvalidOperationException("fixture failure"));
         await running;
@@ -60,19 +60,24 @@ public sealed class VerificationViewModelTests
 
     /// <summary>Renders the actual XAML with long labels and overflowing inventory on an STA thread.</summary>
     [Theory]
-    [InlineData(370, 660)]
-    [InlineData(300, 450)]
-    public void RenderPanelWithLargeInventory(int width, int height)
+    [InlineData(370, 660, false)]
+    [InlineData(300, 450, false)]
+    [InlineData(370, 660, true)]
+    [InlineData(300, 450, true)]
+    public void RenderPanelWithLargeInventory(int width, int height, bool details)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
             try
             {
-                using var viewModel = new VerificationViewModel(new Actions());
+                using var viewModel = new ExplorerViewModel(new Actions());
                 viewModel.ReadCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 Assert.Equal(24, viewModel.GroupCount);
-                var window = new VerificationWindow(viewModel);
+                if (details)
+                    viewModel.EnterCommand.Execute(viewModel.Items[0]);
+
+                var window = new ExplorerWindow(viewModel);
                 var content = (FrameworkElement)window.Content;
                 content.Measure(new Size(width, height));
                 content.Arrange(new Rect(0, 0, width, height));
@@ -82,7 +87,7 @@ public sealed class VerificationViewModelTests
                 bitmap.Render(content);
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                using var output = File.Create(Path.Combine(AppContext.BaseDirectory, $"panel-{width}x{height}.png"));
+                using var output = File.Create(Path.Combine(AppContext.BaseDirectory, $"panel-{width}x{height}-{details}.png"));
                 encoder.Save(output);
                 window.Close();
             }
@@ -104,12 +109,12 @@ public sealed class VerificationViewModelTests
             index == 1 ? "Site — roads and pedestrian connections — existing conditions" : $"Drawing group {index:00}",
             [new HostObjectId(index)],
             [],
-            [],
+            [new DetailField("Category", "Example category"), new DetailField("Visibility", "Hidden: frozen. Inclusion does not reveal this object.")],
             [])).ToImmutableArray();
-        return new LensPresentation("fixture", "Layers", "Model space", groups, [], "No objects.");
+        return new LensPresentation("fixture", "Layers", "Model space", groups, [new BooleanFilter("frozen", "Include frozen", "Include hidden frozen objects", IconRole.Snowflake), new BooleanFilter("off", "Include off", "Include hidden switched-off objects", IconRole.Lightbulb)], "No objects.");
     }
 
-    private sealed class Actions : IVerificationActions
+    private sealed class Actions : IExplorerActions
     {
         internal bool DelayInventory { get; init; }
         internal CancellationToken Token { get; private set; }
@@ -120,7 +125,7 @@ public sealed class VerificationViewModelTests
         internal TaskCompletionSource<HostResult<LensPresentation>> InventoryCompletion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task<HostResult<LensPresentation>> ReadAsync(CancellationToken cancellationToken) => DelayInventory
+        public Task<HostResult<LensPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) => DelayInventory
             ? InventoryCompletion.Task
             : Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(Presentation()));
 

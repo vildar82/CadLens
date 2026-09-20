@@ -10,7 +10,7 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace CadLens.AutoCAD;
 
 /// <summary>Owns one reusable plugin root and a separate scope for each open panel.</summary>
-internal sealed class VerificationOwner
+internal sealed class ExplorerOwner
 {
     private static readonly EntityHighlightOptions HighlightColors = new(
         Accent: new EntityColor(70, 210, 230),
@@ -23,12 +23,12 @@ internal sealed class VerificationOwner
         services.AddSingleton(HighlightColors);
         services.AddScoped<IEntityHighlightService, EntityHighlightService>();
         services.AddScoped<IEntityHighlightActions, EntityHighlightActions>();
-        services.AddScoped<IVerificationActions, VerificationActions>();
+        services.AddScoped<IExplorerActions, ExplorerActions>();
     });
 
     private IServiceScope? _scope;
-    private VerificationWindow? _window;
-    private VerificationViewModel? _viewModel;
+    private ExplorerWindow? _window;
+    private ExplorerViewModel? _viewModel;
     private IHostTaskService? _requests;
     private IEntityHighlightService? _graphics;
     private bool _closing;
@@ -52,8 +52,8 @@ internal sealed class VerificationOwner
         {
             _requests = _scope.ServiceProvider.GetRequiredService<IHostTaskService>();
             _graphics = _scope.ServiceProvider.GetRequiredService<IEntityHighlightService>();
-            _viewModel = _scope.ServiceProvider.GetRequiredService<VerificationViewModel>();
-            _window = _scope.ServiceProvider.GetRequiredService<VerificationWindow>();
+            _viewModel = _scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
+            _window = _scope.ServiceProvider.GetRequiredService<ExplorerWindow>();
             _window.Closed += OnClosed;
             Application.DocumentManager.DocumentToBeDeactivated += OnContextLeaving;
             Application.DocumentManager.DocumentToBeDestroyed += OnContextLeaving;
