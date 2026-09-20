@@ -1,0 +1,87 @@
+﻿# Design
+
+## Context
+
+See proposal.md for motivation and the two delta specifications for observable behavior. ExplorerWindow currently has a fixed initial size of 370 by 660 with a 450 minimum height. ExplorerViewModel already owns navigation, inclusion settings, cancellation, and a context version. NavigationState.Reset reconciles saved node identities with refreshed data. ExplorerOwner observes document changes and schedules automatic reads. ReadInventoryAsync currently clears effects, reads, restores navigation, and reapplies selection emphasis.
+
+These existing paths need activation awareness; hiding the content alone would allow background refresh to reapply effects while compact.
+
+## Goals / Non-Goals
+
+Goals: extend the current window and session, keep activation state explicit, reuse navigation reconciliation and the native work queue, and make compact mode genuinely small.
+
+Non-goals: a lens registry, multiple providers, a new session framework, another host execution service, persistent preferences, or graphics-adapter redesign.
+
+## Decisions
+
+### 1. One window with a persistent lens bar
+
+Keep ExplorerWindow and its existing scoped resources. Place a compact bar above the existing exploration content. The bar contains a drag area, a Layers icon and label, and Close. Use a styled ToggleButton with a visible keyboard focus indicator and an accessible name. Keep the toggle and Close interactive within the window chrome.
+
+Compact mode contains only the bar. Expanded mode shows the current space, filters, navigation, list/details, and existing actions beneath it. Do not duplicate Layers information in a separate dashboard.
+
+Visual direction: retain the existing dark surface, rounded border, and mint accent. Use a muted inactive button, an accent border and subtle tinted background when active, and restrained hover feedback. A short content-opacity transition can soften expansion; do not animate window dimensions or delay cleanup for an animation. Respect disabled client animations. Exact spacing and icon sizing can be tuned during visual verification.
+
+Alternative: a separate toolbar and lens window. Rejected because the user chose one movable window. Standard tabs are also unsuitable because the selected lens must be toggleable off.
+
+### 2. Size the actual window for each mode
+
+Remove the expanded minimum-size constraint while compact. Size the compact window to its bar; disable resizing in that mode. Restore the last expanded dimensions within the session when activating, with the current explorer dimensions as the initial expanded baseline. Retain expanded resizing and list scrolling.
+
+Keep the bar's top-left position stable when possible and expand below it. Clamp the window to the current monitor working area when expansion would put essential controls off-screen. Keep window size and screen-position handling in the view, separate from lens state.
+
+Alternative: collapse content inside the existing tall window. Rejected because it leaves a large empty area over the drawing.
+
+### 3. One activation property, separate from busy state
+
+Add one lens-active state to ExplorerViewModel, initially false. Derive expanded visibility and checked appearance from it rather than storing independent expanded and active flags. Busy state remains separate.
+
+Activation sets the lens active and starts a fresh read using existing inclusion settings. A fresh read on each activation ensures edits made while compact are reflected without adding cache invalidation machinery. Use NavigationState.Reset with path preservation in the same context; apply emphasis only to the resulting current node. At the root, leave effects clear.
+
+Deactivation immediately marks the lens inactive, invalidates outstanding results, and cancels the current read/action while retaining navigation and filters. It then requests cleanup through the existing host action path. Do not call ResetContext on collapse because that discards the path.
+
+Alternative: dispose and recreate the explorer scope on every toggle. Rejected because it loses navigation and duplicates lifecycle work.
+
+### 4. Order cleanup and prevent late work from restoring effects
+
+The deactivate action must remain available during a read or emphasis request; it cannot use the ordinary !IsBusy command gate. Activation can wait until cancellation and cleanup settle. Keep Close available throughout.
+
+Use the existing context/version guard for activation transitions as well as document transitions. Capture the version for each operation, check it and lens activity after awaits and before publishing content or requesting emphasis, and invalidate it on deactivation. Request completion must clear busy/request ownership only when it still owns that operation.
+
+Cancel prior work before queuing ClearAsync. Cleanup uses a session-lifetime token, not the canceled operation token. The existing host queue preserves native ordering; cleanup must not be skipped by the normal UI busy gate. Closing and context changes retain the owner's direct cleanup fallback. Do not stop the host queue merely to collapse the panel.
+
+If cleanup cannot run immediately because AutoCAD is busy, keep the lens inactive and prevent reactivation until cleanup settles. Retain a visible compact status indication or tooltip for pending/failed cleanup rather than falsely reporting that effects are cleared. Contain errors and keep Close usable.
+
+Alternative: cancellation alone. Rejected because it does not remove an effect already applied by a native callback.
+
+### 5. Keep automatic refresh inactive while compact
+
+ExplorerOwner continues observing the active document for lifecycle safety. Its idle refresh gate and the view model's drawing commands also require an active lens. Context changes still cancel work, clear effects, and discard navigation from the old context without activating an inactive lens. An active lens retains existing refresh-to-root behavior on context changes.
+
+Every activation reads fresh data, so compact-mode edits need no background inventory reads. Any retained refresh-pending flag must coalesce with activation rather than issue an immediate duplicate read. Preserve current inclusion settings across collapse; opening a new session retains the existing default-off filters.
+
+Alternative: continue reading and merely suppress rendering while compact. Rejected because it adds unnecessary host work and more opportunities for late effects.
+
+### 6. Keep command and provider composition small
+
+Keep the sole LayersLensProvider registration and existing composition root. CADLENS still opens or activates the same window; the view model's inactive default supplies compact startup. Repeated command invocation only brings the current window forward and does not toggle its mode.
+
+No extra metadata model, dynamic discovery, provider collection, or dependency is needed for one lens. A later second-lens change can introduce selection between real providers.
+
+## Risks / Trade-offs
+
+- Late reads or emphasis after collapse: invalidate operation versions, cancel, order cleanup through the existing queue, and test controlled late completions.
+- Native cleanup can wait behind an AutoCAD command: show pending state, block reactivation until settled, and verify in the host without claiming synchronous native completion.
+- Saved paths can reference erased objects: refresh on activation and reconcile identities to the nearest valid ancestor or root.
+- Compact dimensions and expansion can behave differently under DPI scaling: check both modes near screen edges and at available DPI settings; keep controls reachable.
+- Existing hatch/block rendering issues remain: reuse the adapter and record them as accepted limits; this change must still remove its owned effects correctly.
+
+## Verification
+
+Use focused view-model tests for initial inactivity, collapse during work, late results, unchanged-path restoration, deleted targets, filters, context changes, and repeated invocation. Reuse existing navigation tests rather than duplicating them. Build with zero warnings and check Rider inspections separately after implementation.
+
+In AutoCAD, verify startup, toggle/collapse after highlighting, cleanup while commands are busy, close in both modes, edits while compact, document/space transitions, keyboard access, window positioning, and camera preservation. Managed tests do not establish native cleanup or window behavior.
+
+## Migration Plan
+
+No persisted state or drawing schema changes. Update the command and explorer documentation with the new startup behavior. Deploy the normal plugin output and perform a fresh-load check. Rollback is reverting this feature and rebuilding; it requires no drawing migration.
