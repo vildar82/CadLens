@@ -14,7 +14,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         var group = model.Items[0];
         model.EnterCommand.Execute(group);
         var type = model.Items[0];
@@ -53,7 +53,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         Assert.All(model.Filters, filter => Assert.False(filter.IsEnabled));
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         Assert.Equal(new[] { "archived" }, actions.Enabled.Order());
@@ -68,7 +68,7 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.Filters[0].IsEnabled);
         Assert.True(model.Filters[1].IsEnabled);
         using var reopened = new ExplorerViewModel(actions);
-        await reopened.ReadCommand.ExecuteAsync(null);
+        await reopened.ToggleLensCommand.ExecuteAsync(null);
         Assert.Empty(actions.Enabled);
         Assert.All(reopened.Filters, filter => Assert.False(filter.IsEnabled));
     }
@@ -79,7 +79,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         model.EnterCommand.Execute(model.Items[0]);
         model.EnterCommand.Execute(model.Items[0]);
         model.EnterCommand.Execute(model.Items[1]);
@@ -101,7 +101,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         model.EnterCommand.Execute(model.Items[0]);
         actions.Pending = new TaskCompletionSource<HostResult<LensPresentation>>();
         var pending = model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
@@ -123,7 +123,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions { Empty = true };
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         Assert.True(model.IsEmpty);
         Assert.Equal("Nothing matches these options.", model.EmptyMessage);
         Assert.Equal(2, model.Filters.Length);
@@ -135,7 +135,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         model.EnterCommand.Execute(model.Items[0]);
         actions.Pending = new TaskCompletionSource<HostResult<LensPresentation>>();
         var pending = model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
@@ -156,7 +156,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
         Assert.False(model.FocusCommand.CanExecute(null));
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         Assert.False(model.FocusCommand.CanExecute(null));
         model.EnterCommand.Execute(model.Items[0]);
         Assert.True(model.FocusCommand.CanExecute(null));
@@ -181,7 +181,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions { FocusMessage = "No usable bounds." };
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         model.EnterCommand.Execute(model.Items[0]);
         var selected = model.Current;
         await model.FocusCommand.ExecuteAsync(null);
@@ -196,7 +196,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions { PendingFocus = new TaskCompletionSource<string>() };
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         model.EnterCommand.Execute(model.Items[0]);
         var pending = model.FocusCommand.ExecuteAsync(null);
         Assert.False(model.NextCommand.CanExecute(null));
@@ -215,7 +215,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions { AllowFocus = false };
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         model.EnterCommand.Execute(model.Items[0]);
         Assert.False(model.FocusCommand.CanExecute(null));
     }
@@ -226,7 +226,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.True(model.IsBusy);
@@ -247,7 +247,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         actions.PendingEmphasis.SetException(new InvalidOperationException("Graphics failed."));
@@ -267,7 +267,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.Dispose();
@@ -284,7 +284,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.ResetContext(false);
         Assert.Empty(model.Groups);
@@ -308,7 +308,7 @@ public sealed class ExplorerNavigationTests
     {
         var actions = new Actions();
         using var model = new ExplorerViewModel(actions);
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleLensCommand.ExecuteAsync(null);
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.ResetContext(false);
@@ -318,6 +318,168 @@ public sealed class ExplorerNavigationTests
         Assert.Null(model.Current);
         Assert.Empty(model.Breadcrumbs);
         Assert.Empty(actions.EmphasisTargets);
+    }
+
+    /// <summary>Inactive commands cannot read or emphasize; activation loads only the root.</summary>
+    [Fact]
+    public async Task NewSessionDoesNoDrawingWorkUntilActivation()
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        Assert.False(model.IsLensActive);
+        Assert.False(model.ReadCommand.CanExecute(null));
+        await model.ReadCommand.ExecuteAsync(null);
+        await model.EmphasizeCommand.ExecuteAsync(null);
+        Assert.Equal(0, actions.ReadCount);
+        Assert.Equal(0, actions.HostCalls);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        Assert.True(model.IsLensActive);
+        Assert.Equal(1, actions.ReadCount);
+        Assert.Null(model.Current);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal(0, actions.HostCalls);
+    }
+
+    /// <summary>Collapse preserves filters and valid selections, while erasure reconciles to a parent.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReactivationRestoresValidNavigation(bool eraseSelected)
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.EnterCommand.ExecuteAsync(model.Items[1]);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        Assert.False(model.IsLensActive);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal("second", model.Current!.Id);
+        actions.SingleObject = eraseSelected;
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        Assert.Equal(eraseSelected ? "type" : "second", model.Current!.Id);
+        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.True(model.Filters[0].IsEnabled);
+        Assert.Equal(0, actions.FocusCount);
+    }
+
+    /// <summary>Root restoration and compact context changes never restore an old selection.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CompactContextAndRootRemainUnselected(bool changeContext)
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+
+        if (changeContext)
+            await model.EnterCommand.ExecuteAsync(model.Items[0]);
+
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        var reads = actions.ReadCount;
+
+        if (changeContext)
+        {
+            model.ResetContext(false);
+            Assert.False(model.ToggleLensCommand.CanExecute(null));
+            model.ResetContext();
+        }
+
+        Assert.False(model.IsLensActive);
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.Equal(reads, actions.ReadCount);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        Assert.Equal(reads + 1, actions.ReadCount);
+        Assert.Null(model.Current);
+        Assert.Empty(actions.EmphasisTargets);
+    }
+
+    /// <summary>Late emphasis settles before independent cleanup and cannot replace its status.</summary>
+    [Fact]
+    public async Task CollapseWaitsForLateEmphasisAndCleanup()
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
+        var emphasis = model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.True(model.ToggleLensCommand.CanExecute(null));
+        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
+        Assert.False(model.IsLensActive);
+        Assert.True(model.IsCleanupPending);
+        Assert.True(actions.EmphasisToken.IsCancellationRequested);
+        Assert.False(model.ToggleLensCommand.CanExecute(null));
+        Assert.Equal(0, actions.ClearCount);
+        actions.PendingEmphasis.SetResult("Old emphasis completed.");
+        await emphasis;
+        await actions.ClearStarted.Task;
+        Assert.False(actions.ClearToken.IsCancellationRequested);
+        Assert.True(model.IsCleanupPending);
+        Assert.DoesNotContain("Old emphasis", model.Status);
+        actions.PendingClear.SetResult(new HostResult<bool>.Success(true));
+        await collapse;
+        Assert.False(model.IsCleanupPending);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.True(model.ToggleLensCommand.CanExecute(null));
+    }
+
+    /// <summary>Late activation inventory cannot publish content after collapse.</summary>
+    [Fact]
+    public async Task CollapseRejectsLateActivationInventory()
+    {
+        var actions = new Actions { Pending = new TaskCompletionSource<HostResult<LensPresentation>>() };
+        using var model = new ExplorerViewModel(actions);
+        var activation = model.ToggleLensCommand.ExecuteAsync(null);
+        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
+        actions.Pending.SetResult(new HostResult<LensPresentation>.Success(CreatePresentation(false, false)));
+        await Task.WhenAll(activation, collapse);
+        Assert.False(model.IsLensActive);
+        Assert.Empty(model.Groups);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal("Temporary effects cleared.", model.Status);
+    }
+
+    /// <summary>Cleanup failures stay visible in compact mode without claiming effects were removed.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CleanupFailureIsReported(bool throws)
+    {
+        var actions = new Actions { PendingClear = new TaskCompletionSource<HostResult<bool>>() };
+        using var model = new ExplorerViewModel(actions);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
+
+        if (throws)
+            actions.PendingClear.SetException(new InvalidOperationException("fixture cleanup failure"));
+        else
+            actions.PendingClear.SetResult(new HostResult<bool>.Unavailable("fixture cleanup unavailable"));
+
+        await collapse;
+        Assert.False(model.IsLensActive);
+        Assert.False(model.IsCleanupPending);
+        Assert.Contains("fixture cleanup", model.Status);
+        Assert.DoesNotContain("effects cleared", model.Status);
+    }
+
+    /// <summary>Closing cancels pending cleanup and ignores its late success.</summary>
+    [Fact]
+    public async Task CloseDuringCleanupRejectsLateCompletion()
+    {
+        var actions = new Actions { PendingClear = new TaskCompletionSource<HostResult<bool>>() };
+        var model = new ExplorerViewModel(actions);
+        await model.ToggleLensCommand.ExecuteAsync(null);
+        var collapse = model.ToggleLensCommand.ExecuteAsync(null);
+        model.Dispose();
+        Assert.True(actions.ClearToken.IsCancellationRequested);
+        actions.PendingClear.SetResult(new HostResult<bool>.Success(true));
+        await collapse;
+        Assert.False(model.ToggleLensCommand.CanExecute(null));
+        Assert.DoesNotContain("effects cleared", model.Status);
     }
 
     private static LensPresentation CreatePresentation(bool single, bool hidden)
@@ -342,6 +504,12 @@ public sealed class ExplorerNavigationTests
     private sealed class Actions : IExplorerActions
     {
         internal IReadOnlySet<string> Enabled { get; private set; } = new HashSet<string>();
+        internal int ReadCount { get; private set; }
+        internal int ClearCount { get; private set; }
+        internal int FocusCount { get; private set; }
+        internal CancellationToken ClearToken { get; private set; }
+        internal TaskCompletionSource<HostResult<bool>>? PendingClear { get; set; }
+        internal TaskCompletionSource ClearStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool SingleObject { get; set; }
         internal bool Empty { get; init; }
         internal int HostCalls { get; private set; }
@@ -357,6 +525,7 @@ public sealed class ExplorerNavigationTests
 
         public Task<HostResult<LensPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken)
         {
+            ReadCount++;
             Enabled = enabledFilters;
             var presentation = CreatePresentation(SingleObject, Enabled.Contains("archived"));
 
@@ -375,10 +544,13 @@ public sealed class ExplorerNavigationTests
             return Task.FromResult("Highlighted");
         }
 
-        public Task<string> ClearAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
         {
-            HostCalls++;
-            return Task.FromResult("Cleared");
+            ClearCount++;
+            ClearToken = cancellationToken;
+            EmphasisTargets = [];
+            ClearStarted.TrySetResult();
+            return PendingClear?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
         public Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
@@ -392,6 +564,7 @@ public sealed class ExplorerNavigationTests
         public Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
         {
             HostCalls++;
+            FocusCount++;
             FocusTargets = objects;
             FocusToken = cancellationToken;
 

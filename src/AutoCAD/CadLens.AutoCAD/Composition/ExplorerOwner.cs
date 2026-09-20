@@ -1,4 +1,5 @@
-﻿using Trace = System.Diagnostics.Trace;
+﻿using System.ComponentModel;
+using Trace = System.Diagnostics.Trace;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -59,6 +60,7 @@ internal sealed class ExplorerOwner
             _requests = _scope.ServiceProvider.GetRequiredService<IHostTaskService>();
             _graphics = _scope.ServiceProvider.GetRequiredService<IEntityHighlightService>();
             _viewModel = _scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
+            _viewModel.PropertyChanged += OnLensStateChanged;
             _window = _scope.ServiceProvider.GetRequiredService<ExplorerWindow>();
             _window.Closed += OnClosed;
             Application.DocumentManager.DocumentToBeDeactivated += OnContextLeaving;
@@ -85,6 +87,12 @@ internal sealed class ExplorerOwner
         // Shutdown cannot rely on a future Idle callback or access surviving document views.
         _terminated = true;
         _ = CloseSessionAsync();
+    }
+
+    private void OnLensStateChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(ExplorerViewModel.IsLensActive))
+            _refreshPending = false;
     }
 
     private void OnClosed(object? sender, EventArgs args) => _ = CloseSessionAsync();
@@ -197,6 +205,12 @@ internal sealed class ExplorerOwner
         try
         {
             // Cancel pending work and detach native effects synchronously, before the first await.
+            if (_viewModel is not null)
+            {
+                _viewModel.PropertyChanged -= OnLensStateChanged;
+                _viewModel.Dispose();
+            }
+
             drained = _requests?.StopAsync() ?? Task.CompletedTask;
             Application.DocumentManager.DocumentToBeDeactivated -= OnContextLeaving;
             Application.DocumentManager.DocumentToBeDestroyed -= OnContextLeaving;

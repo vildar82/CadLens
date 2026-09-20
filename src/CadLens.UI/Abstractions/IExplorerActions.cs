@@ -23,7 +23,7 @@ public interface IExplorerActions
 
     /// <summary>Removes the candidate rendering effect.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<string> ClearAsync(CancellationToken cancellationToken);
+    Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken);
 
     /// <summary>Fits the current selection without changing visibility.</summary>
     /// <param name="objects">Selected group or object identifiers.</param>

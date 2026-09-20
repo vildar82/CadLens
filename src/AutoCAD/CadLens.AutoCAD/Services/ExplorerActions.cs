@@ -20,12 +20,8 @@ internal sealed class ExplorerActions(ILensProvider lens, IEntityHighlightAction
             reason => reason);
     }
 
-    public async Task<string> ClearAsync(CancellationToken cancellationToken)
-    {
-        var result = await highlights.ClearAsync(cancellationToken);
-
-        return result.Match(_ => "Temporary effects cleared.", reason => reason);
-    }
+    public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
+        highlights.ClearAsync(cancellationToken);
 
     public async Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
     {

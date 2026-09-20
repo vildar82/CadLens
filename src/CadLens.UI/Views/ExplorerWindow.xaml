@@ -7,9 +7,9 @@
         xmlns:local="clr-namespace:CadLens.UI"
         xmlns:core="clr-namespace:CadLens.Core;assembly=CadLens.Core"
         d:DataContext="{d:DesignInstance local:ExplorerViewModel}" mc:Ignorable="d"
-        Title="CAD Lens" Width="370" Height="660" MinWidth="300" MinHeight="450"
+        Title="CAD Lens" Width="370" Height="52" MinWidth="300" MinHeight="52"
         Background="#10171E" Foreground="#EEF5F8" FontFamily="Segoe UI"
-        WindowStyle="None" ResizeMode="CanResizeWithGrip" ShowInTaskbar="False">
+        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -79,17 +79,78 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <Grid Margin="20,0,14,0">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Path Data="M0,7 L10,2 20,7 10,12Z M0,12 L10,17 20,12 M0,17 L10,22 20,17"
-                          Stroke="{StaticResource Accent}" StrokeThickness="1.5" Width="22" Height="25" Margin="0,0,10,0" />
-                    <TextBlock Text="CAD LENS" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
-                </StackPanel>
+                <TextBlock Text="CAD LENS" FontWeight="SemiBold" FontSize="10" VerticalAlignment="Center" Foreground="#9EB5BE" />
+                <ToggleButton IsChecked="{Binding IsLensActive, Mode=OneWay}" Command="{Binding ToggleLensCommand}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" Padding="12,6"
+                              AutomationProperties.Name="Toggle Layers" ToolTip="{Binding Status}"
+                              ToolTipService.ShowOnDisabled="True" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton">
+                            <Setter Property="Foreground" Value="#B6C7CE" />
+                            <Setter Property="Background" Value="#18232C" />
+                            <Setter Property="BorderBrush" Value="#34434B" />
+                            <Setter Property="BorderThickness" Value="1" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Surface" Property="Background" Value="#23333D" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Surface" Property="Background" Value="#28413F" />
+                                                <Setter TargetName="Surface" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                                <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                                            </Trigger>
+                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                <Setter TargetName="Surface" Property="BorderBrush" Value="#FFFFFF" />
+                                                <Setter TargetName="Surface" Property="BorderThickness" Value="2" />
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="Surface" Property="Opacity" Value="0.45" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ToggleButton.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <Path Data="M0,5 L8,1 16,5 8,9Z M0,9 L8,13 16,9 M0,13 L8,17 16,13"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" StrokeThickness="1.5"
+                              Width="18" Height="18" Margin="0,0,8,0" />
+                        <TextBlock Text="Layers" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ToggleButton>
+                <TextBlock HorizontalAlignment="Right" Margin="0,0,38,0" VerticalAlignment="Center"
+                           ToolTip="{Binding Status}" AutomationProperties.Name="{Binding Status}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Setter Property="Text" Value="i" />
+                            <Setter Property="Foreground" Value="{StaticResource Accent}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLensActive}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsCleanupPending}" Value="True">
+                                    <Setter Property="Text" Value="…" />
+                                    <Setter Property="Foreground" Value="#E9C46A" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <ui:Button Content="×" FontSize="21" HorizontalAlignment="Right" VerticalAlignment="Center"
                            Style="{StaticResource QuietButton}" BorderThickness="0" Padding="8,0"
                            Click="CloseClicked" AutomationProperties.Name="Close CAD Lens" ToolTip="Close"
                            WindowChrome.IsHitTestVisibleInChrome="True" />
             </Grid>
-            <Border Grid.Row="1" Padding="20,8,20,8" BorderBrush="#26373F" BorderThickness="0,1,0,1">
+            <Border Grid.Row="1" Visibility="{Binding IsLensActive, Converter={StaticResource BooleanVisibility}}" Padding="20,8,20,8" BorderBrush="#26373F" BorderThickness="0,1,0,1">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                         <GradientStop Color="#203C3C" Offset="0" />
@@ -124,7 +185,7 @@
                     </Grid>
                 </StackPanel>
             </Border>
-            <Grid Grid.Row="2" Margin="18,8,18,8">
+            <Grid Grid.Row="2" Visibility="{Binding IsLensActive, Converter={StaticResource BooleanVisibility}}" Margin="18,8,18,8">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -276,7 +337,7 @@
                     </ListBox>
                 </Grid>
             </Grid>
-            <Border Grid.Row="3" Background="#141F27" BorderBrush="#2B3B44" BorderThickness="0,1,0,0" Padding="18,8,18,8">
+            <Border Grid.Row="3" Visibility="{Binding IsLensActive, Converter={StaticResource BooleanVisibility}}" Background="#141F27" BorderBrush="#2B3B44" BorderThickness="0,1,0,0" Padding="18,8,18,8">
                 <StackPanel>
                     <ui:Button Content="Highlight selection  ↗" Command="{Binding EmphasizeCommand}"
                                Background="{StaticResource Accent}" Foreground="#102B2A" BorderThickness="0"

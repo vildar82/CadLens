@@ -48,7 +48,7 @@ public sealed class ExplorerCompositionTests
             previous = scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
             source = (SnapshotSource)scope.ServiceProvider.GetRequiredService<ILayersSnapshotSource>();
             Assert.Same(previous, scope.ServiceProvider.GetRequiredService<ExplorerViewModel>());
-            await previous.ReadCommand.ExecuteAsync(null);
+            await previous.ToggleLensCommand.ExecuteAsync(null);
             await previous.ToggleFilterCommand.ExecuteAsync(previous.Filters[0]);
         }
 
@@ -59,7 +59,8 @@ public sealed class ExplorerCompositionTests
         var current = reopened.ServiceProvider.GetRequiredService<ExplorerViewModel>();
         Assert.NotSame(previous, current);
         Assert.NotSame(source, reopened.ServiceProvider.GetRequiredService<ILayersSnapshotSource>());
-        await current.ReadCommand.ExecuteAsync(null);
+        Assert.False(current.IsLensActive);
+        await current.ToggleLensCommand.ExecuteAsync(null);
         Assert.All(current.Filters, filter => Assert.False(filter.IsEnabled));
     }
 

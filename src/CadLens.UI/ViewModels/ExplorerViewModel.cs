@@ -16,12 +16,15 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     private string _emptyMessage = "Refresh to explore the active space.";
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _pendingRequest;
-    private string _status = "Refresh, then open a group to highlight its objects.";
+    private TaskCompletionSource? _operationSettled;
+    private string _status = "Activate Layers to explore the drawing.";
     private string _spaceLabel = "Active drawing";
     private string _lensLabel = "Overview";
     private string? _lensId;
     private ImmutableArray<LensNode> _groups = [];
     private bool _isBusy;
+    private bool _isLensActive;
+    private bool _isCleanupPending;
     private bool _disposed;
     private bool _hasDrawing = true;
     private int _contextVersion;
@@ -31,9 +34,10 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     public ExplorerViewModel(IExplorerActions actions)
     {
         _actions = actions;
+        ToggleLensCommand = new AsyncRelayCommand(ToggleLensAsync, CanToggleLens, AsyncRelayCommandOptions.AllowConcurrentExecutions);
         ReadCommand = new AsyncRelayCommand(() => RunAsync(ReadInventoryAsync), CanRun);
         EmphasizeCommand = new AsyncRelayCommand(() => RunAsync(_actions.EmphasizeAsync), CanRun);
-        ClearCommand = new AsyncRelayCommand(() => RunAsync(_actions.ClearAsync), CanRun);
+        ClearCommand = new AsyncRelayCommand(() => RunAsync(ClearEffectsAsync), CanRun);
         FocusCommand = new AsyncRelayCommand(
             () => RunAsync(token => _actions.FocusAsync(Current!.Objects, token)),
             () => CanRun() && Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus));
@@ -48,6 +52,31 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
             filter => RunAsync(token => ToggleFilterAsync(filter!, token)),
             filter => CanRun() && filter is not null && Filters.Contains(filter));
+    }
+
+    /// <summary>Activates exploration or collapses it even while drawing work is pending.</summary>
+    public IAsyncRelayCommand ToggleLensCommand { get; }
+
+    /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
+    public bool IsLensActive
+    {
+        get => _isLensActive;
+        private set
+        {
+            if (SetProperty(ref _isLensActive, value))
+                NotifyCommands();
+        }
+    }
+
+    /// <summary>Whether cancellation and queued graphics cleanup are still settling.</summary>
+    public bool IsCleanupPending
+    {
+        get => _isCleanupPending;
+        private set
+        {
+            if (SetProperty(ref _isCleanupPending, value))
+                NotifyCommands();
+        }
     }
 
     /// <summary>Current operation result or explanation.</summary>
@@ -177,7 +206,9 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         _navigation.Reset([], false);
         NotifyNavigation();
         SpaceLabel = hasDrawing ? "Active drawing" : "No active drawing";
-        Status = hasDrawing ? "Drawing context changed. Updating the current space." : "Open a drawing to explore its objects.";
+        Status = !hasDrawing
+            ? "Open a drawing to explore its objects."
+            : IsLensActive ? "Drawing context changed. Updating the current space." : "Drawing context changed. Activate Layers to explore.";
     }
 
     /// <inheritdoc />
@@ -192,10 +223,60 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         NotifyCommands();
     }
 
-    private bool CanRun() => !_disposed && _hasDrawing && !IsBusy;
+    private bool CanRun() => !_disposed && IsLensActive && _hasDrawing && !IsBusy && !IsCleanupPending;
+
+    private bool CanToggleLens() => !_disposed && (IsLensActive || (_hasDrawing && !IsCleanupPending && !IsBusy));
+
+    private async Task ToggleLensAsync()
+    {
+        if (!CanToggleLens())
+            return;
+
+        if (!IsLensActive)
+        {
+            IsLensActive = true;
+            await RunAsync(ReadInventoryAsync);
+            return;
+        }
+
+        _contextVersion++;
+        IsCleanupPending = true;
+        IsLensActive = false;
+        _pendingRequest?.Cancel();
+        Status = "Clearing temporary effects… Finish any active AutoCAD command to continue.";
+
+        try
+        {
+            if (_operationSettled is not null)
+                await _operationSettled.Task;
+
+            _lifetime.Token.ThrowIfCancellationRequested();
+            var message = await ClearEffectsAsync(_lifetime.Token);
+
+            if (!_disposed)
+                Status = message;
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed)
+                Status = $"Cleanup did not complete: {exception.Message}";
+        }
+        finally
+        {
+            IsCleanupPending = false;
+        }
+    }
+
+    private async Task<string> ClearEffectsAsync(CancellationToken cancellationToken)
+    {
+        var result = await _actions.ClearAsync(cancellationToken);
+
+        return result.Match(_ => "Temporary effects cleared.", reason => $"Cleanup unavailable: {reason}");
+    }
 
     private void NotifyCommands()
     {
+        ToggleLensCommand.NotifyCanExecuteChanged();
         ReadCommand.NotifyCanExecuteChanged();
         EmphasizeCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
@@ -215,12 +296,12 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         await _actions.EmphasizeObjectsAsync([], cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_disposed || version != _contextVersion)
+        if (_disposed || !IsLensActive || version != _contextVersion)
             return string.Empty;
 
         var result = await _actions.ReadAsync(_enabledFilters, cancellationToken);
 
-        if (_disposed || version != _contextVersion)
+        if (_disposed || !IsLensActive || version != _contextVersion)
             return string.Empty;
 
         if (result is not HostResult<LensPresentation>.Success success)
@@ -279,15 +360,21 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         _filters = Filters.Select(option => option with { IsEnabled = _enabledFilters.Contains(option.Descriptor.Id) }).ToImmutableArray();
         OnPropertyChanged(nameof(Filters));
 
+        var version = _contextVersion;
+
         try
         {
             return await ReadInventoryAsync(cancellationToken);
         }
         catch
         {
-            Groups = [];
-            _navigation.Reset([], false);
-            NotifyNavigation();
+            if (!_disposed && IsLensActive && version == _contextVersion)
+            {
+                Groups = [];
+                _navigation.Reset([], false);
+                NotifyNavigation();
+            }
+
             throw;
         }
     }
@@ -310,6 +397,8 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             return;
 
         var version = _contextVersion;
+        var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _operationSettled = settled;
         IsBusy = true;
         using var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _pendingRequest = request;
@@ -319,23 +408,29 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             Status = "Working… Finish any active AutoCAD command to continue.";
             var message = await action(request.Token);
 
-            if (!_disposed && version == _contextVersion)
+            if (!_disposed && IsLensActive && version == _contextVersion)
                 Status = message;
         }
         catch (OperationCanceledException)
         {
-            if (!_disposed && version == _contextVersion)
+            if (!_disposed && IsLensActive && version == _contextVersion)
                 Status = "The request was cancelled.";
         }
         catch (Exception exception)
         {
-            if (!_disposed && version == _contextVersion)
+            if (!_disposed && IsLensActive && version == _contextVersion)
                 Status = $"Unable to complete the operation: {exception.Message}";
         }
         finally
         {
-            _pendingRequest = null;
-            IsBusy = false;
+            if (ReferenceEquals(_pendingRequest, request))
+            {
+                _pendingRequest = null;
+                IsBusy = false;
+                _operationSettled = null;
+            }
+
+            settled.TrySetResult();
         }
     }
 }
