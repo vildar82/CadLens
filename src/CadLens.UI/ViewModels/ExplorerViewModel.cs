@@ -23,6 +23,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     private ImmutableArray<LensNode> _groups = [];
     private bool _isBusy;
     private bool _disposed;
+    private bool _hasDrawing = true;
     private int _contextVersion;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
@@ -166,15 +167,17 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand FocusCommand { get; }
 
     /// <summary>Clears presentation when the document or space changes.</summary>
-    public void ResetContext()
+    /// <param name="hasDrawing">Whether drawing-dependent commands can run.</param>
+    public void ResetContext(bool hasDrawing = true)
     {
         _contextVersion++;
+        _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
         Groups = [];
         _navigation.Reset([], false);
         NotifyNavigation();
-        SpaceLabel = "Active drawing";
-        Status = "Drawing context changed. Refresh to read the current space.";
+        SpaceLabel = hasDrawing ? "Active drawing" : "No active drawing";
+        Status = hasDrawing ? "Drawing context changed. Updating the current space." : "Open a drawing to explore its objects.";
     }
 
     /// <inheritdoc />
@@ -189,7 +192,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         NotifyCommands();
     }
 
-    private bool CanRun() => !_disposed && !IsBusy;
+    private bool CanRun() => !_disposed && _hasDrawing && !IsBusy;
 
     private void NotifyCommands()
     {

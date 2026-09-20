@@ -278,6 +278,48 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.RootCommand.CanExecute(null));
     }
 
+    /// <summary>No-drawing state clears selection, disables host commands, and recovers on activation.</summary>
+    [Fact]
+    public async Task ClosingLastDrawingDisablesActionsUntilActivation()
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        model.ResetContext(false);
+        Assert.Empty(model.Groups);
+        Assert.Null(model.Current);
+        Assert.Equal("No active drawing", model.SpaceLabel);
+        Assert.False(model.ReadCommand.CanExecute(null));
+        Assert.False(model.EmphasizeCommand.CanExecute(null));
+        Assert.False(model.ClearCommand.CanExecute(null));
+        Assert.False(model.FocusCommand.CanExecute(null));
+        Assert.False(model.ToggleFilterCommand.CanExecute(model.Filters[0]));
+        model.ResetContext();
+        Assert.True(model.ReadCommand.CanExecute(null));
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.NotEmpty(model.Groups);
+        Assert.Null(model.Current);
+    }
+
+    /// <summary>Switching drawings retains session filter options but starts at the new root.</summary>
+    [Fact]
+    public async Task DrawingSwitchKeepsFiltersAndResetsNavigation()
+    {
+        var actions = new Actions();
+        using var model = new ExplorerViewModel(actions);
+        await model.ReadCommand.ExecuteAsync(null);
+        await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        model.ResetContext(false);
+        model.ResetContext();
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.Contains("archived", actions.Enabled);
+        Assert.Null(model.Current);
+        Assert.Empty(model.Breadcrumbs);
+        Assert.Empty(actions.EmphasisTargets);
+    }
+
     private static LensPresentation CreatePresentation(bool single, bool hidden)
     {
         var first = new LensNode("first", "First", [new HostObjectId(1)], [], [new DetailField("Category", "Fixture")], [LensAction.Focus]);
