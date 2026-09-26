@@ -46,13 +46,30 @@ public sealed class AutoCadTaskServiceTests
     {
         using var service = new AutoCadTaskService();
         var documents = Application.DocumentManager;
-        documents.MdiActiveDocument!.Editor.IsQuiescent = false;
+        documents.ActiveCommand = 1;
         var request = service.RunAsync(() => true, default);
 
         await Dispatcher.Yield();
         Assert.Equal(0, documents.PendingCount);
-        documents.MdiActiveDocument.Editor.IsQuiescent = true;
+        documents.ActiveCommand = 0;
         Application.RaiseIdle();
+        Assert.Equal(1, documents.PendingCount);
+        documents.ExecuteNext();
+
+        Assert.IsType<HostResult<bool>.Success>(await request);
+        await service.StopAsync();
+    });
+
+    /// <summary>A modeless panel can run work when no command is active even if the editor reports non-quiescent.</summary>
+    [Fact]
+    public Task RunsWithoutActiveCommandWhenEditorIsNotQuiescent() => OnUiThread(async () =>
+    {
+        using var service = new AutoCadTaskService();
+        var documents = Application.DocumentManager;
+        documents.MdiActiveDocument!.Editor.IsQuiescent = false;
+        var request = service.RunAsync(() => true, default);
+
+        await Dispatcher.Yield();
         Assert.Equal(1, documents.PendingCount);
         documents.ExecuteNext();
 
@@ -83,7 +100,7 @@ public sealed class AutoCadTaskServiceTests
     {
         using var service = new AutoCadTaskService();
         using var cancellation = new CancellationTokenSource();
-        Application.DocumentManager.MdiActiveDocument!.Editor.IsQuiescent = false;
+        Application.DocumentManager.ActiveCommand = 1;
         var called = false;
         var request = service.RunAsync(() => called = true, cancellation.Token);
 

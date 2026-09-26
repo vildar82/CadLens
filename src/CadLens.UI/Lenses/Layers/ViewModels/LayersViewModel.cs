@@ -445,7 +445,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
         try
         {
-            Status = "Working… Finish any active AutoCAD command to continue.";
+            Status = "Waiting for AutoCAD… Finish any active command if needed.";
             var message = await action(request.Token);
 
             if (!_disposed && IsLensActive && version == _contextVersion)

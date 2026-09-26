@@ -200,7 +200,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         IsCleanupPending = true;
         _selectedLens!.IsActive = false;
         _activationRequest?.Cancel();
-        Status = "Clearing lens effects… Finish any active drawing command to continue.";
+        Status = "Clearing lens effects… Waiting for AutoCAD.";
         NotifyLensState();
 
         try

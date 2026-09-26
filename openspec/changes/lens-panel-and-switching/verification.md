@@ -41,3 +41,9 @@ Date: 2026-09-20.
 - Existing hatch/block native rendering limitations remain unchanged. No host validation from earlier changes is claimed for this implementation.
 
 The change remains active and has not been archived.
+
+## 2026-09-26 follow-up
+
+- In a live AutoCAD session, the user reported that the Layers list appeared but its commands remained disabled with "Working... Finish any active AutoCAD command to continue." No command had been started. The toggle later recovered; the expanded list still did not respond. This is a reported failure, not a completed host check.
+- The host queue now waits on `CMDACTIVE` instead of `Editor.IsQuiescent`, which can block queued panel work when no command is active. A focused managed regression test covers that state. The full managed suite passes (79 tests), and the Debug solution build has zero warnings and errors from an alternate output path because AutoCAD holds the normal plugin output DLL open.
+- The updated DLLs still need a fresh AutoCAD load and the reported interaction retested. Tasks 2.1, 2.3, 3.1, 4.2, and 4.3 remain unchecked.
