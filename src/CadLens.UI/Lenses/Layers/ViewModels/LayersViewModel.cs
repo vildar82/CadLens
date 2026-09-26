@@ -330,11 +330,14 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private async Task<string> ReadInventoryAsync(CancellationToken cancellationToken)
     {
         var version = _contextVersion;
-        await _actions.EmphasizeObjectsAsync([], cancellationToken);
+        var cleared = await _actions.ClearAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (_disposed || !IsLensActive || version != _contextVersion)
             return string.Empty;
+
+        if (cleared is not HostResult<bool>.Success { Value: true })
+            return DescribeCleanup(cleared);
 
         var result = await _actions.ReadAsync(_enabledFilters, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();

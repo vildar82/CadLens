@@ -10,7 +10,6 @@ internal static class ExplorerComposition
     {
         var services = new ServiceCollection();
         services.AddScoped<ILayersProvider, LayersLensProvider>();
-        services.AddScoped<ILayersActions, LayersActions>();
         services.AddScoped<LayersViewModel>();
         services.AddScoped<ILens, LayersLens>();
         services.AddScoped<ExplorerViewModel>();

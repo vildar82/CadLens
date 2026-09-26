@@ -10,9 +10,6 @@
     <File Path="docs/SDD.md" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Common/Common.csproj" />
-    <Project Path="src/Common.AutoCAD/Common.AutoCAD.csproj" />
-    <Project Path="src/CadLens.Core/CadLens.Core.csproj" />
     <Project Path="src/CadLens.Lenses/CadLens.Lenses.csproj" />
     <Project Path="src/CadLens.UI/CadLens.UI.csproj" />
     <Project Path="src/CadLens.Preview/CadLens.Preview.csproj" />
@@ -20,9 +17,13 @@
   <Folder Name="/src/AutoCAD/">
     <Project Path="src/AutoCAD/CadLens.AutoCAD/CadLens.AutoCAD.csproj" />
   </Folder>
+  <Folder Name="/src/Common/">
+    <Project Path="src/Common.AutoCAD/Common.AutoCAD.csproj" />
+    <Project Path="src/Common/Common.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CadLens.AutoCAD.Tests/CadLens.AutoCAD.Tests.csproj" />
-    <Project Path="tests/CadLens.Core.Tests/CadLens.Core.Tests.csproj" />
+    <Project Path="tests/Common.Tests/Common.Tests.csproj" />
     <Project Path="tests/CadLens.Lenses.Tests/CadLens.Lenses.Tests.csproj" />
     <Project Path="tests/CadLens.UI.Tests/CadLens.UI.Tests.csproj" />
   </Folder>

@@ -3,6 +3,6 @@
         <TargetFramework>net8.0</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="../CadLens.Core/CadLens.Core.csproj"/>
+        <ProjectReference Include="../Common/Common.csproj"/>
     </ItemGroup>
 </Project>

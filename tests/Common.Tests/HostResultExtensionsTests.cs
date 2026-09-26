@@ -1,7 +1,6 @@
-﻿using Common;
-using Xunit;
+﻿using Xunit;
 
-namespace CadLens.Core.Tests;
+namespace Common.Tests;
 
 /// <summary>Checks that result composition preserves failures and selects only the matching outcome.</summary>
 public sealed class HostResultExtensionsTests

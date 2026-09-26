@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using CadLens.Core;
 using Common;
 using Xunit;
 

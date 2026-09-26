@@ -1,9 +1,7 @@
-﻿using System.Collections.Immutable;
-using CadLens.AutoCAD;
-using CadLens.Core;
+﻿using CadLens.AutoCAD;
+using System.Collections.Immutable;
 using CadLens.Lenses;
 using Common;
-using Common.AutoCAD;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -107,9 +105,7 @@ public sealed class ExplorerCompositionTests
     private static void RegisterHost(IServiceCollection services)
     {
         services.AddScoped<ILayersSnapshotSource, SnapshotSource>();
-        services.AddScoped<IEntityHighlightActions, Highlights>();
-        services.AddScoped<IEntityHighlightService, Graphics>();
-        services.AddScoped<IHostActions, HostActions>();
+        services.AddScoped<ILayersActions, Actions>();
     }
 
     private sealed class SnapshotSource : ILayersSnapshotSource, IDisposable
@@ -122,30 +118,22 @@ public sealed class ExplorerCompositionTests
         public void Dispose() => DisposeCount++;
     }
 
-    private sealed class HostActions : IHostActions
+    private sealed class Actions(ILayersProvider provider) : ILayersActions
     {
-        public Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+        public void ClearImmediately(bool redraw) { }
 
-        public Task<HostResult<bool>> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
-    }
+        public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
+            provider.LoadAsync(enabledFilters, cancellationToken);
 
-    private sealed class Graphics : IEntityHighlightService
-    {
-        public void Apply(Autodesk.AutoCAD.DatabaseServices.Database database, Autodesk.AutoCAD.DatabaseServices.ObjectId[] targets, Autodesk.AutoCAD.DatabaseServices.ObjectId[] inventory) { }
-        public void Clear(bool redraw = true) { }
-    }
+        public Task<string> EmphasizeAsync(CancellationToken cancellationToken) => Task.FromResult("Highlighted.");
 
-    private sealed class Highlights : IEntityHighlightActions
-    {
-        public Task<HostResult<int>> EmphasizeAsync(Autodesk.AutoCAD.DatabaseServices.ObjectId[] objects, CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<int>>(new HostResult<int>.Success(objects.Length));
-
-        public Task<HostResult<int>> EmphasizeSelectionAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<int>>(new HostResult<int>.Success(0));
+        public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult("Selection updated.");
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
+        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult("Focused.");
     }
 }

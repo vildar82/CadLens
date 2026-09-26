@@ -3,7 +3,6 @@ using Trace = System.Diagnostics.Trace;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
-using CadLens.Core;
 using CadLens.Lenses;
 using CadLens.UI;
 using Common.AutoCAD;
@@ -24,10 +23,10 @@ internal sealed class ExplorerOwner
     {
         services.AddScoped<IHostTaskService, AutoCadTaskService>();
         services.AddScoped<ILayersSnapshotSource, AutoCadLayersSnapshotSource>();
+        services.AddScoped<ILayersActions, LayersActions>();
         services.AddSingleton(HighlightColors);
         services.AddScoped<IEntityHighlightService, EntityHighlightService>();
         services.AddScoped<IEntityHighlightActions, EntityHighlightActions>();
-        services.AddScoped<IHostActions, AutoCadHostActions>();
     });
 
     private IServiceScope? _scope;

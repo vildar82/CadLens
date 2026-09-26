@@ -95,6 +95,24 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.NextCommand.CanExecute(null));
     }
 
+    /// <summary>A failed graphics clear keeps the existing inventory and reports why refresh stopped.</summary>
+    [Fact]
+    public async Task RefreshStopsWhenOldEffectsCannotBeCleared()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
+        var groups = model.Groups;
+        var reads = actions.ReadCount;
+        actions.ClearResult = new HostResult<bool>.Unavailable("fixture clear failed");
+
+        await model.ReadCommand.ExecuteAsync(null);
+
+        Assert.Equal(reads, actions.ReadCount);
+        Assert.Equal(groups, model.Groups);
+        Assert.Contains("fixture clear failed", model.Status);
+    }
+
     /// <summary>A filter result cannot republish an old document's selection.</summary>
     [Fact]
     public async Task ContextChangeRejectsPendingFilterResult()
@@ -405,12 +423,13 @@ public sealed class ExplorerNavigationTests
         await ToggleAsync(model);
         actions.PendingEmphasis = new TaskCompletionSource<string>();
         actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
+        actions.ClearStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var emphasis = model.EnterCommand.ExecuteAsync(model.Items[0]);
         var collapse = ToggleAsync(model);
         Assert.False(model.IsLensActive);
         Assert.True(model.IsCleanupPending);
         Assert.True(actions.EmphasisToken.IsCancellationRequested);
-        Assert.Equal(0, actions.ClearCount);
+        Assert.Equal(1, actions.ClearCount);
         actions.PendingEmphasis.SetResult("Old emphasis completed.");
         await emphasis;
         await actions.ClearStarted.Task;
@@ -445,9 +464,10 @@ public sealed class ExplorerNavigationTests
     [InlineData(true)]
     public async Task CleanupFailureIsReported(bool throws)
     {
-        var actions = new Actions { PendingClear = new TaskCompletionSource<HostResult<bool>>() };
+        var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
         var collapse = ToggleAsync(model);
 
         if (throws)
@@ -466,9 +486,10 @@ public sealed class ExplorerNavigationTests
     [Fact]
     public async Task CloseDuringCleanupRejectsLateCompletion()
     {
-        var actions = new Actions { PendingClear = new TaskCompletionSource<HostResult<bool>>() };
+        var actions = new Actions();
         var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
         var collapse = ToggleAsync(model);
         model.Dispose();
         actions.PendingClear.SetResult(new HostResult<bool>.Success(true));
@@ -530,7 +551,8 @@ public sealed class ExplorerNavigationTests
         internal int FocusCount { get; private set; }
         internal CancellationToken ClearToken { get; private set; }
         internal TaskCompletionSource<HostResult<bool>>? PendingClear { get; set; }
-        internal TaskCompletionSource ClearStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal HostResult<bool> ClearResult { get; set; } = new HostResult<bool>.Success(true);
+        internal TaskCompletionSource ClearStarted { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool SingleObject { get; set; }
         internal bool Empty { get; init; }
         internal int HostCalls { get; private set; }
@@ -571,7 +593,7 @@ public sealed class ExplorerNavigationTests
             ClearToken = cancellationToken;
             EmphasisTargets = [];
             ClearStarted.TrySetResult();
-            return PendingClear?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+            return PendingClear?.Task ?? Task.FromResult(ClearResult);
         }
 
         public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)

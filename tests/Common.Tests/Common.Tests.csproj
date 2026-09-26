@@ -5,6 +5,6 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="../../src/CadLens.Core/CadLens.Core.csproj"/>
+        <ProjectReference Include="../../src/Common/Common.csproj"/>
     </ItemGroup>
 </Project>

@@ -41,11 +41,20 @@ These are directions, not commitments for the first release. For example, a hist
 
 CAD Lens uses one exploration session for the active drawing. Highlighting and dimming apply to the current inventory objects in every view where those objects are visible, respecting each viewport's visibility settings. Separate selection and navigation state per viewport is outside the scope. Switching drawings or spaces clears the old effects; Focus moves only the active view.
 
-## Shared libraries
+## Project map
 
-- `Common` contains host operation results and their composition helpers. It targets .NET 8 without a host API dependency.
-- `Common.AutoCAD` contains typed database access, the host task queue, selection highlighting, and temporary graphics. It references `Common` and the AutoCAD API, with WPF dispatcher support for the queue.
-- `CadLens.AutoCAD` supplies highlight colors and owns plugin/panel lifetime, cleanup, lens snapshot construction, and panel messages. Neither shared library references a CAD Lens project.
+- `Common` contains host results and typed ID contracts without WPF or AutoCAD.
+- `Common.AutoCAD` owns queued AutoCAD work, database helpers, and temporary graphics.
+- `CadLens.Lenses` turns detached drawing snapshots into Layers groups and navigation state.
+- `CadLens.UI` owns the window, lens switching, and the Layers WPF module.
+- `CadLens.AutoCAD` connects the UI to AutoCAD and owns the plugin and panel lifetime.
+- `CadLens.Preview` runs the same UI with sample data.
+
+A Layers refresh travels from `LayersViewModel` through `ILayersActions` to the AutoCAD adapter. The adapter reads a detached snapshot through `LayersLensProvider` and performs graphics or Focus requests through `Common.AutoCAD`.
+
+## AutoCAD lifetime
+
+`CadLens.AutoCAD` supplies highlight colors and owns plugin/panel lifetime, cleanup, lens snapshot construction, and panel messages. The two `Common` libraries do not reference a CAD Lens project.
 
 Create `AutoCadTaskService` on the host UI thread. Call selection actions on that thread to capture preselection before queuing work. Clear graphics when leaving the drawing context; stop and drain the queue before disposing it. The extracted graphics implementation remains subject to the native rendering checks described below.
 

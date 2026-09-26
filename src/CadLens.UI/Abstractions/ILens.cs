@@ -1,5 +1,4 @@
 ﻿using System.Windows;
-using CadLens.Core;
 using Common;
 
 namespace CadLens.UI;

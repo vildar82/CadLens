@@ -1,4 +1,4 @@
-﻿namespace CadLens.Core;
+﻿namespace CadLens.UI;
 
 /// <summary>Identifies a registered lens without reading drawing data.</summary>
 /// <param name="Id">Stable identity, unique among registered lenses.</param>
