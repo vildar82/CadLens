@@ -1,68 +1,113 @@
 ﻿# CAD Lens
 
-CAD Lens is a personal experiment in interfaces for exploring AutoCAD drawings. The idea is inspired by the lenses in Civilization: the same DWG can be viewed through different visual layers, letting users switch context quickly without changing the drawing itself.
+CAD Lens is a personal experiment in exploring AutoCAD drawings through game-inspired visual layers. Its first lens helps reveal a DWG's structure without changing drawing geometry or properties.
 
-![CAD Lens Layers preview showing the drawing inventory and highlight controls](docs/images/layers-preview.png)
+## Contents
 
-## Why this project exists
+- [Overview](#overview)
+- [Install and run](#install-and-run)
+- [Use the Layers lens](#use-the-layers-lens)
+- [Standalone UI preview](#standalone-ui-preview)
+- [Development](#development)
+- [Verification](#verification)
+- [Future ideas](#future-ideas)
 
-The goal is to test whether a game-inspired interface can make an unfamiliar drawing easier and more enjoyable to explore. The first useful outcome is a quick understanding of the DWG's structure; more analysis tools may follow as the project develops.
+## Overview
 
-## Possible user scenario
+The current plugin provides one production lens, Layers. It counts objects by layer, lets you browse layer, object type, and individual object, and can focus the camera, select CAD objects, or temporarily isolate the current target. The panel stays over the drawing; closing or collapsing it restores the ordinary display.
 
-1. The user opens a DWG and runs `CADLENS`.
-2. Lens mode opens with a compact panel over the drawing area.
-3. The Layers lens shows the number of objects on each included layer.
-4. The user selects a layer in the legend and sees its objects temporarily highlighted without changing object or layer properties in the DWG.
-5. Closing lens mode removes the temporary visualization.
+CAD Lens uses C#, .NET 8, and WPF on Windows. The intended hosts are AutoCAD 2025 and 2026 and their Civil 3D counterparts. The bundle manifest declares AutoCAD release R25.0 as its minimum; compatibility with newer host or .NET runtime updates needs a separate native check. AutoCAD LT is outside the current scope.
 
-This is an example for discussion in OpenSpec Explore, not an approved specification for the first feature.
+## Install and run
 
-## Possible directions
+### Bundle
 
-- Geometry: visual classification of object types.
-- Object Inspector: an object card on hover.
-- Blocks: block instances and variations.
-- Problems: duplicates, gaps, short segments, and other detectable issues.
-- History: changes during the current session, if AutoCAD events provide enough information.
-- Later: Selection Lens, radial menu, minimap, game elements, and separate Civil 3D/Revit adapters.
+Build the bundle from the repository root:
 
-These are directions, not commitments for the first release. For example, a historical creation date for every existing DWG object cannot be promised without checking whether the data exists.
+```powershell
+./scripts/New-Bundle.ps1
+```
 
-## Technical boundaries of the first version
+The script publishes the plugin, generates `PackageContents.xml`, and creates `artifacts/bundle/CadLens.bundle.zip`. A successful GitHub Actions run also offers that ZIP as a downloadable artifact.
 
-- Hosts: AutoCAD 2025 and 2026 on Windows. Autodesk lists .NET 8 for their original releases; compatibility with later .NET 10 host updates must be checked separately.
-- Language and UI: C# and WPF. HUD placement and highlighting must be tested in AutoCAD before the architecture is fixed.
-- Analysis is separate from AutoCAD access: read the required snapshot in the proper document context, then calculate aggregates over ordinary .NET models.
-- A lens result describes the desired visualization. Clear temporary effects when switching lenses or documents and when closing lens mode.
-- The first slice does not require changing DWG geometry or properties.
+1. Extract the ZIP.
+2. Copy the `CadLens.bundle` directory to `%PROGRAMFILES%\Autodesk\ApplicationPlugins`.
+3. Restart AutoCAD or Civil 3D, open a DWG, and run `CADLENS`.
 
-## Highlighting across views
+The bundle loads the plugin when `CADLENS` is invoked. To update an installation, close the host and replace the entire `CadLens.bundle` directory.
 
-CAD Lens uses one exploration session for the active drawing. Highlighting and dimming apply to the current inventory objects in every view where those objects are visible, respecting each viewport's visibility settings. Separate selection and navigation state per viewport is outside the scope. Switching drawings or spaces clears the old effects; Focus moves only the active view.
+### Manual development load
 
-## Project map
+Build the solution:
+
+```powershell
+dotnet build CadLens.slnx -c Debug
+```
+
+The entry assembly is `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadLens.AutoCAD.dll`. If the build directory is not in `TRUSTEDPATHS`, copy all DLLs from that output directory into an existing trusted directory without disabling `SECURELOAD`. In AutoCAD, run `NETLOAD`, select `CadLens.AutoCAD.dll`, and enter `CADLENS`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
+
+## Use the Layers lens
+
+A new `CADLENS` session opens as a compact bar with Layers inactive. Press Layers to read the active drawing space. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
+
+![CAD Lens Layers preview showing the drawing inventory and Isolate control](docs/images/layers-preview.png)
+
+### Drawing controls
+
+| Action | Effect | Auto default |
+| --- | --- | --- |
+| Focus | Fits the current target in the active camera | Off |
+| Select | Replaces the CAD selection | Off |
+| Isolate | Temporarily hides other direct active-space objects | Off |
+
+Each action has its own Auto toggle, and all three start off. Enabled actions follow navigation. For selection without camera movement, turn Auto Select on and leave Auto Focus off. Select remains available when Focus cannot use bounds or the viewport is locked.
+
+### Temporary isolation
+
+Press Isolate on a layer, type, or object to keep its direct active-space objects in their original appearance and temporarily hide the other direct active-space objects. Auto Isolate repeats this as you browse; with Auto Isolate off, the next navigation clears a manual isolation. Objects on off or frozen layers stay hidden even when included in the list. Isolation uses the same target set in every viewport where those objects are visible, without moving cameras or changing CAD selection.
+
+Turning Auto Isolate off, returning to the root list, pressing Reset, collapsing or closing the panel, or switching drawings or spaces restores the ordinary display. Isolation does not write entity or layer visibility properties to the DWG.
+
+Reset also clears CAD selection and turns off all Auto modes while keeping the camera, navigation, and inclusion filters. Effects stay clear during later navigation until a mode is enabled again. Reset is disabled while work is pending. Turning Auto Select off clears only CAD selection. With Auto Select off, a manual selection persists until replaced or cleared. Closing the panel discards session settings.
+
+CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or spaces reloads the active lens. These actions do not change stored DWG geometry or properties.
+
+## Standalone UI preview
+
+Run the same WPF window with sample data, without AutoCAD:
+
+```powershell
+dotnet run --project src/CadLens.Preview
+```
+
+The preview starts compact and uses the production Layers layout. It includes sample layers and simulated Focus, Select, and Isolate actions. It does not verify native AutoCAD behavior.
+
+For an interactive comparison of Action rows and Action strip, run:
+
+```powershell
+dotnet run --project src/CadLens.Preview -- --modes
+```
+
+Use `--capture-modes <directory>` to render comparison scenarios and run the mode checks. The optional `--slow`, `--empty`, and `--error` flags simulate a delayed inventory, no objects, and an unavailable inventory; they can be combined. Restart the preview to change scenarios.
+
+## Development
+
+### Project map
 
 - `Common` contains host results, typed ID contracts, and the object visualization contract without WPF or AutoCAD.
-- `Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary graphics, and object visualization including Focus and bounds reading.
+- `Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary visual isolation, Focus, and bounds reading.
 - `CadLens.Lenses` turns detached drawing snapshots into Layers groups and navigation state.
-- `CadLens.UI` owns the window, lens switching, and the Layers WPF module.
-- `CadLens.AutoCAD` connects the UI to AutoCAD and owns the plugin and panel lifetime.
-- `CadLens.Preview` runs the same UI with sample data.
+- `CadLens.UI` owns the window, lens switching, and Layers WPF module.
+- `CadLens.AutoCAD` connects the UI to AutoCAD and owns plugin and panel lifetime.
+- `CadLens.Preview` runs the shared UI with sample data.
 
-A Layers refresh travels from `LayersViewModel` through `ILayersActions` to the AutoCAD adapter. The adapter reads a detached snapshot through `LayersLensProvider` and sends object visualization requests to `IObjectVisualizationService`.
+A Layers refresh travels from `LayersViewModel` through `ILayersActions` to the AutoCAD adapter. The adapter reads a detached snapshot through `LayersLensProvider` and sends visualization requests to `IObjectVisualizationService`. Analysis runs over ordinary .NET models after the host snapshot has been read in the proper document context.
 
-## AutoCAD lifetime
+### Host and lens lifetime
 
-`CadLens.AutoCAD` supplies highlight colors and owns plugin/panel lifetime, cleanup, lens snapshot construction, and panel messages. The two `Common` libraries do not reference a CAD Lens project.
+`CadLens.AutoCAD` owns plugin and panel lifetime, cleanup, snapshot construction, and panel messages. Create `AutoCadTaskService` on the host UI thread. Capture preselection on that thread before queuing selection work. Clear temporary isolation when leaving the drawing context, then stop and drain the queue before disposing it.
 
-Create `AutoCadTaskService` on the host UI thread. Call selection actions on that thread to capture preselection before queuing work. Clear graphics when leaving the drawing context; stop and drain the queue before disposing it. The extracted graphics implementation remains subject to the native rendering checks described below.
-
-## Adding a lens
-
-A lens is an independent module implementing `ILens` in `CadLens.UI`. It supplies its descriptor and WPF view, handles activation/deactivation, and receives context-change and close notifications. Its view model, models, services, commands, and XAML are entirely its own.
-
-Register the module and its constructor dependencies in the composition root:
+A lens implements `ILens` in `CadLens.UI`. It supplies a descriptor and WPF view, handles activation and deactivation, and receives context-change and close notifications. Register its own dependencies and the lens in the composition root:
 
 ```csharp
 services.AddScoped<MyLensService>();
@@ -70,89 +115,28 @@ services.AddScoped<MyLensViewModel>();
 services.AddScoped<ILens, MyLens>();
 ```
 
-The shell consumes `IEnumerable<ILens>`, creates toolbar buttons in registration order, and displays the selected module's `View` in a `ContentControl`. Construct views lazily on the UI thread, so discovering registrations does not create WPF content or read drawings. Descriptor IDs must be unique. The shell has no Layers data, navigation, filter, Focus, or highlighting contract.
+The shell discovers `ILens` registrations, creates their views lazily on the UI thread, and shows one active module at a time. Descriptor IDs must be unique. Deactivation must settle module work and remove its effects; failed cleanup blocks switching until a retry succeeds. Context changes invalidate saved targets, and Close cancels work and removes effects before the host queue stops. Module services are scoped to the panel session.
 
-One module is active at a time. The activation token remains valid until collapse, switching, or close. Deactivation receives a separate cleanup token and must settle module-owned work and remove its effects. Failed cleanup blocks switching until a retry succeeds. `OnContextChanged` invalidates each module's saved context. Drawing edits require an explicit Refresh; document and space changes reload the active lens. `Close` must synchronously cancel work and detach effects, respecting the host-shutdown flag. Module services are scoped to the panel session.
+Only `LayersLens` is registered in production. Its WPF files and `ILayersActions` live in `src/CadLens.UI/Lenses/Layers`; its provider, models, and navigation live in `CadLens.Lenses`. The AutoCAD adapter provides drawing operations. Tests register an unrelated Counter lens to check that the shell can load another module without Layers-specific changes.
 
-Only `LayersLens` is registered in production. `CadLens.UI/Lenses/Layers` contains `LayersView.xaml`, `LayersViewModel`, and `ILayersActions`; `CadLens.Lenses` contains its provider, presentation models, and navigation. The AutoCAD-specific `LayersActions` supplies its drawing operations. These are Layers implementation details, not interfaces another lens must implement. The shared AutoCAD task queue and host utilities remain available for reuse.
+### Specifications and CI
 
-Tests register an unrelated Counter module with its own XAML, view model, service, and Increment command. It appears and runs without changes to the shell.
+The project uses OpenSpec to agree on behavior and verification criteria before implementing a slice. See [the spec-driven development guide](docs/SDD.md) and the [current command specification](openspec/specs/autocad-command/spec.md).
 
-## Spec-driven development
+On every push, the Windows GitHub Actions workflow restores dependencies, builds the solution, runs managed tests, and uploads the bundle ZIP. Native AutoCAD rendering and lifecycle checks are separate.
 
-The project uses OpenSpec. The reasons for that choice and a short guide are in [docs/SDD.md](docs/SDD.md). We agree on behavior and verification criteria in a specification before implementing one testable slice, then compare the result with that specification.
+## Verification
 
-## Current status
+The first plugin is implemented, and its bootstrap, Layers, panel, and navigation changes are archived. Their records distinguish managed checks, UI preview checks, and native host observations:
 
-The first plugin is implemented. The `autocad-bootstrap` change is archived, and the command requirements live in `openspec/specs/autocad-command/spec.md`. The verification record and its limits are below.
+- [First Layers lens verification](openspec/changes/archive/2026-09-20-first-layers-lens/verification.md)
+- [Panel and lens switching verification](openspec/changes/archive/2026-09-26-lens-panel-and-switching/verification.md)
+- [Independent navigation modes verification](openspec/changes/archive/2026-09-26-independent-navigation-modes/verification.md)
 
-## Build and manually load the first plugin
+The current Isolate implementation is described in the active [isolation design](openspec/changes/improve-entity-highlighting/design.md). The archived rendering checks above concern the previous Highlight behavior and do not verify Isolate. A diagnostic host probe showed a hatch and block insertion could be hidden with the visibility flag; broader isolation behavior and cleanup still need native checks.
 
-Build from the repository root:
+The original bootstrap DLL was loaded with `NETLOAD` in Civil 3D 2026 on September 19, 2026; that check used an earlier greeting command. Before the isolation change, the user reported that the panel and navigation worked in AutoCAD, but the host version and individual scenario results were not recorded. Separate standard AutoCAD 2025 and 2026 installations, and loading the new bundle in a native host, have not been verified here. Managed builds, tests, and preview behavior do not establish those host results.
 
-```powershell
-dotnet build CadLens.slnx -c Debug
-```
+## Future ideas
 
-The plugin is built at `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadLens.AutoCAD.dll`. Open a DWG in AutoCAD 2025 or 2026. If the build directory is not in `TRUSTEDPATHS`, copy all DLLs from that output directory into an existing trusted directory without disabling `SECURELOAD`. Run `NETLOAD` and select the DLL, then enter `CADLENS`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
-
-New sessions start as a compact bar with Layers inactive. Press Layers to read the active space. Use Refresh after drawing edits. Press Layers again to collapse and clear CAD selection and temporary effects. Reopening restores valid navigation, inclusion filters, and Auto settings without moving the camera. Document/space changes reset navigation. The lens tooltip reports pending or failed cleanup; activation waits for cleanup to settle. Repeated CADLENS commands bring the existing panel forward without resetting it.
-
-### Drawing controls
-
-| Action | Effect | Default Auto setting |
-| --- | --- | --- |
-| Focus | Fits the active camera only | Off |
-| Select | Replaces CAD selection only | Off |
-| Highlight | Applies temporary emphasis and dimming | On |
-
-Each action has its own Auto toggle, available from the initial layer list. Enabled modes follow layers, types, objects, Back, breadcrumbs, and Previous/Next. To browse from a fixed overview, turn Auto Select on and leave Auto Focus off. Select remains available when Focus cannot use bounds or the viewport is locked. Hidden objects remain hidden.
-
-Reset clears selection and highlighting, turns off all Auto modes, and keeps the camera, navigation, and filters. Subsequent navigation leaves selection and highlighting clear until a mode is enabled again. Reset is disabled while work is pending. Returning to the root also clears selection and highlighting without moving the camera. Turning Auto Select or Auto Highlight off clears only that effect. With Auto Select off, manual selection stays until replaced or cleared; with Auto Highlight off, manual highlighting clears on the next navigation. Closing discards the session settings. These operations do not modify stored drawing geometry or properties.
-
-The archived `lens-panel-and-switching` change and its verification limits are recorded in [panel verification](openspec/changes/archive/2026-09-26-lens-panel-and-switching/verification.md).
-
-## Explorer preview status
-
-The `first-layers-lens` change is archived by user acceptance, with remaining verification limits recorded. The panel uses CommunityToolkit.Mvvm and a scoped WPF UI theme, with inclusion filters, group/type/object navigation, breadcrumbs, Back, and Previous/Next. Earlier native checks are recorded in [first-lens verification](openspec/changes/archive/2026-09-20-first-layers-lens/verification.md). Those checks do not verify the newly separated selection modes; see the archived [mode integration verification](openspec/changes/archive/2026-09-26-independent-navigation-modes/verification.md) for the later evidence and its limits.
-
-## Verification of the first plugin
-
-On September 19, 2026, the plugin was loaded with `NETLOAD` in Autodesk Civil 3D 2026 based on AutoCAD 2026 (`acad.exe`, version 25.1s, .NET 8.0.31). In a new drawing, `CADLENS` printed the greeting used at that time, which contained `CAD Lens`; `DBMOD` was `0` before and after the command. The temporary DLL copy and logging settings used for the check were removed afterward. The greeting was subsequently removed; the current command opens or activates the panel instead.
-
-Separate installations of standard AutoCAD 2025 and 2026 were not found on this machine. Compatibility with those installations has not been verified in the host. The Civil 3D 2026 check was sufficient to finish the first slice.
-
-## GitHub Actions
-
-On every push to any branch, a Windows workflow restores dependencies, builds the solution, and runs `dotnet test`. Core, Lenses, managed host-queue, and UI tests run from `CadLens.slnx`. Native AutoCAD rendering and lifecycle checks are separate.
-
-## Standalone UI preview
-
-Run the real CAD Lens WPF window with sample data, without AutoCAD:
-
-```powershell
-dotnet run --project src/CadLens.Preview
-```
-
-The window starts compact with the approved Quiet rail design, based on concept A.
-Click Layers to browse sample layers, primitive types, and objects. The shared UI keeps the
-original dark palette and mint accent, with explicit inclusion labels, hover/press/focus
-feedback, and fixed bottom actions. The AutoCAD plugin and preview use the same XAML.
-Drawing actions are simulated; there is no AutoCAD connection.
-The preview appears in the taskbar and closes with its window. Set CadLens.Preview as the startup
-project in Rider for quick runs. The ordinary preview uses the selected B action strip.
-
-Use `dotnet run --project src/CadLens.Preview -- --modes` to compare Action rows and Action strip in one app. The separate launcher selects a layout and scenario and shows simulated camera, selection, and highlight state. Switching starts a fresh scenario after canceling pending work. Use `--capture-modes <directory>` to render the scenarios and run the mode checks.
-
-Optional scenarios (restart to change):
-
-```powershell
-dotnet run --project src/CadLens.Preview -- --slow
-dotnet run --project src/CadLens.Preview -- --empty
-dotnet run --project src/CadLens.Preview -- --error
-```
-
-`--slow` adds a 1.8-second cancellable delay to simulated operations for busy-state inspection.
-`--empty` returns no inventory; `--error` simulates an unavailable inventory. Flags can be combined.
-Default sample data includes long names, eight visible layers, and additional frozen/off layers.
-This is a UI development host, not verification of native AutoCAD graphics or lifecycle behavior.
+Possible later lenses include geometry classification, object inspection, blocks, drawing problems, and session history where source events support it. Selection Lens, a radial menu, minimap, game elements, and separate adapters are also ideas. These are exploration topics, not committed features; existing DWG objects do not necessarily carry a recoverable creation date.
