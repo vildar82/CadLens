@@ -62,6 +62,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         var group = model.Items[0];
         model.EnterCommand.Execute(group);
         var type = model.Items[0];
@@ -127,6 +128,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         model.EnterCommand.Execute(model.Items[0]);
         model.EnterCommand.Execute(model.Items[0]);
         model.EnterCommand.Execute(model.Items[1]);
@@ -272,13 +274,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
-        Assert.True(model.IsAutoIsolation);
-
-        await model.EnterCommand.ExecuteAsync(model.Items[0]);
-        Assert.Equal(model.Current!.Objects, actions.IsolationTargets);
-        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         Assert.False(model.IsAutoIsolation);
-        Assert.Empty(actions.IsolationTargets);
 
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.Empty(actions.IsolationTargets);
@@ -289,7 +285,14 @@ public sealed class ExplorerNavigationTests
 
         await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         Assert.True(model.IsAutoIsolation);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.Equal(model.Current!.Objects, actions.IsolationTargets);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+        Assert.False(model.IsAutoIsolation);
+        Assert.Empty(actions.IsolationTargets);
+
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Empty(actions.IsolationTargets);
     }
 
     /// <summary>Unavailable bounds are explained without losing navigation or leaving commands busy.</summary>
@@ -344,6 +347,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         actions.PendingIsolation = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.True(model.IsBusy);
@@ -365,6 +369,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         actions.PendingIsolation = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         actions.PendingIsolation.SetException(new InvalidOperationException("Graphics failed."));
@@ -385,6 +390,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         actions.PendingIsolation = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.Dispose();
@@ -464,6 +470,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
@@ -518,6 +525,7 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         actions.PendingIsolation = new TaskCompletionSource<string>();
         actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
         actions.ClearStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -632,9 +640,8 @@ public sealed class ExplorerNavigationTests
         await model.ActivateAsync(CancellationToken.None);
         Assert.False(model.IsAutoFocus);
         Assert.False(model.IsAutoSelect);
-        Assert.True(model.IsAutoIsolation);
+        Assert.False(model.IsAutoIsolation);
         Assert.False(model.SelectCommand.CanExecute(null));
-        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
         Assert.Empty(actions.SelectionTargets);
         var group = model.Items[0];
@@ -699,7 +706,6 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await model.ActivateAsync(CancellationToken.None);
-        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.SelectCommand.ExecuteAsync(null);
         var selected = actions.SelectionTargets;
@@ -732,6 +738,8 @@ public sealed class ExplorerNavigationTests
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
         await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current!.Objects, actions.IsolationTargets);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
         Assert.Empty(actions.IsolationTargets);
         await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
@@ -752,6 +760,7 @@ public sealed class ExplorerNavigationTests
         using var model = new LayersViewModel(actions);
         await model.ActivateAsync(CancellationToken.None);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         await model.ToggleAutoFocusCommand.ExecuteAsync(null);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
@@ -769,6 +778,7 @@ public sealed class ExplorerNavigationTests
         using var model = new LayersViewModel(actions);
         await model.ActivateAsync(CancellationToken.None);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         await model.ToggleAutoFocusCommand.ExecuteAsync(null);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         var camera = actions.FocusTargets;

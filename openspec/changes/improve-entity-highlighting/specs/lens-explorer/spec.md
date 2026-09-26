@@ -4,12 +4,12 @@
 
 ### Requirement: Independent drawing controls
 
-The expanded Layers explorer SHALL show Focus, Select, and Isolate in three columns, each with its own Auto toggle, followed by one shared Reset. The controls SHALL remain visible at every exploration level. Each manual action SHALL change only its own camera, CAD selection, or temporary-isolation state without changing Auto settings. Auto states and keyboard focus SHALL be visually distinguishable. Manual actions SHALL be unavailable without a current target; Auto settings SHALL remain configurable at the initial layer list. A new session SHALL start with Auto Focus off, Auto Select off, and Auto Isolate on.
+The expanded Layers explorer SHALL show Focus, Select, and Isolate in three columns, each with its own Auto toggle, followed by one shared Reset. The controls SHALL remain visible at every exploration level. Each manual action SHALL change only its own camera, CAD selection, or temporary-isolation state without changing Auto settings. Auto states and keyboard focus SHALL be visually distinguishable. Manual actions SHALL be unavailable without a current target; Auto settings SHALL remain configurable at the initial layer list. A new session SHALL start with Auto Focus off, Auto Select off, and Auto Isolate off.
 
 #### Scenario: Configure modes before opening a layer
 
 - **WHEN** the initial layer list appears in a new session
-- **THEN** all three Auto controls are visible with Focus off, Select off, and Isolate on, while manual actions are disabled
+- **THEN** all three Auto controls are visible and off, while manual actions are disabled
 - **AND** enabling Auto Select changes the setting without selecting the whole drawing or moving the camera
 
 #### Scenario: Run an independent manual action
