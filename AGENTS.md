@@ -13,6 +13,21 @@
 - Use English for GitHub Issues, Projects, milestones, and pull requests for this repository.
 - Discuss this project in English, including voice conversations when voice chat is available.
 
+## Pull requests
+
+- Keep each PR focused on one coherent change. Put unrelated fixes, cleanup, and experiments in separate PRs.
+- Use a specific English title that describes the result and reads well in release notes. Avoid generic titles such as "Fix", "Update", or "Bundle".
+- Describe the final diff: why the change is needed, what it changes, and how it was verified. Link the relevant issue or OpenSpec change when there is one.
+- Report managed checks and native AutoCAD/Civil 3D observations separately. Do not include unverified claims, unrelated work, or a running implementation diary.
+- Before merging, review the final diff, title, description, and CI result. Update the PR text if its scope changed.
+
+## Releases
+
+- Use the effective `CadLens.AutoCAD` project `Version` from `Directory.Build.props`. Bump it only when the intended release contents are ready to merge into `main`; do not reuse a published version for changed binaries.
+- The `release` job in `.github/workflows/build.yml` publishes a prerelease after a successful `main` build when `v<Version>` does not exist. Normal releases need no release branch, manually created tag, or GitHub release form.
+- GitHub generates release notes from merged PR titles and links the full commit history. Make PR titles accurate before merging; individual commit messages do not appear in the description by default.
+- Check the published tag, `CadLens.bundle.zip`, release notes, and documented verification limits. CI does not verify behavior inside AutoCAD or Civil 3D.
+
 ## Namespaces
 
 - In C# projects, use only the project's root namespace. Do not add folder names to namespaces.
