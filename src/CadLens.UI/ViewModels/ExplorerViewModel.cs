@@ -11,11 +11,10 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _activationRequest;
-    private TaskCompletionSource? _activationSettled;
+    private Task _activation = Task.CompletedTask;
     private LensOption? _selectedLens;
     private string _status = "Activate a lens to explore the drawing.";
     private bool _isCleanupPending;
-    private bool _cleanupRequired;
     private bool _hasDrawing = true;
     private bool _disposed;
     private int _contextVersion;
@@ -117,9 +116,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             return;
 
         _disposed = true;
-        _contextVersion++;
         _lifetime.Cancel();
-        _activationRequest?.Cancel();
 
         foreach (var option in Lenses)
         {
@@ -151,23 +148,21 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
 
         var collapseOnly = IsLensActive && ReferenceEquals(lens, _selectedLens);
 
-        if (_cleanupRequired && !await DeactivateAsync())
+        if (_selectedLens is not null && !await DeactivateAsync())
             return;
 
         if (collapseOnly || _disposed || !_hasDrawing)
             return;
 
-        await ActivateAsync(lens!);
+        _activation = ActivateAsync(lens!);
+        await _activation;
     }
 
     private async Task ActivateAsync(LensOption option)
     {
         var version = _contextVersion;
-        var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _activationSettled = settled;
         _activationRequest = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _selectedLens = option;
-        _cleanupRequired = true;
         option.IsActive = true;
         Status = $"{option.Descriptor.Label} is active.";
         NotifyLensState();
@@ -185,39 +180,34 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             if (!_disposed && version == _contextVersion)
                 Status = $"Unable to activate {option.Descriptor.Label}: {exception.Message}";
         }
-        finally
-        {
-            if (ReferenceEquals(_activationSettled, settled))
-                _activationSettled = null;
-
-            settled.TrySetResult();
-        }
     }
 
     private async Task<bool> DeactivateAsync()
     {
         var version = ++_contextVersion;
+        var option = _selectedLens!;
+        var cancellationToken = _lifetime.Token;
         IsCleanupPending = true;
-        _selectedLens!.IsActive = false;
+        option.IsActive = false;
         _activationRequest?.Cancel();
         Status = "Clearing lens effects… Waiting for AutoCAD.";
         NotifyLensState();
 
         try
         {
-            if (_activationSettled is not null)
-                await _activationSettled.Task;
+            await _activation;
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = await option.Lens.DeactivateAsync(cancellationToken);
 
-            _lifetime.Token.ThrowIfCancellationRequested();
-            var result = await _selectedLens.Lens.DeactivateAsync(_lifetime.Token);
-            _cleanupRequired = result is not HostResult<bool>.Success { Value: true };
+            if (result is HostResult<bool>.Success { Value: true })
+                _selectedLens = null;
 
             if (!_disposed && version == _contextVersion)
                 Status = result.Match(
                     cleared => cleared ? "Lens effects cleared." : "Cleanup did not complete.",
                     reason => $"Cleanup unavailable: {reason}");
 
-            return !_disposed && version == _contextVersion && !_cleanupRequired;
+            return !_disposed && version == _contextVersion && _selectedLens is null;
         }
         catch (Exception exception)
         {

@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using Trace = System.Diagnostics.Trace;
+﻿using Trace = System.Diagnostics.Trace;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -36,7 +35,6 @@ internal sealed class ExplorerOwner
     private ExplorerViewModel? _viewModel;
     private IHostTaskService? _requests;
     private Document? _observedDocument;
-    private bool _refreshPending;
     private bool _closing;
     private bool _terminated;
     private bool _rootDisposed;
@@ -58,14 +56,12 @@ internal sealed class ExplorerOwner
         {
             _requests = _scope.ServiceProvider.GetRequiredService<IHostTaskService>();
             _viewModel = _scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
-            _viewModel.PropertyChanged += OnLensStateChanged;
             _window = _scope.ServiceProvider.GetRequiredService<ExplorerWindow>();
             _window.Closed += OnClosed;
             Application.DocumentManager.DocumentToBeDeactivated += OnContextLeaving;
             Application.DocumentManager.DocumentToBeDestroyed += OnContextLeaving;
             Application.DocumentManager.DocumentActivated += OnDocumentActivated;
             Application.SystemVariableChanged += OnSystemVariableChanged;
-            Application.Idle += OnIdle;
             _viewModel.ResetContext(false);
             ObserveDocument(Application.DocumentManager.MdiActiveDocument);
             Application.ShowModelessWindow(_window);
@@ -87,12 +83,6 @@ internal sealed class ExplorerOwner
         _ = CloseSessionAsync();
     }
 
-    private void OnLensStateChanged(object? sender, PropertyChangedEventArgs args)
-    {
-        if (args.PropertyName == nameof(ExplorerViewModel.IsLensActive))
-            _refreshPending = false;
-    }
-
     private void OnClosed(object? sender, EventArgs args) => _ = CloseSessionAsync();
 
     private void OnContextLeaving(object sender, DocumentCollectionEventArgs args)
@@ -101,7 +91,6 @@ internal sealed class ExplorerOwner
             return;
 
         DetachDocument();
-        _refreshPending = false;
         ResetContext(false);
     }
 
@@ -125,7 +114,6 @@ internal sealed class ExplorerOwner
         }
 
         ResetContext(document is not null);
-        _refreshPending = document is not null;
     }
 
     private void DetachDocument()
@@ -143,46 +131,20 @@ internal sealed class ExplorerOwner
 
     private void OnObjectChanged(object sender, ObjectEventArgs args)
     {
-        // Focus changes view records too; it must not trigger another inventory read.
-        if (args.DBObject is Viewport && _observedDocument?.Editor.IsQuiescent == true)
-            return;
-
-        _refreshPending = true;
+        if (args.DBObject is Entity or LayerTableRecord)
+            _viewModel?.OnDrawingChanged();
     }
 
-    private void OnObjectErased(object sender, ObjectErasedEventArgs args) => _refreshPending = true;
-
-    private void OnIdle(object? sender, EventArgs args)
+    private void OnObjectErased(object sender, ObjectErasedEventArgs args)
     {
-        if (_closing || _terminated)
-            return;
-
-        try
-        {
-            ObserveDocument(Application.DocumentManager.MdiActiveDocument);
-
-            if (!_refreshPending || _observedDocument?.Editor.IsQuiescent != true ||
-                _viewModel?.IsLensActive != true || _viewModel.IsCleanupPending)
-                return;
-
-            _refreshPending = false;
-            // The active module decides how to react; the owner does not know its commands.
-            _viewModel.OnDrawingChanged();
-        }
-        catch (Exception exception)
-        {
-            _refreshPending = false;
-            Trace.TraceError("CAD Lens automatic refresh failed: {0}", exception);
-        }
+        if (args.DBObject is Entity or LayerTableRecord)
+            _viewModel?.OnDrawingChanged();
     }
 
     private void OnSystemVariableChanged(object sender, SystemVariableChangedEventArgs args)
     {
         if (args.Name is "CVPORT" or "CTAB" or "TILEMODE")
-        {
             ResetContext(_observedDocument is not null);
-            _refreshPending = _observedDocument is not null;
-        }
     }
 
     private void ResetContext(bool hasDrawing) => _viewModel?.ResetContext(hasDrawing);
@@ -198,20 +160,14 @@ internal sealed class ExplorerOwner
         try
         {
             // Cancel pending work and detach native effects synchronously, before the first await.
-            if (_viewModel is not null)
-            {
-                _viewModel.PropertyChanged -= OnLensStateChanged;
-                _viewModel.Close(_terminated);
-            }
+            _viewModel?.Close(_terminated);
 
             drained = _requests?.StopAsync() ?? Task.CompletedTask;
             Application.DocumentManager.DocumentToBeDeactivated -= OnContextLeaving;
             Application.DocumentManager.DocumentToBeDestroyed -= OnContextLeaving;
             Application.DocumentManager.DocumentActivated -= OnDocumentActivated;
             Application.SystemVariableChanged -= OnSystemVariableChanged;
-            Application.Idle -= OnIdle;
             DetachDocument();
-            _refreshPending = false;
 
             if (_window is not null)
             {

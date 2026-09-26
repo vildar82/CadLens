@@ -40,11 +40,11 @@ public sealed class ExplorerViewModelTests
         var actions = new Actions { DelayInventory = true };
         using var viewModel = new LayersViewModel(actions);
         var running = viewModel.ActivateAsync(CancellationToken.None);
-        viewModel.ResetContext();
+        await viewModel.ResetContextAsync(false);
         actions.InventoryCompletion.SetResult(new HostResult<LayersPresentation>.Success(Presentation()));
         await running;
         Assert.Empty(viewModel.Groups);
-        Assert.Contains("context changed", viewModel.Status);
+        Assert.Equal("No active drawing", viewModel.SpaceLabel);
     }
 
     /// <summary>Reported failures are visible and restore command availability.</summary>

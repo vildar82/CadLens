@@ -22,7 +22,7 @@ public sealed class LayersLens(LayersViewModel viewModel) : ILens
     public Task<HostResult<bool>> DeactivateAsync(CancellationToken cancellationToken) => viewModel.DeactivateAsync(cancellationToken);
 
     /// <inheritdoc />
-    public void OnContextChanged(bool hasDrawing) => viewModel.ResetContext(hasDrawing);
+    public void OnContextChanged(bool hasDrawing) => _ = viewModel.ResetContextAsync(hasDrawing);
 
     /// <inheritdoc />
     public void OnDrawingChanged() => viewModel.OnDrawingChanged();

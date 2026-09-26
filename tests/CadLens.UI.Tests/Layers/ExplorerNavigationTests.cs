@@ -126,13 +126,15 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.EnterCommand.CanExecute(model.Items[0]));
         Assert.False(model.BackCommand.CanExecute(null));
         Assert.False(model.ToggleFilterCommand.CanExecute(model.Filters[1]));
-        model.ResetContext();
-        actions.Pending.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, true)));
-        await pending;
-        Assert.Empty(model.Items);
+        var reset = model.ResetContextAsync();
+        var oldRead = actions.Pending;
+        actions.Pending = null;
+        oldRead.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, true) with { SpaceLabel = "Old drawing" }));
+        await Task.WhenAll(pending, reset);
+        Assert.NotEmpty(model.Items);
         Assert.Empty(model.Breadcrumbs);
         Assert.Null(model.Current);
-        Assert.Contains("context changed", model.Status);
+        Assert.Equal("Test space", model.SpaceLabel);
     }
 
     /// <summary>Empty results retain filter controls and the provider's explanation.</summary>
@@ -219,11 +221,11 @@ public sealed class ExplorerNavigationTests
         var pending = model.FocusCommand.ExecuteAsync(null);
         Assert.False(model.NextCommand.CanExecute(null));
         Assert.False(model.FocusCommand.CanExecute(null));
-        model.ResetContext();
+        var reset = model.ResetContextAsync();
         Assert.True(actions.FocusToken.IsCancellationRequested);
         actions.PendingFocus.SetResult("Old focus finished.");
-        await pending;
-        Assert.Contains("context changed", model.Status);
+        await Task.WhenAll(pending, reset);
+        Assert.DoesNotContain("Old focus", model.Status);
         Assert.False(model.FocusCommand.CanExecute(null));
     }
 
@@ -250,12 +252,12 @@ public sealed class ExplorerNavigationTests
         Assert.True(model.IsBusy);
         Assert.False(model.BackCommand.CanExecute(null));
         Assert.False(model.FocusCommand.CanExecute(null));
-        model.ResetContext();
+        var reset = model.ResetContextAsync();
         Assert.True(actions.EmphasisToken.IsCancellationRequested);
         actions.PendingEmphasis.SetResult("Old highlight completed.");
-        await pending;
+        await Task.WhenAll(pending, reset);
         Assert.Null(model.Current);
-        Assert.Contains("context changed", model.Status);
+        Assert.DoesNotContain("Old highlight", model.Status);
         Assert.False(model.IsBusy);
     }
 
@@ -304,7 +306,7 @@ public sealed class ExplorerNavigationTests
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
-        model.ResetContext(false);
+        await model.ResetContextAsync(false);
         Assert.Empty(model.Groups);
         Assert.Null(model.Current);
         Assert.Equal("No active drawing", model.SpaceLabel);
@@ -313,9 +315,8 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.ClearCommand.CanExecute(null));
         Assert.False(model.FocusCommand.CanExecute(null));
         Assert.False(model.ToggleFilterCommand.CanExecute(model.Filters[0]));
-        model.ResetContext();
+        await model.ResetContextAsync();
         Assert.True(model.ReadCommand.CanExecute(null));
-        await model.ReadCommand.ExecuteAsync(null);
         Assert.NotEmpty(model.Groups);
         Assert.Null(model.Current);
     }
@@ -329,9 +330,8 @@ public sealed class ExplorerNavigationTests
         await ToggleAsync(model);
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
-        model.ResetContext(false);
-        model.ResetContext();
-        await model.ReadCommand.ExecuteAsync(null);
+        await model.ResetContextAsync(false);
+        await model.ResetContextAsync();
         Assert.Contains("archived", actions.Enabled);
         Assert.Null(model.Current);
         Assert.Empty(model.Breadcrumbs);
@@ -401,8 +401,8 @@ public sealed class ExplorerNavigationTests
 
         if (changeContext)
         {
-            model.ResetContext(false);
-            model.ResetContext();
+            await model.ResetContextAsync(false);
+            await model.ResetContextAsync();
         }
 
         Assert.False(model.IsLensActive);
@@ -427,18 +427,18 @@ public sealed class ExplorerNavigationTests
         var emphasis = model.EnterCommand.ExecuteAsync(model.Items[0]);
         var collapse = ToggleAsync(model);
         Assert.False(model.IsLensActive);
-        Assert.True(model.IsCleanupPending);
+        Assert.True(model.IsBusy);
         Assert.True(actions.EmphasisToken.IsCancellationRequested);
         Assert.Equal(1, actions.ClearCount);
         actions.PendingEmphasis.SetResult("Old emphasis completed.");
         await emphasis;
         await actions.ClearStarted.Task;
         Assert.False(actions.ClearToken.IsCancellationRequested);
-        Assert.True(model.IsCleanupPending);
+        Assert.True(model.IsBusy);
         Assert.DoesNotContain("Old emphasis", model.Status);
         actions.PendingClear.SetResult(new HostResult<bool>.Success(true));
         await collapse;
-        Assert.False(model.IsCleanupPending);
+        Assert.False(model.IsBusy);
         Assert.Empty(actions.EmphasisTargets);
     }
 
@@ -477,7 +477,7 @@ public sealed class ExplorerNavigationTests
 
         await collapse;
         Assert.False(model.IsLensActive);
-        Assert.False(model.IsCleanupPending);
+        Assert.False(model.IsBusy);
         Assert.Contains("fixture cleanup", model.Status);
         Assert.DoesNotContain("effects cleared", model.Status);
     }
@@ -497,11 +497,11 @@ public sealed class ExplorerNavigationTests
         Assert.DoesNotContain("effects cleared", model.Status);
     }
 
-    /// <summary>Layers coalesces edits during its own work and never refreshes after collapse.</summary>
+    /// <summary>Drawing notifications never restart a read or leave commands busy.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task DrawingEditsCoalesceWhileLayersAreBusy(bool collapse)
+    public async Task DrawingEditsDoNotScheduleReads(bool collapse)
     {
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
@@ -516,7 +516,54 @@ public sealed class ExplorerNavigationTests
         completion.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, false)));
         await read;
         await cleanup;
+
+        if (!collapse)
+        {
+            Assert.False(model.IsBusy);
+            Assert.True(model.EnterCommand.CanExecute(model.Items[0]));
+
+            model.OnDrawingChanged();
+            model.OnDrawingChanged();
+            Assert.Contains("Refresh to update", model.Status);
+        }
+
+        Assert.Equal(2, actions.ReadCount);
+
+        if (collapse)
+            await model.ActivateAsync(CancellationToken.None);
+        else
+            await model.ReadCommand.ExecuteAsync(null);
+
+        Assert.Equal(3, actions.ReadCount);
+    }
+
+    /// <summary>Repeated context changes replace old work with one fresh root read unless collapsed.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ContextChangesReloadOnceAfterPendingWork(bool collapse)
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        var oldRead = new TaskCompletionSource<HostResult<LayersPresentation>>();
+        actions.Pending = oldRead;
+        var read = model.ReadCommand.ExecuteAsync(null);
+        var firstReset = model.ResetContextAsync();
+        var secondReset = model.ResetContextAsync();
+        var cleanup = collapse ? model.DeactivateAsync(CancellationToken.None) : Task.CompletedTask;
+
+        actions.Pending = null;
+        oldRead.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, false) with { SpaceLabel = "Old drawing" }));
+        await Task.WhenAll(read, firstReset, secondReset, cleanup);
+
         Assert.Equal(collapse ? 2 : 3, actions.ReadCount);
+        Assert.False(model.IsBusy);
+        Assert.Null(model.Current);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.NotEqual("Old drawing", model.SpaceLabel);
+        Assert.Equal(!collapse, model.ReadCommand.CanExecute(null));
     }
 
     private static Task ToggleAsync(LayersViewModel model) => model.IsLensActive

@@ -14,32 +14,27 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private ImmutableHashSet<string> _enabledFilters = [];
     private CancellationToken _activationToken;
     private bool _isLensActive;
-    private bool _refreshPending;
     private ImmutableArray<FilterOption> _filters = [];
     private string _emptyMessage = "Refresh to explore the active space.";
-    private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _pendingRequest;
-    private TaskCompletionSource? _operationSettled;
+    private Task _operation = Task.CompletedTask;
     private string _status = "Activate a lens to explore the drawing.";
     private string _spaceLabel = "Active drawing";
     private string _lensLabel = "Overview";
     private ImmutableArray<LensNode> _groups = [];
-    private bool _isBusy;
-    private bool _isCleanupPending;
     private bool _disposed;
     private bool _hasDrawing = true;
-    private int _contextVersion;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
     public LayersViewModel(ILayersActions actions)
     {
         _actions = actions;
-        ReadCommand = new AsyncRelayCommand(() => RunAsync(ReadInventoryAsync), CanRun);
-        EmphasizeCommand = new AsyncRelayCommand(() => RunAsync(token => _actions.EmphasizeAsync(token)), CanRun);
-        ClearCommand = new AsyncRelayCommand(() => RunAsync(ClearEffectsAsync), CanRun);
+        ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
+        EmphasizeCommand = new AsyncRelayCommand(() => ExecuteActionAsync(_actions.EmphasizeAsync), CanRun);
+        ClearCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ClearEffectsAsync), CanRun);
         FocusCommand = new AsyncRelayCommand(
-            () => RunAsync(token => _actions.FocusAsync(Current!.Objects, token)),
+            () => ExecuteActionAsync(token => _actions.FocusAsync(Current!.Objects, token)),
             () => CanRun() && Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus));
         EnterCommand = new AsyncRelayCommand<LensNode>(node => NavigateAsync(() => Enter(node)), node => CanRun() && node is not null && Items.Contains(node));
         BackCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(_navigation.Path.Count - 1)), () => CanRun() && Current is not null);
@@ -50,7 +45,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         PreviousCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(-1)), () => CanRun() && _navigation.CanPrevious);
         NextCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(1)), () => CanRun() && _navigation.CanNext);
         ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
-            filter => RunAsync(token => ToggleFilterAsync(filter!, token)),
+            filter => ExecuteActionAsync(token => ToggleFilterAsync(filter!, token)),
             filter => CanRun() && filter is not null && Filters.Contains(filter));
     }
 
@@ -61,17 +56,6 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         private set
         {
             if (SetProperty(ref _isLensActive, value))
-                NotifyCommands();
-        }
-    }
-
-    /// <summary>Whether cancellation and queued graphics cleanup are still settling.</summary>
-    public bool IsCleanupPending
-    {
-        get => _isCleanupPending;
-        private set
-        {
-            if (SetProperty(ref _isCleanupPending, value))
                 NotifyCommands();
         }
     }
@@ -168,17 +152,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     public bool HasGroups => !Groups.IsEmpty;
 
     /// <summary>Whether a host operation is pending.</summary>
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set
-        {
-            if (!SetProperty(ref _isBusy, value))
-                return;
-
-            NotifyCommands();
-        }
-    }
+    public bool IsBusy => _pendingRequest is not null;
 
     /// <summary>Refreshes the active-space inventory.</summary>
     public IAsyncRelayCommand ReadCommand { get; }
@@ -192,15 +166,16 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Explicitly fits the selected group's or object's live bounds.</summary>
     public IAsyncRelayCommand FocusCommand { get; }
 
-    /// <summary>Clears presentation when the document or space changes.</summary>
+    /// <summary>Clears old state and reloads the active lens after the document or space changes.</summary>
     /// <param name="hasDrawing">Whether drawing-dependent commands can run.</param>
-    public void ResetContext(bool hasDrawing = true)
+    public Task ResetContextAsync(bool hasDrawing = true)
     {
-        _contextVersion++;
+        if (_disposed)
+            return Task.CompletedTask;
+
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
         Groups = [];
-        _refreshPending = false;
         _navigation.Reset([], false);
 
         NotifyNavigation();
@@ -209,6 +184,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             ? "Open a drawing to explore its objects."
             : IsLensActive ? "Drawing context changed. Updating the current space." : "Drawing context changed. Activate a lens to explore.";
         _actions.ClearImmediately(true);
+
+        return IsLensActive && hasDrawing ? RefreshContextAsync() : Task.CompletedTask;
     }
 
     /// <inheritdoc />
@@ -222,28 +199,24 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             return;
 
         _disposed = true;
-        _contextVersion++;
         IsLensActive = false;
-        _refreshPending = false;
-        _lifetime.Cancel();
-        _lifetime.Dispose();
+        _pendingRequest?.Cancel();
         _actions.ClearImmediately(!hostTerminating);
         NotifyCommands();
     }
 
-    private bool CanRun() => !_disposed && !_activationToken.IsCancellationRequested && IsLensActive && _hasDrawing && !IsBusy && !IsCleanupPending;
+    private bool CanRun() => !_disposed && !_activationToken.IsCancellationRequested && IsLensActive && _hasDrawing && !IsBusy;
 
     /// <summary>Loads the Layers view for the active session.</summary>
     /// <param name="cancellationToken">Canceled when the panel deactivates this lens.</param>
-    public async Task ActivateAsync(CancellationToken cancellationToken)
+    public Task ActivateAsync(CancellationToken cancellationToken)
     {
-        if (_disposed || !_hasDrawing || IsCleanupPending || IsBusy)
-            return;
+        if (_disposed || !_hasDrawing || IsBusy)
+            return Task.CompletedTask;
 
         _activationToken = cancellationToken;
-        _refreshPending = false;
         IsLensActive = true;
-        await RunAsync(ReadInventoryAsync);
+        return ExecuteActionAsync(ReadInventoryAsync);
     }
 
     /// <summary>Cancels drawing work and settles it before clearing Layers effects.</summary>
@@ -253,56 +226,50 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         if (_disposed)
             return new HostResult<bool>.Unavailable("The Layers session has closed.");
 
-        using var cleanup = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, cancellationToken);
-        _contextVersion++;
-        IsCleanupPending = true;
         IsLensActive = false;
-        _refreshPending = false;
         _pendingRequest?.Cancel();
+        using var cleanup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _pendingRequest = cleanup;
+        NotifyBusy();
 
         try
         {
-            if (_operationSettled is not null)
-                await _operationSettled.Task;
-
+            await _operation;
             cleanup.Token.ThrowIfCancellationRequested();
             var result = await _actions.ClearAsync(cleanup.Token);
-
-            if (!_disposed)
-                Status = DescribeCleanup(result);
+            cleanup.Token.ThrowIfCancellationRequested();
+            Status = DescribeCleanup(result);
 
             return result;
         }
         catch (Exception exception)
         {
-            if (!_disposed)
+            if (!cleanup.IsCancellationRequested)
                 Status = $"Cleanup did not complete: {exception.Message}";
 
             return new HostResult<bool>.Unavailable(exception.Message);
         }
         finally
         {
-            IsCleanupPending = false;
+            _pendingRequest = null;
+            NotifyBusy();
         }
     }
 
-    /// <summary>Coalesces drawing edits until the current Layers operation has settled.</summary>
+    /// <summary>Invites an explicit refresh without scheduling more drawing work.</summary>
     public void OnDrawingChanged()
     {
-        if (_disposed || !IsLensActive)
-            return;
-
-        _refreshPending = true;
-        RefreshPendingInventory();
+        if (CanRun())
+            Status = "Drawing changed. Refresh to update the layer list.";
     }
 
-    private void RefreshPendingInventory()
+    private async Task RefreshContextAsync()
     {
-        if (!_refreshPending || !CanRun())
-            return;
+        var previous = _operation;
+        await previous;
 
-        _refreshPending = false;
-        _ = RunAsync(ReadInventoryAsync);
+        if (ReferenceEquals(previous, _operation))
+            await ExecuteActionAsync(ReadInventoryAsync);
     }
 
     private async Task<string> ClearEffectsAsync(CancellationToken cancellationToken) =>
@@ -329,21 +296,14 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
     private async Task<string> ReadInventoryAsync(CancellationToken cancellationToken)
     {
-        var version = _contextVersion;
         var cleared = await _actions.ClearAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (_disposed || !IsLensActive || version != _contextVersion)
-            return string.Empty;
 
         if (cleared is not HostResult<bool>.Success { Value: true })
             return DescribeCleanup(cleared);
 
         var result = await _actions.ReadAsync(_enabledFilters, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (_disposed || !IsLensActive || version != _contextVersion)
-            return string.Empty;
 
         if (result is not HostResult<LayersPresentation>.Success success)
         {
@@ -370,7 +330,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         return HasGroups ? "Open a group to highlight its objects." : success.Value.EmptyMessage;
     }
 
-    private Task NavigateAsync(Action navigate) => RunAsync(token =>
+    private Task NavigateAsync(Action navigate) => ExecuteActionAsync(token =>
     {
         navigate();
         return _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token);
@@ -400,15 +360,13 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         _filters = Filters.Select(option => option with { IsEnabled = _enabledFilters.Contains(option.Descriptor.Id) }).ToImmutableArray();
         OnPropertyChanged(nameof(Filters));
 
-        var version = _contextVersion;
-
         try
         {
             return await ReadInventoryAsync(cancellationToken);
         }
         catch
         {
-            if (!_disposed && IsLensActive && version == _contextVersion)
+            if (!cancellationToken.IsCancellationRequested)
             {
                 Groups = [];
                 _navigation.Reset([], false);
@@ -431,34 +389,35 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         NotifyCommands();
     }
 
-    private async Task RunAsync(Func<CancellationToken, Task<string>> action)
+    private Task ExecuteActionAsync(Func<CancellationToken, Task<string>> action)
     {
         if (!CanRun())
-            return;
+            return Task.CompletedTask;
 
-        var version = _contextVersion;
-        var settled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _operationSettled = settled;
-        IsBusy = true;
-        using var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, _activationToken);
+        _operation = CompleteActionAsync(action);
+        return _operation;
+    }
+
+    private async Task CompleteActionAsync(Func<CancellationToken, Task<string>> action)
+    {
+        using var request = CancellationTokenSource.CreateLinkedTokenSource(_activationToken);
         _pendingRequest = request;
+        NotifyBusy();
 
         try
         {
-            Status = "Waiting for AutoCAD… Finish any active command if needed.";
+            Status = "Working…";
             var message = await action(request.Token);
-
-            if (!_disposed && IsLensActive && version == _contextVersion)
-                Status = message;
+            request.Token.ThrowIfCancellationRequested();
+            Status = message;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (request.IsCancellationRequested)
         {
-            if (!_disposed && IsLensActive && version == _contextVersion)
-                Status = "The request was cancelled.";
+            // Collapse, close, or a context change supplies the next visible state.
         }
         catch (Exception exception)
         {
-            if (!_disposed && IsLensActive && version == _contextVersion)
+            if (!request.IsCancellationRequested)
                 Status = $"Unable to complete the operation: {exception.Message}";
         }
         finally
@@ -466,12 +425,14 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             if (ReferenceEquals(_pendingRequest, request))
             {
                 _pendingRequest = null;
-                IsBusy = false;
-                _operationSettled = null;
+                NotifyBusy();
             }
-
-            settled.TrySetResult();
-            RefreshPendingInventory();
         }
+    }
+
+    private void NotifyBusy()
+    {
+        OnPropertyChanged(nameof(IsBusy));
+        NotifyCommands();
     }
 }

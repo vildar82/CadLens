@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md for motivation and the two delta specifications for observable behavior. ExplorerWindow currently has a fixed initial size of 370 by 660 with a 450 minimum height. The original ExplorerViewModel owned both navigation and the panel lifecycle; these responsibilities are now split between LayersViewModel and the shared shell. NavigationState.Reset reconciles saved node identities with refreshed data. ExplorerOwner observes document changes and schedules automatic reads. ReadInventoryAsync currently clears effects, reads, restores navigation, and reapplies selection emphasis.
+See proposal.md for motivation and the two delta specifications for observable behavior. The original ExplorerViewModel owned both navigation and the panel lifecycle; these responsibilities are now split between LayersViewModel and the shared shell. NavigationState.Reset reconciles saved node identities with refreshed data. ExplorerOwner forwards document and drawing notifications. ReadInventoryAsync clears effects, reads, restores navigation, and reapplies selection emphasis.
 
 These existing paths need activation awareness; hiding the content alone would allow background refresh to reapply effects while compact.
 
@@ -46,7 +46,7 @@ Alternative: dispose and recreate the explorer scope on every toggle. Rejected b
 
 The deactivate action must remain available during a read or emphasis request; it cannot use the ordinary !IsBusy command gate. Activation can wait until cancellation and cleanup settle. Keep Close available throughout.
 
-Use the existing context/version guard for activation transitions as well as document transitions. Capture the version for each operation, check it and lens activity after awaits and before publishing content or requesting emphasis, and invalidate it on deactivation. Request completion must clear busy/request ownership only when it still owns that operation.
+Layers owns one current operation task and its cancellation source. Collapse, context changes, and close cancel that source; token checks after awaits reject late data and status. Busy state is derived from request ownership. The operation releases ownership only if cleanup has not replaced it. The shell stores the actual activation task and owns switching/cleanup state; its context version prevents a pending switch from activating a module after a document change.
 
 Cancel prior work before queuing ClearAsync. Cleanup uses a session-lifetime token, not the canceled operation token. The existing host queue preserves native ordering; cleanup must not be skipped by the normal UI busy gate. Closing and context changes retain the owner's direct cleanup fallback. Do not stop the host queue merely to collapse the panel.
 
@@ -54,13 +54,13 @@ If cleanup cannot run immediately because AutoCAD is busy, keep the lens inactiv
 
 Alternative: cancellation alone. Rejected because it does not remove an effect already applied by a native callback.
 
-### 5. Keep automatic refresh inactive while compact
+### 5. Make drawing-edit refresh explicit
 
-ExplorerOwner continues observing the active document for lifecycle safety. Its idle drawing-change notifications require an active lens. The owner does not inspect or invoke lens commands. Context changes still cancel work, clear effects, and discard navigation from the old context without activating an inactive lens. Each module handles its context notification. Layers retains refresh-to-root behavior and coalesces edits while its own work is busy.
+ExplorerOwner forwards entity and layer-record changes directly through the shell to the active module. Layers displays a Refresh hint when idle; notifications while busy do not schedule work. There is no owner Idle refresh loop, pending-edit flag, delay, or reread from operation completion. This prevents graphics regeneration and inventory reads from repeatedly triggering each other.
 
-Every activation reads fresh data, so compact-mode edits need no background inventory reads. Any retained refresh-pending flag must coalesce with activation rather than issue an immediate duplicate read. Preserve current inclusion settings across collapse; opening a new session retains the existing default-off filters.
+Reads happen on activation, Refresh, filter changes, and document/space changes while active. Context changes cancel old work, clear effects and navigation, wait for the old operation, and load the new root. Multiple context notifications waiting on the same operation produce one new read. Compact lenses remain inactive. Preserve inclusion settings across collapse; a new session retains the default-off filters.
 
-Alternative: continue reading and merely suppress rendering while compact. Rejected because it adds unnecessary host work and more opportunities for late effects.
+Automatic rereads after every database event were removed after the user reported an endless refresh loop on larger drawings. Explicit Refresh is the intentional behavior change in this simplification.
 
 ### 6. Keep command and provider composition small
 
@@ -76,7 +76,7 @@ The bar binds an ItemsControl to immutable module options in registration order,
 
 ## Risks / Trade-offs
 
-- Late reads or emphasis after collapse: invalidate operation versions, cancel, order cleanup through the existing queue, and test controlled late completions.
+- Late reads or emphasis after collapse: cancel the owned operation, check its token after awaits, order cleanup through the existing queue, and test controlled late completions.
 - Native cleanup can wait behind an AutoCAD command: show pending state, block reactivation until settled, and verify in the host without claiming synchronous native completion.
 - Saved paths can reference erased objects: refresh on activation and reconcile identities to the nearest valid ancestor or root.
 - Compact dimensions and expansion can behave differently under DPI scaling: check both modes near screen edges and at available DPI settings; keep controls reachable.
