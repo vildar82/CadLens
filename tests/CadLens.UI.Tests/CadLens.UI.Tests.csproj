@@ -9,7 +9,7 @@
         <ProjectReference Include="../../src/CadLens.UI/CadLens.UI.csproj" />
         <ProjectReference Include="../../src/CadLens.Lenses/CadLens.Lenses.csproj" />
         <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Composition/ExplorerComposition.cs" Link="ExplorerComposition.cs" />
-        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Services/LayersActions.cs" Link="LayersActions.cs" />
+        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Layers/LayersActions.cs" Link="LayersActions.cs" />
         <Compile Include="../../src/Common.AutoCAD/Abstractions/IEntityHighlightActions.cs" Link="IEntityHighlightActions.cs" />
         <Compile Include="../../src/Common.AutoCAD/Abstractions/IEntityHighlightService.cs" Link="IEntityHighlightService.cs" />
     </ItemGroup>
