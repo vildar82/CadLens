@@ -110,6 +110,16 @@ Each action has its own Auto toggle, available from the initial layer list. Enab
 
 Reset clears selection and highlighting, turns off all Auto modes, and keeps the camera, navigation, and filters. Subsequent navigation leaves selection and highlighting clear until a mode is enabled again. Reset is disabled while work is pending. Returning to the root also clears selection and highlighting without moving the camera. Turning Auto Select or Auto Highlight off clears only that effect. With Auto Select off, manual selection stays until replaced or cleared; with Auto Highlight off, manual highlighting clears on the next navigation. Closing discards the session settings. These operations do not modify stored drawing geometry or properties.
 
+## Build and install the bundle
+
+Build the AutoCAD 2025–2026 bundle locally:
+
+```powershell
+./scripts/New-Bundle.ps1
+```
+
+The script creates `artifacts/bundle/CadLens.bundle.zip`. Extract it and copy the `CadLens.bundle` directory to `%PROGRAMFILES%\Autodesk\ApplicationPlugins`, then restart AutoCAD and run `CADLENS`. The bundle loads the plugin when that command is invoked. Replace the whole directory when updating an installation, after closing AutoCAD.
+
 The archived `lens-panel-and-switching` change and its verification limits are recorded in [panel verification](openspec/changes/archive/2026-09-26-lens-panel-and-switching/verification.md).
 
 ## Explorer preview status
@@ -124,7 +134,7 @@ Separate installations of standard AutoCAD 2025 and 2026 were not found on this 
 
 ## GitHub Actions
 
-On every push to any branch, a Windows workflow restores dependencies, builds the solution, and runs `dotnet test`. Core, Lenses, managed host-queue, and UI tests run from `CadLens.slnx`. Native AutoCAD rendering and lifecycle checks are separate.
+On every push to any branch, a Windows workflow restores dependencies, builds the solution, runs `dotnet test`, and uploads `CadLens.bundle.zip` as a downloadable workflow artifact. Core, Lenses, managed host-queue, and UI tests run from `CadLens.slnx`. Native AutoCAD rendering and lifecycle checks are separate.
 
 ## Standalone UI preview
 

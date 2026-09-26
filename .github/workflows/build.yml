@@ -28,3 +28,14 @@ jobs:
 
       - name: Test
         run: dotnet test CadLens.slnx --configuration Release --no-build --no-restore
+
+      - name: Package AutoCAD bundle
+        shell: pwsh
+        run: ./scripts/New-Bundle.ps1
+
+      - name: Upload AutoCAD bundle
+        uses: actions/upload-artifact@v7
+        with:
+          path: artifacts/bundle/CadLens.bundle.zip
+          archive: false
+          if-no-files-found: error
