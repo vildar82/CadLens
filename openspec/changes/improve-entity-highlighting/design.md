@@ -25,7 +25,7 @@ A one-hatch AutoCAD probe rendered a detached hatch clone with independently dim
 
 ### Render direct hatches through detached clones
 
-Keep one `EntityHighlightService` and its current direct-entity filter. For each direct hatch in the active inventory, clone the hatch in a host read transaction before registering or refreshing the overrule. Set the clone's pattern color to the target accent or ordinary dim color. Set a non-target clone's background to a darker dim color, with enough contrast to keep the pattern legible. A target clone also uses a subdued background so its accent pattern remains readable. Forward the hatch's `WorldDraw` and, when needed, `ViewportDraw` to that clone; continue using `SetAttributes` for other entity types.
+Keep one `EntityHighlightService` and its current direct-entity filter. Clone non-target direct hatches in a host read transaction before registering or refreshing the overrule. Set each clone's pattern to the ordinary dim color, and dim its background only when the source hatch has one. Forward the hatch's `WorldDraw` and, when needed, `ViewportDraw` to that clone. Target hatches retain the existing accent color path until an additional cue is validated.
 
 The probe demonstrated this for one hatch. Changing only ambient `TrueColor` leaves the hatch background independent, while changing the real hatch's `BackgroundColor` would modify the drawing. A generic translucent overlay would also cover hatch openings. Cloning retains AutoCAD's own hatch renderer and geometry.
 
@@ -39,7 +39,7 @@ After the overrule regeneration, call `Entity.Highlight` for target entities in 
 
 Continue treating each active-space block reference as one inventory entity, but do not treat a color change on that reference as proof that its contents dim. AutoCAD lets nested objects retain explicit colors, and a block definition can be shared by several insertions with different target states. Recoloring definition entities globally would therefore give the wrong result.
 
-Before production integration, test a single selected block reference that contains explicitly colored geometry and a hatch. The probe must affect only that occurrence and preserve its attributes, dynamic state, clipping, nested blocks, and native visibility. Inspect the active drawing's block occurrences to choose representative cases, including an xref if present. A detached `Explode` rendering is only a possible experiment for simple blocks: AutoCAD documents that exploding can lose attribute values and cannot handle xrefs, so it is not the general design. If no per-occurrence rendering path preserves these behaviors, stop and revise the design with the user rather than ship block references as silently undimmed context.
+Before production integration, test a single selected block reference that contains explicitly colored geometry and a hatch. A production path must affect only that occurrence and preserve its attributes, dynamic state, clipping, nested blocks, and native visibility. Inspect the active drawing's block occurrences to choose representative cases, including an xref if present. The initial `CADLENSBLOCKPROBE` uses detached `Explode` rendering for simple insertions only and rejects attributes, xrefs, and nested blocks. AutoCAD documents that exploding can lose attribute values and cannot handle xrefs, so this is not the general design. If no per-occurrence rendering path preserves these behaviors, stop and revise the design with the user rather than ship block references as silently undimmed context.
 
 ## Risks / Trade-offs
 
@@ -50,4 +50,4 @@ Before production integration, test a single selected block reference that conta
 
 ## Migration Plan
 
-After hatch and block rendering are validated, replace the temporary probe with production graphics code and delete the probe command and its application cleanup hook. No drawing migration is needed. A rollback removes the new drawing path; no hatch, block, or layer properties are persisted.
+The validated hatch treatment is integrated into the service and `CADLENSHATCHPROBE` is removed. Keep the separate block probe until a per-insertion rendering path is validated. No drawing migration is needed. A rollback removes the new drawing path; no hatch, block, or layer properties are persisted.

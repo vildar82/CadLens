@@ -17,7 +17,8 @@ internal sealed class ExplorerOwner
 {
     private static readonly EntityHighlightOptions HighlightColors = new(
         Accent: new EntityColor(70, 210, 230),
-        Dimmed: new EntityColor(65, 72, 80));
+        Dimmed: new EntityColor(65, 72, 80),
+        DimmedHatchBackground: new EntityColor(40, 45, 50));
 
     private readonly ServiceProvider _root = ExplorerComposition.Build(services =>
     {
