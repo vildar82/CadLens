@@ -42,6 +42,6 @@ internal sealed class LayersActions(
     {
         var result = await visualization.FocusAsync(objects, cancellationToken);
 
-        return result.Match(_ => "View fitted to the available target bounds.", reason => reason);
+        return result.Match(_ => "View fitted and objects selected.", reason => reason);
     }
 }

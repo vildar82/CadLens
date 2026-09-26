@@ -79,6 +79,7 @@ public sealed class AutoCadObjectVisualizationService(
 
         // Apply the view after the read transaction has finished.
         editor.Zoom(bounds.Value);
+        editor.SelectObjects(objects);
 
         return new HostResult<bool>.Success(true);
     }
