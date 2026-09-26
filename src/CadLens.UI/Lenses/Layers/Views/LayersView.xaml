@@ -158,8 +158,13 @@
                         <TextBlock Text="{Binding ObjectPosition}" VerticalAlignment="Center" Margin="8,0" FontSize="11" Foreground="{StaticResource QuietMuted}" />
                         <Button Content="›" Width="30" Padding="0" Style="{StaticResource QuietButton}" Command="{Binding NextCommand}" ToolTip="Next object" AutomationProperties.Name="Next object" />
                     </StackPanel>
-                    <Button Grid.Column="1" Content="Focus" MinWidth="92" Style="{StaticResource AccentButton}" Command="{Binding FocusCommand}"
-                            ToolTip="Fit this group or object. Hidden objects stay hidden; locked viewports are not changed." />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="Focus" MinWidth="92" Style="{StaticResource AccentButton}" Command="{Binding FocusCommand}"
+                                ToolTip="Fit and select this group or object. Hidden objects stay hidden; locked viewports are not changed." />
+                        <ToggleButton Content="◎" Width="34" Padding="0" Margin="6,0,0,0" Style="{StaticResource QuietToggle}"
+                                      IsChecked="{Binding IsAutoFocus}" ToolTip="Auto focus when browsing layers, types, or objects"
+                                      AutomationProperties.Name="Auto focus" />
+                    </StackPanel>
                 </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

@@ -52,9 +52,9 @@ The explorer SHALL provide Previous, Next, and a one-based position counter for 
 - **WHEN** the first or last object is current
 - **THEN** Previous or Next respectively is disabled; both are disabled for a single-object set
 
-### Requirement: Explicit view focus
+### Requirement: View focus
 
-Selecting groups, types, and objects SHALL leave the view unchanged. A separate Focus action SHALL fit the current group or object in the active view only when usable bounds exist; other viewport cameras SHALL remain unchanged. Missing or invalid bounds SHALL produce a clear unavailable state or explanation without moving the view or failing the session.
+Selecting groups, types, and objects SHALL leave the view unchanged unless Auto Focus is enabled. A separate Focus action and enabled Auto Focus SHALL fit and select the current group or object in the active view only when usable bounds exist; other viewport cameras SHALL remain unchanged. Missing or invalid bounds SHALL produce a clear unavailable state or explanation without moving the view or failing the session.
 
 #### Scenario: Focus a group
 

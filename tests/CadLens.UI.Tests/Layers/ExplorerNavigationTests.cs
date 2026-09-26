@@ -195,6 +195,30 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.FocusCommand.CanExecute(null));
     }
 
+    /// <summary>Auto Focus follows the selected node and stops when switched off.</summary>
+    [Fact]
+    public async Task AutoFocusFollowsNavigationUntilTurnedOff()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Equal(0, actions.FocusCount);
+
+        model.IsAutoFocus = true;
+        await model.FocusCommand.ExecutionTask!;
+        Assert.Equal(model.Current!.Objects, actions.FocusTargets);
+
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.EnterCommand.ExecuteAsync(model.Items[1]);
+        Assert.Equal(new TestEntityId(2), Assert.Single(actions.FocusTargets));
+        Assert.Equal(3, actions.FocusCount);
+
+        model.IsAutoFocus = false;
+        await model.PreviousCommand.ExecuteAsync(null);
+        Assert.Equal(3, actions.FocusCount);
+    }
+
     /// <summary>Unavailable bounds are explained without losing navigation or leaving commands busy.</summary>
     [Fact]
     public async Task FocusUnavailableKeepsSelection()

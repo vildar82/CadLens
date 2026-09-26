@@ -24,6 +24,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private ImmutableArray<LensNode> _groups = [];
     private bool _disposed;
     private bool _hasDrawing = true;
+    private bool _isAutoFocus;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
@@ -35,7 +36,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         ClearCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ClearEffectsAsync), CanRun);
         FocusCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => _actions.FocusAsync(Current!.Objects, token)),
-            () => CanRun() && Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus));
+            () => CanRun() && HasFocusTarget());
         EnterCommand = new AsyncRelayCommand<LensNode>(node => NavigateAsync(() => Enter(node)), node => CanRun() && node is not null && Items.Contains(node));
         BackCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(_navigation.Path.Count - 1)), () => CanRun() && Current is not null);
         RootCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(0)), () => CanRun() && Current is not null);
@@ -112,6 +113,17 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Whether details replace the root list.</summary>
     public bool HasCurrent => Current is not null;
 
+    /// <summary>Fits and selects the current target as navigation changes it.</summary>
+    public bool IsAutoFocus
+    {
+        get => _isAutoFocus;
+        set
+        {
+            if (SetProperty(ref _isAutoFocus, value) && value && FocusCommand.CanExecute(null))
+                _ = FocusCommand.ExecuteAsync(null);
+        }
+    }
+
     /// <summary>Whether the current result has no root groups.</summary>
     public bool IsEmpty => Groups.IsEmpty;
 
@@ -121,7 +133,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Lens options and their current inclusion state.</summary>
     public ImmutableArray<FilterOption> Filters => _filters;
 
-    /// <summary>Enters a displayed child and updates temporary emphasis without moving the view.</summary>
+    /// <summary>Enters a displayed child and updates temporary emphasis.</summary>
     public IAsyncRelayCommand<LensNode> EnterCommand { get; }
 
     /// <summary>Returns to the parent level.</summary>
@@ -206,6 +218,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     }
 
     private bool CanRun() => !_disposed && !_activationToken.IsCancellationRequested && IsLensActive && _hasDrawing && !IsBusy;
+
+    private bool HasFocusTarget() => Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus);
 
     /// <summary>Loads the Layers view for the active session.</summary>
     /// <param name="cancellationToken">Canceled when the panel deactivates this lens.</param>
@@ -330,10 +344,16 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         return HasGroups ? "Open a group to highlight its objects." : success.Value.EmptyMessage;
     }
 
-    private Task NavigateAsync(Action navigate) => ExecuteActionAsync(token =>
+    private Task NavigateAsync(Action navigate) => ExecuteActionAsync(async token =>
     {
         navigate();
-        return _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token);
+        var message = await _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token);
+
+        if (!IsAutoFocus || !HasFocusTarget())
+            return message;
+
+        token.ThrowIfCancellationRequested();
+        return await _actions.FocusAsync(Current!.Objects, token);
     });
 
     private void Enter(LensNode? node)
