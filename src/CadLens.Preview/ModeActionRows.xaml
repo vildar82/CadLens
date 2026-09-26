@@ -17,19 +17,19 @@
                       AutomationProperties.Name="Auto Focus" ToolTip="Automatically fit the camera when browsing layers, types, and objects." />
         <Button x:Name="SelectAction" Grid.Row="2" Style="{StaticResource ModeButton}" Margin="0,0,6,0" HorizontalContentAlignment="Stretch"
                 Command="{Binding SelectCommand}" AutomationProperties.Name="Select CAD objects"
-                ToolTip="Select the current layer, type, or object in CAD. Keep the camera and temporary highlight unchanged.">
+                ToolTip="Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged.">
             <DockPanel><TextBlock DockPanel.Dock="Right" Text="CAD selection" Style="{StaticResource ModeDescriptor}" /><TextBlock Text="Select" /></DockPanel>
         </Button>
         <ToggleButton x:Name="AutoSelect" Grid.Row="2" Grid.Column="1" Style="{StaticResource ModeAuto}"
                       IsChecked="{Binding IsAutoSelect, Mode=OneWay}" Command="{Binding ToggleAutoSelectCommand}"
                       AutomationProperties.Name="Auto Select" ToolTip="Automatically select CAD objects while browsing. Works with Auto Focus off." />
-        <Button x:Name="HighlightAction" Grid.Row="4" Style="{StaticResource ModeButton}" Margin="0,0,6,0" HorizontalContentAlignment="Stretch"
-                Command="{Binding HighlightCommand}" AutomationProperties.Name="Highlight temporarily"
-                ToolTip="Temporarily emphasize the current layer, type, or object and dim the other inventory objects. Keep the camera and CAD selection unchanged.">
-            <DockPanel><TextBlock DockPanel.Dock="Right" Text="Temporary" Style="{StaticResource ModeDescriptor}" /><TextBlock Text="Highlight" /></DockPanel>
+        <Button x:Name="IsolateAction" Grid.Row="4" Style="{StaticResource ModeButton}" Margin="0,0,6,0" HorizontalContentAlignment="Stretch"
+                Command="{Binding IsolateCommand}" AutomationProperties.Name="Isolate temporarily"
+                ToolTip="Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged.">
+            <DockPanel><TextBlock DockPanel.Dock="Right" Text="Temporary" Style="{StaticResource ModeDescriptor}" /><TextBlock Text="Isolate" /></DockPanel>
         </Button>
-        <ToggleButton x:Name="AutoHighlight" Grid.Row="4" Grid.Column="1" Style="{StaticResource ModeAuto}"
-                      IsChecked="{Binding IsAutoHighlight, Mode=OneWay}" Command="{Binding ToggleAutoHighlightCommand}"
-                      AutomationProperties.Name="Auto Highlight" ToolTip="Automatically emphasize objects and dim the others while browsing. Turning this off clears the temporary effect." />
+        <ToggleButton x:Name="AutoIsolation" Grid.Row="4" Grid.Column="1" Style="{StaticResource ModeAuto}"
+                      IsChecked="{Binding IsAutoIsolation, Mode=OneWay}" Command="{Binding ToggleAutoIsolationCommand}"
+                      AutomationProperties.Name="Auto Isolate" ToolTip="Automatically hide other active-space objects while browsing. Turning this off restores their display." />
     </Grid>
 </UserControl>

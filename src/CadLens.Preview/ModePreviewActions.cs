@@ -10,9 +10,9 @@ internal sealed class ModePreviewActions(PreviewLayersActions actions) : Observa
 {
     public ImmutableArray<IPlacedObjectId> CameraTargets { get; private set; } = [];
     public ImmutableArray<IPlacedObjectId> SelectedTargets { get; private set; } = [];
-    public ImmutableArray<IPlacedObjectId> HighlightedTargets { get; private set; } = [];
+    public ImmutableArray<IPlacedObjectId> IsolatedTargets { get; private set; } = [];
 
-    public string Evidence => $"Camera: {Describe(CameraTargets)}\nSelection: {Describe(SelectedTargets)}\nHighlight: {Describe(HighlightedTargets)}";
+    public string Evidence => $"Camera: {Describe(CameraTargets)}\nSelection: {Describe(SelectedTargets)}\nIsolation: {Describe(IsolatedTargets)}";
 
     public async Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
     {
@@ -30,20 +30,20 @@ internal sealed class ModePreviewActions(PreviewLayersActions actions) : Observa
     {
         actions.ClearImmediately(hostTerminating);
         SelectedTargets = [];
-        HighlightedTargets = [];
+        IsolatedTargets = [];
         OnPropertyChanged(nameof(Evidence));
     }
 
     public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
         actions.ReadAsync(enabledFilters, cancellationToken);
 
-    public async Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
     {
-        await actions.EmphasizeObjectsAsync(objects, cancellationToken);
+        await actions.IsolateObjectsAsync(objects, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        HighlightedTargets = objects;
+        IsolatedTargets = objects;
         OnPropertyChanged(nameof(Evidence));
-        return $"Preview: highlighted {objects.Length:N0} objects.";
+        return $"Preview: isolated {objects.Length:N0} objects.";
     }
 
     public async Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
@@ -54,20 +54,20 @@ internal sealed class ModePreviewActions(PreviewLayersActions actions) : Observa
         if (result is HostResult<bool>.Success)
         {
             SelectedTargets = [];
-            HighlightedTargets = [];
+            IsolatedTargets = [];
         }
 
         OnPropertyChanged(nameof(Evidence));
         return result;
     }
 
-    public async Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken)
+    public async Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken)
     {
-        var result = await actions.ClearHighlightAsync(cancellationToken);
+        var result = await actions.ClearIsolationAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (result is HostResult<bool>.Success)
-            HighlightedTargets = [];
+            IsolatedTargets = [];
 
         OnPropertyChanged(nameof(Evidence));
         return result;

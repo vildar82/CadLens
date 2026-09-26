@@ -76,7 +76,7 @@ public sealed class LayersLensTests
         Assert.Equal(new[] { "Custom.One", "Custom.Two" }, result.Groups[1].Children.Select(type => type.Label));
     }
 
-    /// <summary>Included hidden objects explain their status without promising a visible highlight.</summary>
+    /// <summary>Included hidden objects explain their status without promising visible isolation.</summary>
     [Fact]
     public async Task HiddenObjectPreviewExplainsItsLayerAndType()
     {

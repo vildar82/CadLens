@@ -65,8 +65,8 @@ internal sealed class ModePreviewSession
             Explorer.ToggleLensCommand, Model.ReadCommand, Model.EnterCommand,
             Model.BackCommand, Model.RootCommand, Model.BreadcrumbCommand,
             Model.PreviousCommand, Model.NextCommand, Model.ToggleFilterCommand,
-            Model.FocusCommand, Model.SelectCommand, Model.HighlightCommand, Model.ResetCommand,
-            Model.ToggleAutoFocusCommand, Model.ToggleAutoSelectCommand, Model.ToggleAutoHighlightCommand
+            Model.FocusCommand, Model.SelectCommand, Model.IsolateCommand, Model.ResetCommand,
+            Model.ToggleAutoFocusCommand, Model.ToggleAutoSelectCommand, Model.ToggleAutoIsolationCommand
         ];
         var pending = commands.Select(command => command.ExecutionTask ?? Task.CompletedTask).Append(Startup).ToArray();
         Explorer.Dispose();

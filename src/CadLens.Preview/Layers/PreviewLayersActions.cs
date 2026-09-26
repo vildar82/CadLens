@@ -20,8 +20,8 @@ internal sealed class PreviewLayersActions(ILayersProvider provider, int delayMi
     }
 
     /// <inheritdoc />
-    public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
-        DescribeAsync($"Preview: temporary emphasis for {objects.Length:N0} sample objects.", cancellationToken);
+    public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+        DescribeAsync($"Preview: temporary isolation for {objects.Length:N0} sample objects.", cancellationToken);
 
     /// <inheritdoc />
     public async Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
@@ -31,7 +31,7 @@ internal sealed class PreviewLayersActions(ILayersProvider provider, int delayMi
     }
 
     /// <inheritdoc />
-    public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
+    public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)

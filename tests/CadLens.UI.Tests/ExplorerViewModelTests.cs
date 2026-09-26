@@ -22,8 +22,8 @@ public sealed class ExplorerViewModelTests
         var viewModel = new LayersViewModel(actions);
         await viewModel.ActivateAsync(CancellationToken.None);
         await viewModel.EnterCommand.ExecuteAsync(viewModel.Items[0]);
-        actions.DelayHighlight = true;
-        var running = viewModel.HighlightCommand.ExecuteAsync(null);
+        actions.DelayIsolation = true;
+        var running = viewModel.IsolateCommand.ExecuteAsync(null);
         Assert.True(viewModel.IsBusy);
         Assert.False(viewModel.ReadCommand.CanExecute(null));
         Assert.False(viewModel.ResetCommand.CanExecute(null));
@@ -32,7 +32,7 @@ public sealed class ExplorerViewModelTests
         actions.Completion.SetResult("late result");
         await running;
         Assert.DoesNotContain("late result", viewModel.Status);
-        Assert.False(viewModel.HighlightCommand.CanExecute(null));
+        Assert.False(viewModel.IsolateCommand.CanExecute(null));
     }
 
     /// <summary>Changing documents prevents an old result from overwriting the new state.</summary>
@@ -57,8 +57,8 @@ public sealed class ExplorerViewModelTests
         using var viewModel = new LayersViewModel(actions);
         await viewModel.ActivateAsync(CancellationToken.None);
         await viewModel.EnterCommand.ExecuteAsync(viewModel.Items[0]);
-        actions.DelayHighlight = true;
-        var running = viewModel.HighlightCommand.ExecuteAsync(null);
+        actions.DelayIsolation = true;
+        var running = viewModel.IsolateCommand.ExecuteAsync(null);
         actions.Completion.SetException(new InvalidOperationException("fixture failure"));
         await running;
         Assert.Contains("fixture failure", viewModel.Status);
@@ -294,11 +294,11 @@ public sealed class ExplorerViewModelTests
         public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
+        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
 
         internal TaskCompletionSource<HostResult<bool>>? PendingCleanup { get; set; }
         internal bool DelayInventory { get; init; }
-        internal bool DelayHighlight { get; set; }
+        internal bool DelayIsolation { get; set; }
         internal CancellationToken Token { get; private set; }
 
         internal TaskCompletionSource<string> Completion { get; } =
@@ -313,9 +313,9 @@ public sealed class ExplorerViewModelTests
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) => PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
         {
-            if (!DelayHighlight)
+            if (!DelayIsolation)
                 return Task.FromResult("Selection updated.");
 
             Token = cancellationToken;

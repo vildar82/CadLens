@@ -9,8 +9,8 @@ namespace CadLens.AutoCAD;
 
 internal sealed class LayersActions(
     ILayersProvider lens,
-    IEntityHighlightActions highlights,
-    IEntityHighlightService graphics,
+    IEntityIsolationActions isolation,
+    IEntityIsolationService graphics,
     IObjectVisualizationService visualization) : ILayersActions
 {
     public void ClearImmediately(bool hostTerminating)
@@ -32,27 +32,27 @@ internal sealed class LayersActions(
     public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
         lens.LoadAsync(enabledFilters, cancellationToken);
 
-    public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken) =>
-        highlights.ClearAsync(cancellationToken);
+    public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
+        isolation.ClearAsync(cancellationToken);
 
     public async Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
     {
         var selection = await SelectAsync([], cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var highlight = await ClearHighlightAsync(cancellationToken);
+        var isolated = await ClearIsolationAsync(cancellationToken);
 
         if (selection is HostResult<bool>.Unavailable)
             return selection;
 
-        return selection is HostResult<bool>.Success { Value: true } ? highlight : new HostResult<bool>.Success(false);
+        return selection is HostResult<bool>.Success { Value: true } ? isolated : new HostResult<bool>.Success(false);
     }
 
-    public async Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
     {
-        var result = await visualization.EmphasizeAsync(objects, cancellationToken);
+        var result = await visualization.IsolateAsync(objects, cancellationToken);
 
         return result.Match(
-            _ => objects.IsEmpty ? "Temporary effects cleared." : "Selection highlighted. Hidden objects remain hidden.",
+            _ => objects.IsEmpty ? "Temporary isolation cleared." : "Other objects hidden temporarily. Originally hidden objects remain hidden.",
             reason => reason);
     }
 

@@ -8,7 +8,7 @@ namespace CadLens.UI.Tests;
 /// <summary>Layers exploration behavior over a detached inventory fixture.</summary>
 public sealed class ExplorerNavigationTests
 {
-    /// <summary>Navigation restores broader emphasis and never invokes Focus.</summary>
+    /// <summary>Navigation restores broader isolation and never invokes Focus.</summary>
     [Fact]
     public async Task BrowseObjectsAndReturnThroughBreadcrumbs()
     {
@@ -19,32 +19,32 @@ public sealed class ExplorerNavigationTests
         model.EnterCommand.Execute(group);
         var type = model.Items[0];
         model.EnterCommand.Execute(type);
-        Assert.Equal(type.Objects, actions.EmphasisTargets);
+        Assert.Equal(type.Objects, actions.IsolationTargets);
         model.EnterCommand.Execute(model.Items[0]);
-        Assert.Equal(new TestEntityId(1), Assert.Single(actions.EmphasisTargets));
+        Assert.Equal(new TestEntityId(1), Assert.Single(actions.IsolationTargets));
 
         Assert.Equal("1 of 2", model.ObjectPosition);
         Assert.False(model.PreviousCommand.CanExecute(null));
         Assert.True(model.NextCommand.CanExecute(null));
         Assert.Equal("Category", model.Current!.Fields[0].Label);
         model.NextCommand.Execute(null);
-        Assert.Equal(new TestEntityId(2), Assert.Single(actions.EmphasisTargets));
+        Assert.Equal(new TestEntityId(2), Assert.Single(actions.IsolationTargets));
         Assert.Equal("2 of 2", model.ObjectPosition);
         Assert.False(model.NextCommand.CanExecute(null));
         model.PreviousCommand.Execute(null);
         Assert.Equal("1 of 2", model.ObjectPosition);
         model.BackCommand.Execute(null);
         Assert.Same(type, model.Current);
-        Assert.Equal(type.Objects, actions.EmphasisTargets);
+        Assert.Equal(type.Objects, actions.IsolationTargets);
         model.BreadcrumbCommand.Execute(group);
         Assert.Same(group, model.Current);
-        Assert.Equal(group.Objects, actions.EmphasisTargets);
+        Assert.Equal(group.Objects, actions.IsolationTargets);
         model.RootCommand.Execute(null);
         Assert.Null(model.Current);
         Assert.Empty(model.Breadcrumbs);
         Assert.False(model.BackCommand.CanExecute(null));
         Assert.Equal(0, actions.HostCalls);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
     }
 
     /// <summary>Filters are independent, preserve valid paths, and remove excluded selections.</summary>
@@ -64,7 +64,7 @@ public sealed class ExplorerNavigationTests
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         Assert.Null(model.Current);
         Assert.Equal(new[] { "extra" }, actions.Enabled.Order());
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.False(model.Filters[0].IsEnabled);
         Assert.True(model.Filters[1].IsEnabled);
         using var reopened = new LayersViewModel(actions);
@@ -88,7 +88,7 @@ public sealed class ExplorerNavigationTests
         actions.SingleObject = true;
         await model.ReadCommand.ExecuteAsync(null);
         Assert.Equal("type", model.Current!.Id);
-        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(model.Current.Objects, actions.IsolationTargets);
         model.EnterCommand.Execute(model.Items[0]);
         Assert.Equal("1 of 1", model.ObjectPosition);
         Assert.False(model.PreviousCommand.CanExecute(null));
@@ -165,7 +165,7 @@ public sealed class ExplorerNavigationTests
         Assert.Null(model.Current);
         Assert.True(model.Filters[0].IsEnabled);
         Assert.Contains("read failed", model.Status);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.True(model.ReadCommand.CanExecute(null));
     }
 
@@ -218,31 +218,31 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(3, actions.FocusCount);
     }
 
-    /// <summary>Manual highlighting works while automatic navigation highlighting is off.</summary>
+    /// <summary>Manual isolation works while automatic navigation isolation is off.</summary>
     [Fact]
-    public async Task HighlightCanBeManualOrAutomatic()
+    public async Task IsolationCanBeManualOrAutomatic()
     {
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
-        Assert.True(model.IsAutoHighlight);
+        Assert.True(model.IsAutoIsolation);
 
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
-        Assert.Equal(model.Current!.Objects, actions.EmphasisTargets);
-        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
-        Assert.False(model.IsAutoHighlight);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal(model.Current!.Objects, actions.IsolationTargets);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+        Assert.False(model.IsAutoIsolation);
+        Assert.Empty(actions.IsolationTargets);
 
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
-        Assert.Empty(actions.EmphasisTargets);
-        await model.HighlightCommand.ExecuteAsync(null);
-        Assert.Equal(model.Current!.Objects, actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
+        await model.IsolateCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current!.Objects, actions.IsolationTargets);
         await model.BackCommand.ExecuteAsync(null);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
 
-        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
-        Assert.True(model.IsAutoHighlight);
-        Assert.Equal(model.Current!.Objects, actions.EmphasisTargets);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+        Assert.True(model.IsAutoIsolation);
+        Assert.Equal(model.Current!.Objects, actions.IsolationTargets);
     }
 
     /// <summary>Unavailable bounds are explained without losing navigation or leaving commands busy.</summary>
@@ -290,61 +290,61 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.FocusCommand.CanExecute(null));
     }
 
-    /// <summary>Pending emphasis serializes navigation and context changes cancel its native request.</summary>
+    /// <summary>Pending isolation serializes navigation and context changes cancel its native request.</summary>
     [Fact]
-    public async Task ContextChangeCancelsNavigationHighlight()
+    public async Task ContextChangeCancelsNavigationIsolation()
     {
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
-        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        actions.PendingIsolation = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.True(model.IsBusy);
         Assert.False(model.BackCommand.CanExecute(null));
         Assert.False(model.FocusCommand.CanExecute(null));
         var reset = model.ResetContextAsync();
-        Assert.True(actions.EmphasisToken.IsCancellationRequested);
-        actions.PendingEmphasis.SetResult("Old highlight completed.");
+        Assert.True(actions.IsolationToken.IsCancellationRequested);
+        actions.PendingIsolation.SetResult("Old isolation completed.");
         await Task.WhenAll(pending, reset);
         Assert.Null(model.Current);
-        Assert.DoesNotContain("Old highlight", model.Status);
+        Assert.DoesNotContain("Old isolation", model.Status);
         Assert.False(model.IsBusy);
     }
 
     /// <summary>A graphics failure is reported without breaking navigation or implicitly focusing.</summary>
     [Fact]
-    public async Task FailedHighlightKeepsNavigationUsable()
+    public async Task FailedIsolationKeepsNavigationUsable()
     {
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
-        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        actions.PendingIsolation = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
-        actions.PendingEmphasis.SetException(new InvalidOperationException("Graphics failed."));
+        actions.PendingIsolation.SetException(new InvalidOperationException("Graphics failed."));
         await pending;
         Assert.Contains("Graphics failed", model.Status);
         Assert.NotNull(model.Current);
         Assert.True(model.BackCommand.CanExecute(null));
-        actions.PendingEmphasis = null;
+        actions.PendingIsolation = null;
         await model.RootCommand.ExecuteAsync(null);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.Equal(0, actions.HostCalls);
     }
 
-    /// <summary>Closing the panel cancels outstanding emphasis and ignores its eventual result.</summary>
+    /// <summary>Closing the panel cancels outstanding isolation and ignores its eventual result.</summary>
     [Fact]
-    public async Task ClosingCancelsNavigationHighlight()
+    public async Task ClosingCancelsNavigationIsolation()
     {
         var actions = new Actions();
         var model = new LayersViewModel(actions);
         await ToggleAsync(model);
-        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        actions.PendingIsolation = new TaskCompletionSource<string>();
         var pending = model.EnterCommand.ExecuteAsync(model.Items[0]);
         model.Dispose();
-        Assert.True(actions.EmphasisToken.IsCancellationRequested);
-        actions.PendingEmphasis.SetResult("Late highlight.");
+        Assert.True(actions.IsolationToken.IsCancellationRequested);
+        actions.PendingIsolation.SetResult("Late isolation.");
         await pending;
-        Assert.DoesNotContain("Late highlight", model.Status);
+        Assert.DoesNotContain("Late isolation", model.Status);
         Assert.False(model.RootCommand.CanExecute(null));
     }
 
@@ -361,7 +361,7 @@ public sealed class ExplorerNavigationTests
         Assert.Null(model.Current);
         Assert.Equal("No active drawing", model.SpaceLabel);
         Assert.False(model.ReadCommand.CanExecute(null));
-        Assert.False(model.HighlightCommand.CanExecute(null));
+        Assert.False(model.IsolateCommand.CanExecute(null));
         Assert.False(model.ResetCommand.CanExecute(null));
         Assert.False(model.FocusCommand.CanExecute(null));
         Assert.False(model.ToggleFilterCommand.CanExecute(model.Filters[0]));
@@ -385,7 +385,7 @@ public sealed class ExplorerNavigationTests
         Assert.Contains("archived", actions.Enabled);
         Assert.Null(model.Current);
         Assert.Empty(model.Breadcrumbs);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
     }
 
     /// <summary>Inactive commands cannot read or emphasize; activation loads only the root.</summary>
@@ -397,14 +397,14 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.IsLensActive);
         Assert.False(model.ReadCommand.CanExecute(null));
         await model.ReadCommand.ExecuteAsync(null);
-        await model.HighlightCommand.ExecuteAsync(null);
+        await model.IsolateCommand.ExecuteAsync(null);
         Assert.Equal(0, actions.ReadCount);
         Assert.Equal(0, actions.HostCalls);
         await ToggleAsync(model);
         Assert.True(model.IsLensActive);
         Assert.Equal(1, actions.ReadCount);
         Assert.Null(model.Current);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.Equal(0, actions.HostCalls);
     }
 
@@ -423,12 +423,12 @@ public sealed class ExplorerNavigationTests
         await model.EnterCommand.ExecuteAsync(model.Items[1]);
         await ToggleAsync(model);
         Assert.False(model.IsLensActive);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.Equal("second", model.Current!.Id);
         actions.SingleObject = eraseSelected;
         await ToggleAsync(model);
         Assert.Equal(eraseSelected ? "type" : "second", model.Current!.Id);
-        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(model.Current.Objects, actions.IsolationTargets);
         Assert.True(model.Filters[0].IsEnabled);
         Assert.Equal(0, actions.FocusCount);
     }
@@ -461,35 +461,35 @@ public sealed class ExplorerNavigationTests
         await ToggleAsync(model);
         Assert.Equal(reads + 1, actions.ReadCount);
         Assert.Null(model.Current);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
     }
 
-    /// <summary>Late emphasis settles before independent cleanup and cannot replace its status.</summary>
+    /// <summary>Late isolation settles before independent cleanup and cannot replace its status.</summary>
     [Fact]
-    public async Task CollapseWaitsForLateEmphasisAndCleanup()
+    public async Task CollapseWaitsForLateIsolationAndCleanup()
     {
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await ToggleAsync(model);
-        actions.PendingEmphasis = new TaskCompletionSource<string>();
+        actions.PendingIsolation = new TaskCompletionSource<string>();
         actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
         actions.ClearStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var emphasis = model.EnterCommand.ExecuteAsync(model.Items[0]);
+        var isolation = model.EnterCommand.ExecuteAsync(model.Items[0]);
         var collapse = ToggleAsync(model);
         Assert.False(model.IsLensActive);
         Assert.True(model.IsBusy);
-        Assert.True(actions.EmphasisToken.IsCancellationRequested);
+        Assert.True(actions.IsolationToken.IsCancellationRequested);
         Assert.Equal(1, actions.ClearCount);
-        actions.PendingEmphasis.SetResult("Old emphasis completed.");
-        await emphasis;
+        actions.PendingIsolation.SetResult("Old isolation completed.");
+        await isolation;
         await actions.ClearStarted.Task;
         Assert.False(actions.ClearToken.IsCancellationRequested);
         Assert.True(model.IsBusy);
-        Assert.DoesNotContain("Old emphasis", model.Status);
+        Assert.DoesNotContain("Old isolation", model.Status);
         actions.PendingClear.SetResult(new HostResult<bool>.Success(true));
         await collapse;
         Assert.False(model.IsBusy);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
     }
 
     /// <summary>Late activation inventory cannot publish content after collapse.</summary>
@@ -504,8 +504,8 @@ public sealed class ExplorerNavigationTests
         await Task.WhenAll(activation, collapse);
         Assert.False(model.IsLensActive);
         Assert.Empty(model.Groups);
-        Assert.Empty(actions.EmphasisTargets);
-        Assert.Equal("Selection and highlight cleared. Auto settings kept.", model.Status);
+        Assert.Empty(actions.IsolationTargets);
+        Assert.Equal("Selection and isolation cleared. Auto settings kept.", model.Status);
     }
 
     /// <summary>Cleanup failures stay visible in compact mode without claiming effects were removed.</summary>
@@ -571,7 +571,7 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(collapse ? 2 : 3, actions.ReadCount);
         Assert.False(model.IsBusy);
         Assert.Null(model.Current);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.NotEqual("Old drawing", model.SpaceLabel);
         Assert.Equal(!collapse, model.ReadCommand.CanExecute(null));
     }
@@ -585,9 +585,9 @@ public sealed class ExplorerNavigationTests
         await model.ActivateAsync(CancellationToken.None);
         Assert.False(model.IsAutoFocus);
         Assert.False(model.IsAutoSelect);
-        Assert.True(model.IsAutoHighlight);
+        Assert.True(model.IsAutoIsolation);
         Assert.False(model.SelectCommand.CanExecute(null));
-        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
         Assert.Empty(actions.SelectionTargets);
         var group = model.Items[0];
@@ -608,7 +608,7 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(group.Objects, actions.SelectionTargets);
         await model.RootCommand.ExecuteAsync(null);
         Assert.Empty(actions.SelectionTargets);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.Equal(0, actions.FocusCount);
         Assert.True(model.IsAutoSelect);
     }
@@ -636,12 +636,12 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(camera, actions.FocusTargets);
         Assert.Equal(focuses, actions.FocusCount);
         Assert.Empty(actions.SelectionTargets);
-        Assert.Empty(actions.EmphasisTargets);
-        Assert.False(model.IsAutoFocus || model.IsAutoSelect || model.IsAutoHighlight);
-        Assert.Equal("Selection and highlight cleared. Auto modes off.", model.Status);
+        Assert.Empty(actions.IsolationTargets);
+        Assert.False(model.IsAutoFocus || model.IsAutoSelect || model.IsAutoIsolation);
+        Assert.Equal("Selection and isolation cleared. Auto modes off.", model.Status);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.Empty(actions.SelectionTargets);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.Equal(focuses, actions.FocusCount);
     }
 
@@ -652,27 +652,27 @@ public sealed class ExplorerNavigationTests
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
         await model.ActivateAsync(CancellationToken.None);
-        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.SelectCommand.ExecuteAsync(null);
         var selected = actions.SelectionTargets;
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
-        await model.HighlightCommand.ExecuteAsync(null);
+        await model.IsolateCommand.ExecuteAsync(null);
         Assert.Equal(selected, actions.SelectionTargets);
         Assert.Equal(0, actions.FocusCount);
-        var highlighted = actions.EmphasisTargets;
+        var isolated = actions.IsolationTargets;
         await model.FocusCommand.ExecuteAsync(null);
         Assert.Equal(selected, actions.SelectionTargets);
-        Assert.Equal(highlighted, actions.EmphasisTargets);
+        Assert.Equal(isolated, actions.IsolationTargets);
         var camera = actions.FocusTargets;
         await model.NextCommand.ExecuteAsync(null);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         await model.SelectCommand.ExecuteAsync(null);
         Assert.Equal(new TestEntityId(2), Assert.Single(actions.SelectionTargets));
         Assert.Equal(camera, actions.FocusTargets);
-        Assert.Empty(actions.EmphasisTargets);
-        Assert.False(model.IsAutoFocus || model.IsAutoSelect || model.IsAutoHighlight);
+        Assert.Empty(actions.IsolationTargets);
+        Assert.False(model.IsAutoFocus || model.IsAutoSelect || model.IsAutoIsolation);
     }
 
     /// <summary>Disabling one automatic effect preserves the other.</summary>
@@ -684,18 +684,18 @@ public sealed class ExplorerNavigationTests
         await model.ActivateAsync(CancellationToken.None);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
-        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
-        Assert.Empty(actions.EmphasisTargets);
-        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
-        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current.Objects, actions.IsolationTargets);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
         Assert.Empty(actions.SelectionTargets);
-        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(model.Current.Objects, actions.IsolationTargets);
         Assert.Equal(0, actions.FocusCount);
     }
 
-    /// <summary>Selection and highlight run even when Focus cannot fit the target.</summary>
+    /// <summary>Selection and isolation run even when Focus cannot fit the target.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -708,13 +708,13 @@ public sealed class ExplorerNavigationTests
         await model.ToggleAutoFocusCommand.ExecuteAsync(null);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
-        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(model.Current.Objects, actions.IsolationTargets);
         Assert.StartsWith("Focus unavailable", model.Status);
         Assert.True(model.SelectCommand.CanExecute(null));
         Assert.Equal(allowFocus, model.FocusCommand.CanExecute(null));
     }
 
-    /// <summary>Restoration reapplies selection and highlight but never refits the camera.</summary>
+    /// <summary>Restoration reapplies selection and isolation but never refits the camera.</summary>
     [Fact]
     public async Task ReopeningRestoresSelectionWithoutAutoFocus()
     {
@@ -728,13 +728,13 @@ public sealed class ExplorerNavigationTests
         var focuses = actions.FocusCount;
         await model.DeactivateAsync(CancellationToken.None);
         Assert.Empty(actions.SelectionTargets);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         await model.ActivateAsync(CancellationToken.None);
         Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
-        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(model.Current.Objects, actions.IsolationTargets);
         Assert.Equal(camera, actions.FocusTargets);
         Assert.Equal(focuses, actions.FocusCount);
-        Assert.True(model.IsAutoFocus && model.IsAutoSelect && model.IsAutoHighlight);
+        Assert.True(model.IsAutoFocus && model.IsAutoSelect && model.IsAutoIsolation);
     }
 
     /// <summary>Cancellation prevents pending selection from triggering further drawing actions.</summary>
@@ -768,7 +768,7 @@ public sealed class ExplorerNavigationTests
         completion.SetResult(new HostResult<bool>.Success(true));
         await Task.WhenAll(navigation, cleanup);
         Assert.Empty(actions.SelectionTargets);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
         Assert.Equal(0, actions.FocusCount);
     }
 
@@ -818,7 +818,7 @@ public sealed class ExplorerNavigationTests
             model.Close(false);
 
         Assert.Empty(actions.SelectionTargets);
-        Assert.Empty(actions.EmphasisTargets);
+        Assert.Empty(actions.IsolationTargets);
     }
 
     private static Task ToggleAsync(LayersViewModel model) => model.IsLensActive
@@ -848,7 +848,7 @@ public sealed class ExplorerNavigationTests
         public void ClearImmediately(bool hostTerminating)
         {
             SelectionTargets = [];
-            EmphasisTargets = [];
+            IsolationTargets = [];
         }
 
         internal ImmutableArray<IPlacedObjectId> SelectionTargets { get; private set; } = [];
@@ -862,9 +862,9 @@ public sealed class ExplorerNavigationTests
             return PendingSelection?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken)
         {
-            EmphasisTargets = [];
+            IsolationTargets = [];
             return Task.FromResult(ClearResult);
         }
 
@@ -879,9 +879,9 @@ public sealed class ExplorerNavigationTests
         internal bool SingleObject { get; set; }
         internal bool Empty { get; init; }
         internal int HostCalls { get; private set; }
-        internal ImmutableArray<IPlacedObjectId> EmphasisTargets { get; private set; } = [];
-        internal TaskCompletionSource<string>? PendingEmphasis { get; set; }
-        internal CancellationToken EmphasisToken { get; private set; }
+        internal ImmutableArray<IPlacedObjectId> IsolationTargets { get; private set; } = [];
+        internal TaskCompletionSource<string>? PendingIsolation { get; set; }
+        internal CancellationToken IsolationToken { get; private set; }
         internal bool AllowFocus { get; init; } = true;
         internal string FocusMessage { get; init; } = "Focused.";
         internal ImmutableArray<IPlacedObjectId> FocusTargets { get; private set; }
@@ -912,19 +912,19 @@ public sealed class ExplorerNavigationTests
             if (ClearResult is HostResult<bool>.Success { Value: true })
             {
                 SelectionTargets = [];
-                EmphasisTargets = [];
+                IsolationTargets = [];
             }
 
             ClearStarted.TrySetResult();
             return PendingClear?.Task ?? Task.FromResult(ClearResult);
         }
 
-        public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
         {
-            EmphasisTargets = objects;
-            EmphasisToken = cancellationToken;
+            IsolationTargets = objects;
+            IsolationToken = cancellationToken;
 
-            return PendingEmphasis?.Task ?? Task.FromResult("Selection updated.");
+            return PendingIsolation?.Task ?? Task.FromResult("Selection updated.");
         }
 
         public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)

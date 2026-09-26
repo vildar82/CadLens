@@ -6,12 +6,12 @@ namespace Common.AutoCAD;
 /// <inheritdoc />
 /// <param name="hostTasks">Queue used for native drawing access.</param>
 /// <param name="graphics">Temporary graphics owned by the caller.</param>
-public sealed class EntityHighlightActions(
+public sealed class EntityIsolationActions(
     IHostTaskService hostTasks,
-    IEntityHighlightService graphics) : IEntityHighlightActions
+    IEntityIsolationService graphics) : IEntityIsolationActions
 {
     /// <inheritdoc />
-    public async Task<HostResult<int>> EmphasizeAsync(ObjectId[] objects, CancellationToken cancellationToken)
+    public async Task<HostResult<int>> IsolateAsync(ObjectId[] objects, CancellationToken cancellationToken)
     {
         var document = Application.DocumentManager.MdiActiveDocument;
 
@@ -28,9 +28,9 @@ public sealed class EntityHighlightActions(
                     space != document.Database.CurrentSpaceId ||
                     viewport != document.Editor.CurrentViewportObjectId ||
                     viewportNumber != Convert.ToInt32(Application.GetSystemVariable("CVPORT")))
-                    return new HostResult<int>.Unavailable("The drawing context changed. Refresh before highlighting.");
+                    return new HostResult<int>.Unavailable("The drawing context changed. Refresh before isolating.");
 
-                return HighlightSelection(objects);
+                return IsolateSelection(objects);
             },
             cancellationToken);
 
@@ -48,7 +48,7 @@ public sealed class EntityHighlightActions(
             },
             cancellationToken);
 
-    private HostResult<int> HighlightSelection(ObjectId[] selectedIds)
+    private HostResult<int> IsolateSelection(ObjectId[] selectedIds)
     {
         var document = Application.DocumentManager.MdiActiveDocument;
 

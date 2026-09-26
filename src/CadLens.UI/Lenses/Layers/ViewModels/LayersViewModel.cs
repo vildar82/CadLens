@@ -27,7 +27,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private bool _hasDrawing = true;
     private bool _isAutoFocus;
     private bool _isAutoSelect;
-    private bool _isAutoHighlight;
+    private bool _isAutoIsolation;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
@@ -35,8 +35,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     {
         _actions = actions;
         ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
-        HighlightCommand = new AsyncRelayCommand(
-            () => ExecuteActionAsync(token => _actions.EmphasizeObjectsAsync(Current!.Objects, token)),
+        IsolateCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(token => _actions.IsolateObjectsAsync(Current!.Objects, token)),
             () => CanRun() && Current is { Objects.IsEmpty: false });
         ResetCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ResetAsync), CanRun);
         SelectCommand = new AsyncRelayCommand(
@@ -56,8 +56,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
             filter => ExecuteActionAsync(token => ToggleFilterAsync(filter!, token)),
             filter => CanRun() && filter is not null && Filters.Contains(filter));
-        ToggleAutoHighlightCommand = new AsyncRelayCommand(
-            () => ExecuteActionAsync(ToggleAutoHighlightAsync), CanRun);
+        ToggleAutoIsolationCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(ToggleAutoIsolationAsync), CanRun);
         ToggleAutoSelectCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(ToggleAutoSelectAsync), CanRun);
         ToggleAutoFocusCommand = new AsyncRelayCommand(
@@ -141,11 +141,11 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _isAutoSelect, value);
     }
 
-    /// <summary>Highlights the current target during navigation.</summary>
-    public bool IsAutoHighlight
+    /// <summary>Isolates the current target during navigation.</summary>
+    public bool IsAutoIsolation
     {
-        get => _isAutoHighlight;
-        private set => SetProperty(ref _isAutoHighlight, value);
+        get => _isAutoIsolation;
+        private set => SetProperty(ref _isAutoIsolation, value);
     }
 
     /// <summary>Whether the current result has no root groups.</summary>
@@ -157,7 +157,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Lens options and their current inclusion state.</summary>
     public ImmutableArray<FilterOption> Filters => _filters;
 
-    /// <summary>Enters a displayed child and updates temporary emphasis.</summary>
+    /// <summary>Enters a displayed child and updates temporary isolation.</summary>
     public IAsyncRelayCommand<LensNode> EnterCommand { get; }
 
     /// <summary>Returns to the parent level.</summary>
@@ -178,8 +178,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Reloads inventory with one inclusion option toggled.</summary>
     public IAsyncRelayCommand<FilterOption> ToggleFilterCommand { get; }
 
-    /// <summary>Switches navigation highlighting on or off.</summary>
-    public IAsyncRelayCommand ToggleAutoHighlightCommand { get; }
+    /// <summary>Switches navigation isolation on or off.</summary>
+    public IAsyncRelayCommand ToggleAutoIsolationCommand { get; }
 
     /// <summary>Switches automatic CAD selection on or off.</summary>
     public IAsyncRelayCommand ToggleAutoSelectCommand { get; }
@@ -187,7 +187,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Switches automatic camera focus on or off.</summary>
     public IAsyncRelayCommand ToggleAutoFocusCommand { get; }
 
-    /// <summary>Selects the current targets without changing the camera or highlighting.</summary>
+    /// <summary>Selects the current targets without changing the camera or isolation.</summary>
     public IAsyncRelayCommand SelectCommand { get; }
 
     /// <summary>Number of included groups.</summary>
@@ -205,10 +205,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Refreshes the active-space inventory.</summary>
     public IAsyncRelayCommand ReadCommand { get; }
 
-    /// <summary>Highlights the current group or object.</summary>
-    public IAsyncRelayCommand HighlightCommand { get; }
+    /// <summary>Isolates the current group or object.</summary>
+    public IAsyncRelayCommand IsolateCommand { get; }
 
-    /// <summary>Clears selection and highlighting, turns off Auto modes, and preserves the camera.</summary>
+    /// <summary>Clears selection and isolation, turns off Auto modes, and preserves the camera.</summary>
     public IAsyncRelayCommand ResetCommand { get; }
 
     /// <summary>Explicitly fits the selected group's or object's live bounds.</summary>
@@ -332,22 +332,22 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     {
         IsAutoFocus = false;
         IsAutoSelect = false;
-        IsAutoHighlight = false;
+        IsAutoIsolation = false;
 
         var result = await _actions.ClearAsync(cancellationToken);
         return result.Match(
-            cleared => cleared ? "Selection and highlight cleared. Auto modes off." : "Cleanup did not complete.",
+            cleared => cleared ? "Selection and isolation cleared. Auto modes off." : "Cleanup did not complete.",
             reason => $"Cleanup unavailable: {reason}");
     }
 
     private static string DescribeCleanup(HostResult<bool> result) => result.Match(
-        cleared => cleared ? "Selection and highlight cleared. Auto settings kept." : "Cleanup did not complete.",
+        cleared => cleared ? "Selection and isolation cleared. Auto settings kept." : "Cleanup did not complete.",
         reason => $"Cleanup unavailable: {reason}");
 
     private void NotifyCommands()
     {
         ReadCommand.NotifyCanExecuteChanged();
-        HighlightCommand.NotifyCanExecuteChanged();
+        IsolateCommand.NotifyCanExecuteChanged();
         ResetCommand.NotifyCanExecuteChanged();
         SelectCommand.NotifyCanExecuteChanged();
         FocusCommand.NotifyCanExecuteChanged();
@@ -358,7 +358,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         PreviousCommand.NotifyCanExecuteChanged();
         NextCommand.NotifyCanExecuteChanged();
         ToggleFilterCommand.NotifyCanExecuteChanged();
-        ToggleAutoHighlightCommand.NotifyCanExecuteChanged();
+        ToggleAutoIsolationCommand.NotifyCanExecuteChanged();
         ToggleAutoSelectCommand.NotifyCanExecuteChanged();
         ToggleAutoFocusCommand.NotifyCanExecuteChanged();
     }
@@ -394,19 +394,19 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         NotifyNavigation();
 
         if (Current is not null)
-            return await ApplySelectionAndHighlightAsync(cancellationToken);
+            return await ApplySelectionAndIsolationAsync(cancellationToken);
 
         return HasGroups ? "Choose a layer. Auto modes apply while browsing." : success.Value.EmptyMessage;
     }
 
-    private async Task<string> ToggleAutoHighlightAsync(CancellationToken cancellationToken)
+    private async Task<string> ToggleAutoIsolationAsync(CancellationToken cancellationToken)
     {
-        IsAutoHighlight = !IsAutoHighlight;
+        IsAutoIsolation = !IsAutoIsolation;
 
-        if (IsAutoHighlight && Current is not null)
-            return await _actions.EmphasizeObjectsAsync(Current.Objects, cancellationToken);
+        if (IsAutoIsolation && Current is not null)
+            return await _actions.IsolateObjectsAsync(Current.Objects, cancellationToken);
 
-        return await ClearHighlightAsync(cancellationToken);
+        return await ClearIsolationAsync(cancellationToken);
     }
 
     private async Task<string> ToggleAutoSelectAsync(CancellationToken cancellationToken)
@@ -442,16 +442,16 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         return clearing ? "CAD selection cleared." : "CAD objects selected.";
     }
 
-    private async Task<string> ClearHighlightAsync(CancellationToken cancellationToken) =>
-        (await _actions.ClearHighlightAsync(cancellationToken)).Match(
-            cleared => cleared ? "Temporary highlight cleared." : "Highlight cleanup did not complete.",
-            reason => $"Highlight cleanup unavailable: {reason}");
+    private async Task<string> ClearIsolationAsync(CancellationToken cancellationToken) =>
+        (await _actions.ClearIsolationAsync(cancellationToken)).Match(
+            cleared => cleared ? "Temporary isolation cleared." : "Isolation cleanup did not complete.",
+            reason => $"Isolation cleanup unavailable: {reason}");
 
     private Task<string> FocusCurrentAsync(CancellationToken cancellationToken) => HasFocusTarget()
         ? _actions.FocusAsync(Current!.Objects, cancellationToken)
         : Task.FromResult("Focus unavailable: the current target has no usable bounds.");
 
-    private async Task<string> ApplySelectionAndHighlightAsync(CancellationToken cancellationToken)
+    private async Task<string> ApplySelectionAndIsolationAsync(CancellationToken cancellationToken)
     {
         var messages = new List<string>();
 
@@ -459,9 +459,9 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             messages.Add(await SelectCurrentAsync(cancellationToken));
 
         cancellationToken.ThrowIfCancellationRequested();
-        messages.Add(IsAutoHighlight
-            ? await _actions.EmphasizeObjectsAsync(Current!.Objects, cancellationToken)
-            : await ClearHighlightAsync(cancellationToken));
+        messages.Add(IsAutoIsolation
+            ? await _actions.IsolateObjectsAsync(Current!.Objects, cancellationToken)
+            : await ClearIsolationAsync(cancellationToken));
 
         return string.Join(" ", messages);
     }
@@ -472,7 +472,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         if (Current is null)
             return await ClearEffectsAsync(token);
 
-        var message = await ApplySelectionAndHighlightAsync(token);
+        var message = await ApplySelectionAndIsolationAsync(token);
 
         if (!IsAutoFocus)
             return message;

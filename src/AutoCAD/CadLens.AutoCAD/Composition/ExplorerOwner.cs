@@ -1,7 +1,6 @@
 ﻿using Trace = System.Diagnostics.Trace;
 using System.Windows;
 using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.Colors;
 using CadLens.Lenses;
 using CadLens.UI;
 using Common;
@@ -15,19 +14,13 @@ namespace CadLens.AutoCAD;
 /// <summary>Owns one reusable plugin root and a separate scope for each open panel.</summary>
 internal sealed class ExplorerOwner
 {
-    private static readonly EntityHighlightOptions HighlightColors = new(
-        Accent: new EntityColor(70, 210, 230),
-        Dimmed: new EntityColor(65, 72, 80),
-        DimmedHatchBackground: new EntityColor(40, 45, 50));
-
     private readonly ServiceProvider _root = ExplorerComposition.Build(services =>
     {
         services.AddScoped<IHostTaskService, AutoCadTaskService>();
         services.AddScoped<ILayersSnapshotSource, AutoCadLayersSnapshotSource>();
         services.AddScoped<ILayersActions, LayersActions>();
-        services.AddSingleton(HighlightColors);
-        services.AddScoped<IEntityHighlightService, EntityHighlightService>();
-        services.AddScoped<IEntityHighlightActions, EntityHighlightActions>();
+        services.AddScoped<IEntityIsolationService, EntityIsolationService>();
+        services.AddScoped<IEntityIsolationActions, EntityIsolationActions>();
         services.AddScoped<IObjectVisualizationService, AutoCadObjectVisualizationService>();
     });
 

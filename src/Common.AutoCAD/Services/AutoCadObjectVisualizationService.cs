@@ -7,7 +7,7 @@ namespace Common.AutoCAD;
 /// <summary>Visualizes placed objects in the active AutoCAD drawing.</summary>
 public sealed class AutoCadObjectVisualizationService(
     IHostTaskService hostTasks,
-    IEntityHighlightActions highlights) : IObjectVisualizationService
+    IEntityIsolationActions isolation) : IObjectVisualizationService
 {
     /// <inheritdoc />
     public async Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
@@ -44,12 +44,12 @@ public sealed class AutoCadObjectVisualizationService(
     }
 
     /// <inheritdoc />
-    public async Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<HostResult<bool>> IsolateAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
     {
         if (!TryGetNativeIds(objects, out var targets))
             return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
 
-        var result = await highlights.EmphasizeAsync(targets, cancellationToken);
+        var result = await isolation.IsolateAsync(targets, cancellationToken);
 
         return result.Bind(_ => new HostResult<bool>.Success(true));
     }

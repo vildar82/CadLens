@@ -14,18 +14,18 @@ public interface ILayersActions
     /// <summary>Replaces native selection; empty targets clear it.</summary>
     Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
 
-    /// <summary>Clears only temporary highlighting and dimming.</summary>
-    Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken);
+    /// <summary>Clears only temporary visual isolation.</summary>
+    Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken);
 
     /// <summary>Reads the active-space inventory without changing the drawing.</summary>
     /// <param name="enabledFilters">Enabled lens option identities.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken);
 
-    /// <summary>Updates emphasis for the panel selection; empty targets clear it.</summary>
+    /// <summary>Isolates the panel selection; empty targets clear it.</summary>
     /// <param name="objects">Current group or object targets.</param>
     /// <param name="cancellationToken">Request cancellation.</param>
-    Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+    Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
 
     /// <summary>Clears CAD selection and temporary rendering.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
