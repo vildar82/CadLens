@@ -33,7 +33,6 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0">
                         <Border Width="4" Height="20" Background="#78E3CE" CornerRadius="2" Margin="0,0,9,0" />
@@ -51,29 +50,14 @@
                                               IsChecked="{Binding IsActive, Mode=OneWay}"
                                               Command="{Binding DataContext.ToggleLensCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                               CommandParameter="{Binding}" AutomationProperties.Name="{Binding Descriptor.Label}"
-                                              ToolTip="{Binding Descriptor.Label}" Padding="12,6" />
+                                              AutomationProperties.HelpText="{Binding DataContext.Status, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              ToolTip="{Binding DataContext.Status, RelativeSource={RelativeSource AncestorType=Window}}"
+                                              ToolTipService.ShowOnDisabled="True" Padding="12,6" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     </ScrollViewer>
-                    <Button Grid.Column="2" Style="{StaticResource QuietButton}" Width="27" Height="30" Margin="3,0"
-                            Padding="0" Click="ShowStatus" AutomationProperties.Name="Show CAD Lens status"
-                            WindowChrome.IsHitTestVisibleInChrome="True">
-                        <Button.ToolTip><ToolTip Content="{Binding Status}" MaxWidth="280" /></Button.ToolTip>
-                        <TextBlock Foreground="#9EB5BE">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="i" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsCleanupPending}" Value="True">
-                                            <Setter Property="Text" Value="…" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Button>
-                    <Button Grid.Column="3" Content="×" FontSize="18" Style="{StaticResource QuietButton}"
+                    <Button Grid.Column="2" Content="×" FontSize="18" Style="{StaticResource QuietButton}"
                             Width="30" Height="30" Padding="0" Click="CloseClicked" ToolTip="Close CAD Lens"
                             AutomationProperties.Name="Close CAD Lens" WindowChrome.IsHitTestVisibleInChrome="True" />
                 </Grid>
