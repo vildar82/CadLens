@@ -7,9 +7,15 @@ namespace CadLens.UI;
 /// <summary>Host operations for the modeless drawing explorer.</summary>
 public interface ILayersActions
 {
-    /// <summary>Detaches owned graphics synchronously at context and lifetime boundaries.</summary>
-    /// <param name="redraw">Whether the current host view can be regenerated.</param>
-    void ClearImmediately(bool redraw);
+    /// <summary>Clears selection and graphics synchronously at context and lifetime boundaries.</summary>
+    /// <param name="hostTerminating">Whether shutdown forbids editor access and regeneration.</param>
+    void ClearImmediately(bool hostTerminating);
+
+    /// <summary>Replaces native selection; empty targets clear it.</summary>
+    Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+
+    /// <summary>Clears only temporary highlighting and dimming.</summary>
+    Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken);
 
     /// <summary>Reads the active-space inventory without changing the drawing.</summary>
     /// <param name="enabledFilters">Enabled lens option identities.</param>
@@ -21,7 +27,7 @@ public interface ILayersActions
     /// <param name="cancellationToken">Request cancellation.</param>
     Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
 
-    /// <summary>Removes the candidate rendering effect.</summary>
+    /// <summary>Clears CAD selection and temporary rendering.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken);
 

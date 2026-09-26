@@ -1,4 +1,4 @@
-﻿using CadLens.Lenses;
+using CadLens.Lenses;
 using System.Collections.Immutable;
 using Common;
 using Xunit;
@@ -205,8 +205,7 @@ public sealed class ExplorerNavigationTests
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         Assert.Equal(0, actions.FocusCount);
 
-        model.IsAutoFocus = true;
-        await model.FocusCommand.ExecutionTask!;
+        await model.ToggleAutoFocusCommand.ExecuteAsync(null);
         Assert.Equal(model.Current!.Objects, actions.FocusTargets);
 
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
@@ -214,7 +213,7 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(new TestEntityId(2), Assert.Single(actions.FocusTargets));
         Assert.Equal(3, actions.FocusCount);
 
-        model.IsAutoFocus = false;
+        await model.ToggleAutoFocusCommand.ExecuteAsync(null);
         await model.PreviousCommand.ExecuteAsync(null);
         Assert.Equal(3, actions.FocusCount);
     }
@@ -363,7 +362,7 @@ public sealed class ExplorerNavigationTests
         Assert.Equal("No active drawing", model.SpaceLabel);
         Assert.False(model.ReadCommand.CanExecute(null));
         Assert.False(model.HighlightCommand.CanExecute(null));
-        Assert.False(model.ClearCommand.CanExecute(null));
+        Assert.False(model.ResetCommand.CanExecute(null));
         Assert.False(model.FocusCommand.CanExecute(null));
         Assert.False(model.ToggleFilterCommand.CanExecute(model.Filters[0]));
         await model.ResetContextAsync();
@@ -506,7 +505,7 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.IsLensActive);
         Assert.Empty(model.Groups);
         Assert.Empty(actions.EmphasisTargets);
-        Assert.Equal("Temporary effects cleared.", model.Status);
+        Assert.Equal("Selection and highlight cleared. Auto settings kept.", model.Status);
     }
 
     /// <summary>Cleanup failures stay visible in compact mode without claiming effects were removed.</summary>
@@ -617,6 +616,250 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(!collapse, model.ReadCommand.CanExecute(null));
     }
 
+    /// <summary>Automatic selection covers every navigation path without camera movement.</summary>
+    [Fact]
+    public async Task AutoSelectionFollowsEveryLevelWithoutMovingCamera()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        Assert.False(model.IsAutoFocus);
+        Assert.False(model.IsAutoSelect);
+        Assert.True(model.IsAutoHighlight);
+        Assert.False(model.SelectCommand.CanExecute(null));
+        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        Assert.Empty(actions.SelectionTargets);
+        var group = model.Items[0];
+
+        await model.EnterCommand.ExecuteAsync(group);
+        Assert.Equal(group.Objects, actions.SelectionTargets);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Equal(new TestEntityId(1), Assert.Single(actions.SelectionTargets));
+        await model.NextCommand.ExecuteAsync(null);
+        Assert.Equal(new TestEntityId(2), Assert.Single(actions.SelectionTargets));
+        await model.PreviousCommand.ExecuteAsync(null);
+        Assert.Equal(new TestEntityId(1), Assert.Single(actions.SelectionTargets));
+        await model.BackCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
+        await model.BreadcrumbCommand.ExecuteAsync(group);
+        Assert.Equal(group.Objects, actions.SelectionTargets);
+        await model.RootCommand.ExecuteAsync(null);
+        Assert.Empty(actions.SelectionTargets);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal(0, actions.FocusCount);
+        Assert.True(model.IsAutoSelect);
+    }
+
+    /// <summary>Reset keeps modes and navigation while clearing their current effects.</summary>
+    [Fact]
+    public async Task ResetPreservesModesAndResumesOnNextNavigation()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await model.ToggleAutoFocusCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
+        var current = model.Current;
+        var camera = actions.FocusTargets;
+        var focuses = actions.FocusCount;
+        var filters = model.Filters;
+
+        await model.ResetCommand.ExecuteAsync(null);
+
+        Assert.Same(current, model.Current);
+        Assert.Equal(filters, model.Filters);
+        Assert.Equal(camera, actions.FocusTargets);
+        Assert.Equal(focuses, actions.FocusCount);
+        Assert.Empty(actions.SelectionTargets);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.True(model.IsAutoFocus && model.IsAutoSelect && model.IsAutoHighlight);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
+        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(focuses + 1, actions.FocusCount);
+    }
+
+    /// <summary>Manual actions preserve states previously set by the other actions.</summary>
+    [Fact]
+    public async Task ManualActionsDoNotReplaceEachOthersTargets()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.SelectCommand.ExecuteAsync(null);
+        var selected = actions.SelectionTargets;
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.HighlightCommand.ExecuteAsync(null);
+        Assert.Equal(selected, actions.SelectionTargets);
+        Assert.Equal(0, actions.FocusCount);
+        var highlighted = actions.EmphasisTargets;
+        await model.FocusCommand.ExecuteAsync(null);
+        Assert.Equal(selected, actions.SelectionTargets);
+        Assert.Equal(highlighted, actions.EmphasisTargets);
+        var camera = actions.FocusTargets;
+        await model.NextCommand.ExecuteAsync(null);
+        Assert.Empty(actions.EmphasisTargets);
+        await model.SelectCommand.ExecuteAsync(null);
+        Assert.Equal(new TestEntityId(2), Assert.Single(actions.SelectionTargets));
+        Assert.Equal(camera, actions.FocusTargets);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.False(model.IsAutoFocus || model.IsAutoSelect || model.IsAutoHighlight);
+    }
+
+    /// <summary>Disabling one automatic effect preserves the other.</summary>
+    [Fact]
+    public async Task AutoToggleCleanupIsIndependent()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
+        Assert.Empty(actions.EmphasisTargets);
+        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        Assert.Empty(actions.SelectionTargets);
+        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(0, actions.FocusCount);
+    }
+
+    /// <summary>Selection and highlight run even when Focus cannot fit the target.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnavailableFocusDoesNotBlockOtherAutoModes(bool allowFocus)
+    {
+        var actions = new Actions { AllowFocus = allowFocus, FocusMessage = "Focus unavailable: locked viewport." };
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await model.ToggleAutoFocusCommand.ExecuteAsync(null);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
+        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.StartsWith("Focus unavailable", model.Status);
+        Assert.True(model.SelectCommand.CanExecute(null));
+        Assert.Equal(allowFocus, model.FocusCommand.CanExecute(null));
+    }
+
+    /// <summary>Restoration reapplies selection and highlight but never refits the camera.</summary>
+    [Fact]
+    public async Task ReopeningRestoresSelectionWithoutAutoFocus()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await model.ToggleAutoFocusCommand.ExecuteAsync(null);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        var camera = actions.FocusTargets;
+        var focuses = actions.FocusCount;
+        await model.DeactivateAsync(CancellationToken.None);
+        Assert.Empty(actions.SelectionTargets);
+        Assert.Empty(actions.EmphasisTargets);
+        await model.ActivateAsync(CancellationToken.None);
+        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
+        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
+        Assert.Equal(camera, actions.FocusTargets);
+        Assert.Equal(focuses, actions.FocusCount);
+        Assert.True(model.IsAutoFocus && model.IsAutoSelect && model.IsAutoHighlight);
+    }
+
+    /// <summary>Cancellation prevents pending selection from triggering further drawing actions.</summary>
+    [Theory]
+    [InlineData("collapse")]
+    [InlineData("close")]
+    [InlineData("context")]
+    public async Task PendingSelectionCannotContinueAfterCleanup(string boundary)
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await model.ToggleAutoFocusCommand.ExecuteAsync(null);
+        var completion = new TaskCompletionSource<HostResult<bool>>();
+        actions.PendingSelection = completion;
+        var navigation = model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.False(model.ResetCommand.CanExecute(null));
+        Assert.False(model.ToggleAutoSelectCommand.CanExecute(null));
+
+        Task cleanup = Task.CompletedTask;
+        switch (boundary)
+        {
+            case "collapse": cleanup = model.DeactivateAsync(CancellationToken.None); break;
+            case "context": cleanup = model.ResetContextAsync(false); break;
+            case "close": model.Close(false); break;
+        }
+
+        Assert.True(actions.SelectionToken.IsCancellationRequested);
+        actions.PendingSelection = null;
+        completion.SetResult(new HostResult<bool>.Success(true));
+        await Task.WhenAll(navigation, cleanup);
+        Assert.Empty(actions.SelectionTargets);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal(0, actions.FocusCount);
+    }
+
+    /// <summary>A settled inactive lens does not clear preselection when opened, closed, or notified of context changes.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InactiveLensPreservesExternalSelection(bool previouslyActive)
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+
+        if (previouslyActive)
+        {
+            await model.ActivateAsync(CancellationToken.None);
+            await model.EnterCommand.ExecuteAsync(model.Items[0]);
+            await model.DeactivateAsync(CancellationToken.None);
+        }
+
+        await actions.SelectAsync([new TestEntityId(99)], CancellationToken.None);
+        await model.ResetContextAsync(false);
+        await model.ResetContextAsync(true);
+        model.Close(false);
+        Assert.Equal(new TestEntityId(99), Assert.Single(actions.SelectionTargets));
+    }
+
+    /// <summary>Failed collapse keeps cleanup owed even after the lens becomes inactive and idle.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailedCollapseStillCleansOnCloseOrContextChange(bool contextChange)
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.SelectCommand.ExecuteAsync(null);
+        actions.ClearResult = new HostResult<bool>.Unavailable("Cleanup failed.");
+        await model.DeactivateAsync(CancellationToken.None);
+        Assert.False(model.IsLensActive);
+        Assert.False(model.IsBusy);
+        Assert.NotEmpty(actions.SelectionTargets);
+
+        if (contextChange)
+            await model.ResetContextAsync(false);
+        else
+            model.Close(false);
+
+        Assert.Empty(actions.SelectionTargets);
+        Assert.Empty(actions.EmphasisTargets);
+    }
+
     private static Task ToggleAsync(LayersViewModel model) => model.IsLensActive
         ? model.DeactivateAsync(CancellationToken.None)
         : model.ActivateAsync(CancellationToken.None);
@@ -641,7 +884,28 @@ public sealed class ExplorerNavigationTests
 
     private sealed class Actions : ILayersActions
     {
-        public void ClearImmediately(bool redraw) => EmphasisTargets = [];
+        public void ClearImmediately(bool hostTerminating)
+        {
+            SelectionTargets = [];
+            EmphasisTargets = [];
+        }
+
+        internal ImmutableArray<IPlacedObjectId> SelectionTargets { get; private set; } = [];
+        internal TaskCompletionSource<HostResult<bool>>? PendingSelection { get; set; }
+        internal CancellationToken SelectionToken { get; private set; }
+
+        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        {
+            SelectionToken = cancellationToken;
+            SelectionTargets = objects;
+            return PendingSelection?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+        }
+
+        public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken)
+        {
+            EmphasisTargets = [];
+            return Task.FromResult(ClearResult);
+        }
 
         internal IReadOnlySet<string> Enabled { get; private set; } = new HashSet<string>();
         internal int ReadCount { get; private set; }
@@ -683,7 +947,13 @@ public sealed class ExplorerNavigationTests
         {
             ClearCount++;
             ClearToken = cancellationToken;
-            EmphasisTargets = [];
+
+            if (ClearResult is HostResult<bool>.Success { Value: true })
+            {
+                SelectionTargets = [];
+                EmphasisTargets = [];
+            }
+
             ClearStarted.TrySetResult();
             return PendingClear?.Task ?? Task.FromResult(ClearResult);
         }

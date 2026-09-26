@@ -1,4 +1,4 @@
-﻿using CadLens.Lenses;
+using CadLens.Lenses;
 using System.Collections.Immutable;
 using System.IO;
 using System.Windows;
@@ -26,7 +26,7 @@ public sealed class ExplorerViewModelTests
         var running = viewModel.HighlightCommand.ExecuteAsync(null);
         Assert.True(viewModel.IsBusy);
         Assert.False(viewModel.ReadCommand.CanExecute(null));
-        Assert.False(viewModel.ClearCommand.CanExecute(null));
+        Assert.False(viewModel.ResetCommand.CanExecute(null));
         viewModel.Dispose();
         Assert.True(actions.Token.IsCancellationRequested);
         actions.Completion.SetResult("late result");
@@ -289,7 +289,12 @@ public sealed class ExplorerViewModelTests
 
     private sealed class Actions : ILayersActions
     {
-        public void ClearImmediately(bool redraw) { }
+        public void ClearImmediately(bool hostTerminating) { }
+
+        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
+        public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
 
         internal TaskCompletionSource<HostResult<bool>>? PendingCleanup { get; set; }
         internal bool DelayInventory { get; init; }

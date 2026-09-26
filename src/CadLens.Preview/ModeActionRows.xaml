@@ -1,0 +1,35 @@
+<UserControl x:Class="CadLens.Preview.ModeActionRows"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <ResourceDictionary Source="ModePreviewTheme.xaml" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="28" /><RowDefinition Height="4" /><RowDefinition Height="28" /><RowDefinition Height="4" /><RowDefinition Height="28" /></Grid.RowDefinitions>
+        <Button x:Name="FocusAction" Style="{StaticResource ModeButton}" Margin="0,0,6,0" HorizontalContentAlignment="Stretch"
+                Command="{Binding FocusCommand}" AutomationProperties.Name="Focus camera"
+                ToolTip="Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden.">
+            <DockPanel><TextBlock DockPanel.Dock="Right" Text="Camera" Style="{StaticResource ModeDescriptor}" /><TextBlock Text="Focus" /></DockPanel>
+        </Button>
+        <ToggleButton x:Name="AutoFocus" Grid.Column="1" Style="{StaticResource ModeAuto}"
+                      IsChecked="{Binding IsAutoFocus, Mode=OneWay}" Command="{Binding ToggleAutoFocusCommand}"
+                      AutomationProperties.Name="Auto Focus" ToolTip="Automatically fit the camera when browsing layers, types, and objects." />
+        <Button x:Name="SelectAction" Grid.Row="2" Style="{StaticResource ModeButton}" Margin="0,0,6,0" HorizontalContentAlignment="Stretch"
+                Command="{Binding SelectCommand}" AutomationProperties.Name="Select CAD objects"
+                ToolTip="Select the current layer, type, or object in CAD. Keep the camera and temporary highlight unchanged.">
+            <DockPanel><TextBlock DockPanel.Dock="Right" Text="CAD selection" Style="{StaticResource ModeDescriptor}" /><TextBlock Text="Select" /></DockPanel>
+        </Button>
+        <ToggleButton x:Name="AutoSelect" Grid.Row="2" Grid.Column="1" Style="{StaticResource ModeAuto}"
+                      IsChecked="{Binding IsAutoSelect, Mode=OneWay}" Command="{Binding ToggleAutoSelectCommand}"
+                      AutomationProperties.Name="Auto Select" ToolTip="Automatically select CAD objects while browsing. Works with Auto Focus off." />
+        <Button x:Name="HighlightAction" Grid.Row="4" Style="{StaticResource ModeButton}" Margin="0,0,6,0" HorizontalContentAlignment="Stretch"
+                Command="{Binding HighlightCommand}" AutomationProperties.Name="Highlight temporarily"
+                ToolTip="Temporarily emphasize the current layer, type, or object and dim the other inventory objects. Keep the camera and CAD selection unchanged.">
+            <DockPanel><TextBlock DockPanel.Dock="Right" Text="Temporary" Style="{StaticResource ModeDescriptor}" /><TextBlock Text="Highlight" /></DockPanel>
+        </Button>
+        <ToggleButton x:Name="AutoHighlight" Grid.Row="4" Grid.Column="1" Style="{StaticResource ModeAuto}"
+                      IsChecked="{Binding IsAutoHighlight, Mode=OneWay}" Command="{Binding ToggleAutoHighlightCommand}"
+                      AutomationProperties.Name="Auto Highlight" ToolTip="Automatically emphasize objects and dim the others while browsing. Turning this off clears the temporary effect." />
+    </Grid>
+</UserControl>

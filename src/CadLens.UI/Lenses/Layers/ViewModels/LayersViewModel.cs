@@ -23,8 +23,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private string _lensLabel = "Overview";
     private ImmutableArray<LensNode> _groups = [];
     private bool _disposed;
+    private bool _needsCleanup;
     private bool _hasDrawing = true;
-    private bool _isAutoFocus = true;
+    private bool _isAutoFocus;
+    private bool _isAutoSelect;
     private bool _isAutoHighlight = true;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
@@ -36,7 +38,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         HighlightCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => _actions.EmphasizeObjectsAsync(Current!.Objects, token)),
             () => CanRun() && Current is { Objects.IsEmpty: false });
-        ClearCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ClearEffectsAsync), CanRun);
+        ResetCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ClearEffectsAsync), CanRun);
+        SelectCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(SelectCurrentAsync),
+            () => CanRun() && Current is { Objects.IsEmpty: false });
         FocusCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => _actions.FocusAsync(Current!.Objects, token)),
             () => CanRun() && HasFocusTarget());
@@ -53,6 +58,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             filter => CanRun() && filter is not null && Filters.Contains(filter));
         ToggleAutoHighlightCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(ToggleAutoHighlightAsync), CanRun);
+        ToggleAutoSelectCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(ToggleAutoSelectAsync), CanRun);
+        ToggleAutoFocusCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(ToggleAutoFocusAsync), CanRun);
     }
 
     /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
@@ -118,15 +127,18 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Whether details replace the root list.</summary>
     public bool HasCurrent => Current is not null;
 
-    /// <summary>Fits and selects the current target as navigation changes it.</summary>
+    /// <summary>Fits the camera to the current target during navigation.</summary>
     public bool IsAutoFocus
     {
         get => _isAutoFocus;
-        set
-        {
-            if (SetProperty(ref _isAutoFocus, value) && value && FocusCommand.CanExecute(null))
-                _ = FocusCommand.ExecuteAsync(null);
-        }
+        private set => SetProperty(ref _isAutoFocus, value);
+    }
+
+    /// <summary>Selects the current target during navigation without moving the camera.</summary>
+    public bool IsAutoSelect
+    {
+        get => _isAutoSelect;
+        private set => SetProperty(ref _isAutoSelect, value);
     }
 
     /// <summary>Highlights the current target during navigation.</summary>
@@ -169,6 +181,15 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Switches navigation highlighting on or off.</summary>
     public IAsyncRelayCommand ToggleAutoHighlightCommand { get; }
 
+    /// <summary>Switches automatic CAD selection on or off.</summary>
+    public IAsyncRelayCommand ToggleAutoSelectCommand { get; }
+
+    /// <summary>Switches automatic camera focus on or off.</summary>
+    public IAsyncRelayCommand ToggleAutoFocusCommand { get; }
+
+    /// <summary>Selects the current targets without changing the camera or highlighting.</summary>
+    public IAsyncRelayCommand SelectCommand { get; }
+
     /// <summary>Number of included groups.</summary>
     public int GroupCount => Groups.Length;
 
@@ -187,8 +208,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Highlights the current group or object.</summary>
     public IAsyncRelayCommand HighlightCommand { get; }
 
-    /// <summary>Removes temporary rendering.</summary>
-    public IAsyncRelayCommand ClearCommand { get; }
+    /// <summary>Clears selection and highlighting while preserving Auto settings and the camera.</summary>
+    public IAsyncRelayCommand ResetCommand { get; }
 
     /// <summary>Explicitly fits the selected group's or object's live bounds.</summary>
     public IAsyncRelayCommand FocusCommand { get; }
@@ -210,7 +231,11 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         Status = !hasDrawing
             ? "Open a drawing to explore its objects."
             : IsLensActive ? "Drawing context changed. Updating the current space." : "Drawing context changed. Activate a lens to explore.";
-        _actions.ClearImmediately(true);
+        if (_needsCleanup)
+        {
+            _actions.ClearImmediately(false);
+            _needsCleanup = IsLensActive;
+        }
 
         return IsLensActive && hasDrawing ? RefreshContextAsync() : Task.CompletedTask;
     }
@@ -228,7 +253,9 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         _disposed = true;
         IsLensActive = false;
         _pendingRequest?.Cancel();
-        _actions.ClearImmediately(!hostTerminating);
+
+        if (_needsCleanup)
+            _actions.ClearImmediately(hostTerminating);
         NotifyCommands();
     }
 
@@ -244,6 +271,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             return Task.CompletedTask;
 
         _activationToken = cancellationToken;
+        _needsCleanup = true;
         IsLensActive = true;
         return ExecuteActionAsync(ReadInventoryAsync);
     }
@@ -268,6 +296,9 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             var result = await _actions.ClearAsync(cleanup.Token);
             cleanup.Token.ThrowIfCancellationRequested();
             Status = DescribeCleanup(result);
+
+            if (result is HostResult<bool>.Success { Value: true })
+                _needsCleanup = false;
 
             return result;
         }
@@ -305,14 +336,15 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         DescribeCleanup(await _actions.ClearAsync(cancellationToken));
 
     private static string DescribeCleanup(HostResult<bool> result) => result.Match(
-        cleared => cleared ? "Temporary effects cleared." : "Cleanup did not complete.",
+        cleared => cleared ? "Selection and highlight cleared. Auto settings kept." : "Cleanup did not complete.",
         reason => $"Cleanup unavailable: {reason}");
 
     private void NotifyCommands()
     {
         ReadCommand.NotifyCanExecuteChanged();
         HighlightCommand.NotifyCanExecuteChanged();
-        ClearCommand.NotifyCanExecuteChanged();
+        ResetCommand.NotifyCanExecuteChanged();
+        SelectCommand.NotifyCanExecuteChanged();
         FocusCommand.NotifyCanExecuteChanged();
         EnterCommand.NotifyCanExecuteChanged();
         BackCommand.NotifyCanExecuteChanged();
@@ -322,6 +354,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         NextCommand.NotifyCanExecuteChanged();
         ToggleFilterCommand.NotifyCanExecuteChanged();
         ToggleAutoHighlightCommand.NotifyCanExecuteChanged();
+        ToggleAutoSelectCommand.NotifyCanExecuteChanged();
+        ToggleAutoFocusCommand.NotifyCanExecuteChanged();
     }
 
     private async Task<string> ReadInventoryAsync(CancellationToken cancellationToken)
@@ -354,10 +388,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(EmptyMessage));
         NotifyNavigation();
 
-        if (IsAutoHighlight && Current is not null)
-            return await _actions.EmphasizeObjectsAsync(Current.Objects, cancellationToken);
+        if (Current is not null)
+            return await ApplySelectionAndHighlightAsync(cancellationToken);
 
-        return Current is not null ? "Auto highlight is off." : HasGroups ? "Open a group to highlight its objects." : success.Value.EmptyMessage;
+        return HasGroups ? "Choose a layer. Auto modes apply while browsing." : success.Value.EmptyMessage;
     }
 
     private async Task<string> ToggleAutoHighlightAsync(CancellationToken cancellationToken)
@@ -367,21 +401,79 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         if (IsAutoHighlight && Current is not null)
             return await _actions.EmphasizeObjectsAsync(Current.Objects, cancellationToken);
 
-        return await ClearEffectsAsync(cancellationToken);
+        return await ClearHighlightAsync(cancellationToken);
+    }
+
+    private async Task<string> ToggleAutoSelectAsync(CancellationToken cancellationToken)
+    {
+        IsAutoSelect = !IsAutoSelect;
+
+        return IsAutoSelect && Current is not null
+            ? await SelectCurrentAsync(cancellationToken)
+            : DescribeSelection(await _actions.SelectAsync([], cancellationToken), true);
+    }
+
+    private async Task<string> ToggleAutoFocusAsync(CancellationToken cancellationToken)
+    {
+        IsAutoFocus = !IsAutoFocus;
+
+        if (IsAutoFocus && Current is not null)
+            return await FocusCurrentAsync(cancellationToken);
+
+        return IsAutoFocus ? "Auto focus on." : "Auto focus off. Camera kept.";
+    }
+
+    private async Task<string> SelectCurrentAsync(CancellationToken cancellationToken) =>
+        DescribeSelection(await _actions.SelectAsync(Current!.Objects, cancellationToken), false);
+
+    private static string DescribeSelection(HostResult<bool> result, bool clearing)
+    {
+        if (result is HostResult<bool>.Unavailable unavailable)
+            return $"Selection unavailable: {unavailable.Reason}";
+
+        if (result is not HostResult<bool>.Success { Value: true })
+            return "Selection did not complete.";
+
+        return clearing ? "CAD selection cleared." : "CAD objects selected.";
+    }
+
+    private async Task<string> ClearHighlightAsync(CancellationToken cancellationToken) =>
+        (await _actions.ClearHighlightAsync(cancellationToken)).Match(
+            cleared => cleared ? "Temporary highlight cleared." : "Highlight cleanup did not complete.",
+            reason => $"Highlight cleanup unavailable: {reason}");
+
+    private Task<string> FocusCurrentAsync(CancellationToken cancellationToken) => HasFocusTarget()
+        ? _actions.FocusAsync(Current!.Objects, cancellationToken)
+        : Task.FromResult("Focus unavailable: the current target has no usable bounds.");
+
+    private async Task<string> ApplySelectionAndHighlightAsync(CancellationToken cancellationToken)
+    {
+        var messages = new List<string>();
+
+        if (IsAutoSelect)
+            messages.Add(await SelectCurrentAsync(cancellationToken));
+
+        cancellationToken.ThrowIfCancellationRequested();
+        messages.Add(IsAutoHighlight
+            ? await _actions.EmphasizeObjectsAsync(Current!.Objects, cancellationToken)
+            : await ClearHighlightAsync(cancellationToken));
+
+        return string.Join(" ", messages);
     }
 
     private Task NavigateAsync(Action navigate) => ExecuteActionAsync(async token =>
     {
         navigate();
-        var message = IsAutoHighlight
-            ? await _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token)
-            : await ClearEffectsAsync(token);
+        if (Current is null)
+            return await ClearEffectsAsync(token);
 
-        if (!IsAutoFocus || !HasFocusTarget())
+        var message = await ApplySelectionAndHighlightAsync(token);
+
+        if (!IsAutoFocus)
             return message;
 
         token.ThrowIfCancellationRequested();
-        return await _actions.FocusAsync(Current!.Objects, token);
+        return $"{await FocusCurrentAsync(token)} {message}";
     });
 
     private void Enter(LensNode? node)

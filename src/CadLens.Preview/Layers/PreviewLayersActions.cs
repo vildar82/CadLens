@@ -8,7 +8,7 @@ namespace CadLens.Preview;
 internal sealed class PreviewLayersActions(ILayersProvider provider, int delayMilliseconds) : ILayersActions
 {
     /// <inheritdoc />
-    public void ClearImmediately(bool redraw) { }
+    public void ClearImmediately(bool hostTerminating) { }
 
     /// <inheritdoc />
     public async Task<HostResult<LayersPresentation>> ReadAsync(
@@ -22,6 +22,16 @@ internal sealed class PreviewLayersActions(ILayersProvider provider, int delayMi
     /// <inheritdoc />
     public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
         DescribeAsync($"Preview: temporary emphasis for {objects.Length:N0} sample objects.", cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    {
+        await Task.Delay(delayMilliseconds, cancellationToken);
+        return new HostResult<bool>.Success(true);
+    }
+
+    /// <inheritdoc />
+    public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
 
     /// <inheritdoc />
     public async Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)

@@ -10,6 +10,40 @@ public sealed class AutoCadObjectVisualizationService(
     IEntityHighlightActions highlights) : IObjectVisualizationService
 {
     /// <inheritdoc />
+    public async Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    {
+        var document = Application.DocumentManager.MdiActiveDocument;
+
+        if (document is null)
+            return new HostResult<bool>.Unavailable("No active drawing.");
+
+        if (!TryGetNativeIds(objects, out var targets))
+            return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
+
+        var space = document.Database.CurrentSpaceId;
+        var viewport = document.Editor.CurrentViewportObjectId;
+        var viewportNumber = Convert.ToInt32(Application.GetSystemVariable("CVPORT"));
+        var result = await hostTasks.RunAsync(
+            () =>
+            {
+                if (document != Application.DocumentManager.MdiActiveDocument ||
+                    space != document.Database.CurrentSpaceId || viewport != document.Editor.CurrentViewportObjectId ||
+                    viewportNumber != Convert.ToInt32(Application.GetSystemVariable("CVPORT")))
+                    return new HostResult<bool>.Unavailable("The drawing context changed. Refresh before selecting.");
+
+                var count = document.Editor.SelectObjects(targets);
+
+                if (count == 0 && targets.Length > 0)
+                    return new HostResult<bool>.Unavailable("No valid current-space targets remain. Selection cleared; refresh the list.");
+
+                return (HostResult<bool>)new HostResult<bool>.Success(true);
+            },
+            cancellationToken);
+
+        return result.Bind(value => value);
+    }
+
+    /// <inheritdoc />
     public async Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
     {
         if (!TryGetNativeIds(objects, out var targets))
@@ -79,7 +113,6 @@ public sealed class AutoCadObjectVisualizationService(
 
         // Apply the view after the read transaction has finished.
         editor.Zoom(bounds.Value);
-        editor.SelectObjects(objects);
 
         return new HostResult<bool>.Success(true);
     }

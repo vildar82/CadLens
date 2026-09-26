@@ -39,8 +39,14 @@ public static class EditorExtensions
     }
 
     /// <summary>Selects direct current-space objects in the active drawing.</summary>
-    public static void SelectObjects(this Editor editor, IEnumerable<ObjectId> objects)
+    public static int SelectObjects(this Editor editor, IReadOnlyCollection<ObjectId> objects)
     {
+        if (objects.Count == 0)
+        {
+            editor.SetImpliedSelection([]);
+            return 0;
+        }
+
         var database = Application.DocumentManager.MdiActiveDocument.Database;
         var selected = new List<ObjectId>();
 
@@ -48,7 +54,7 @@ public static class EditorExtensions
         {
             foreach (var id in objects)
             {
-                if (!id.IsValid || id.Database != database)
+                if (!id.IsValid || id.IsErased || id.Database != database)
                     continue;
 
                 var entity = id.GetObject<Entity>();
@@ -59,5 +65,6 @@ public static class EditorExtensions
         }
 
         editor.SetImpliedSelection([.. selected]);
+        return selected.Count;
     }
 }

@@ -25,7 +25,7 @@ internal sealed class PreviewSnapshotSource(bool empty, bool unavailable) : ILay
     {
         cancellationToken.ThrowIfCancellationRequested();
         HostResult<LayersSnapshot> result = unavailable
-            ? new HostResult<LayersSnapshot>.Unavailable("Preview: simulated drawing read failure. Restart without --error to recover.")
+            ? new HostResult<LayersSnapshot>.Unavailable("Preview: simulated drawing read failure.")
             : new HostResult<LayersSnapshot>.Success(CreateSnapshot(cancellationToken));
 
         return Task.FromResult(result);

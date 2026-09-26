@@ -5,6 +5,9 @@ namespace Common;
 /// <summary>Applies temporary emphasis or fits the view to placed objects in a drawing host.</summary>
 public interface IObjectVisualizationService
 {
+    /// <summary>Replaces native selection; empty targets clear it without changing the view or emphasis.</summary>
+    Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+
     /// <summary>Emphasizes objects without changing stored model properties; an empty set clears the effect.</summary>
     Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
 

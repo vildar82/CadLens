@@ -1,4 +1,4 @@
-﻿using CadLens.AutoCAD;
+using CadLens.AutoCAD;
 using System.Collections.Immutable;
 using CadLens.Lenses;
 using Common;
@@ -120,7 +120,12 @@ public sealed class ExplorerCompositionTests
 
     private sealed class Actions(ILayersProvider provider) : ILayersActions
     {
-        public void ClearImmediately(bool redraw) { }
+        public void ClearImmediately(bool hostTerminating) { }
+
+        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
+        public Task<HostResult<bool>> ClearHighlightAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
 
         public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
             provider.LoadAsync(enabledFilters, cancellationToken);
