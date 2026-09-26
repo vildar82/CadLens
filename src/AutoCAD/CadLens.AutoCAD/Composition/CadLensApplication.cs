@@ -15,6 +15,7 @@ public sealed class CadLensApplication : IExtensionApplication
     /// <inheritdoc />
     public void Terminate()
     {
+        HatchRenderingProbe.Clear(redraw: false);
         _owner?.Terminate();
         _owner = null;
     }
