@@ -6,4 +6,4 @@ namespace CadLens.Lenses;
 /// <param name="Id">Native object identifier.</param>
 /// <param name="LayerId">Assigned layer identity.</param>
 /// <param name="TypeKey">Runtime type used for grouping.</param>
-public sealed record EntitySnapshot(HostObjectId Id, string LayerId, string TypeKey);
+public sealed record EntitySnapshot(HostObjectId Id, LayerId LayerId, string TypeKey);

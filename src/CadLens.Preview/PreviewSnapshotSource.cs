@@ -51,13 +51,14 @@ internal sealed class PreviewSnapshotSource(bool empty, bool unavailable) : ILay
 
         void AddLayer(string name, int count, bool frozen, bool off)
         {
-            layers.Add(new LayerSnapshot(name, name, off, frozen, false, false));
+            var layerId = new LayerId(name);
+            layers.Add(new LayerSnapshot(layerId, name, off, frozen, false, false));
 
             for (var index = 0; index < count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var id = new HostObjectId((entities.Count + 1).ToString("X4", CultureInfo.InvariantCulture));
-                entities.Add(new EntitySnapshot(id, name, EntityTypes[index % EntityTypes.Length]));
+                entities.Add(new EntitySnapshot(id, layerId, EntityTypes[index % EntityTypes.Length]));
             }
         }
     }

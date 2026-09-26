@@ -8,7 +8,7 @@
 /// <param name="IsViewportFrozen">Frozen in the currently active layout viewport.</param>
 /// <param name="IsLocked">Locked status, which does not affect inclusion.</param>
 public sealed record LayerSnapshot(
-    string Id,
+    LayerId Id,
     string Name,
     bool IsOff,
     bool IsFrozen,

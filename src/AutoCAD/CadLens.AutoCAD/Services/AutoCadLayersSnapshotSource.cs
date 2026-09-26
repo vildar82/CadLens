@@ -30,7 +30,7 @@ internal sealed class AutoCadLayersSnapshotSource(IHostTaskService hostTasks) : 
         var entities = space.GetObjects<Entity>()
             .Select(entity => new EntitySnapshot(
                 new HostObjectId(entity.ObjectId),
-                entity.LayerId.Handle.ToString(),
+                new LayerId(entity.LayerId.Handle.ToString()),
                 entity.GetRXClass().Name))
             .ToImmutableArray();
 
@@ -54,7 +54,7 @@ internal sealed class AutoCadLayersSnapshotSource(IHostTaskService hostTasks) : 
     }
 
     private static LayerSnapshot ReadLayer(LayerTableRecord layer, HashSet<ObjectId> frozenLayers) => new(
-        layer.ObjectId.Handle.ToString(),
+        new LayerId(layer.ObjectId.Handle.ToString()),
         layer.Name,
         layer.IsOff,
         layer.IsFrozen,

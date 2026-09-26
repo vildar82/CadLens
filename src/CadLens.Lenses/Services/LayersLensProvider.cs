@@ -67,12 +67,12 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
         bool includeOff,
         CancellationToken cancellationToken)
     {
-        var entitiesByLayer = snapshot.Entities.ToLookup(entity => entity.LayerId, StringComparer.Ordinal);
+        var entitiesByLayer = snapshot.Entities.ToLookup(entity => entity.LayerId);
         var includedLayers = snapshot.Layers
             .Where(layer => IsIncluded(layer, includeFrozen, includeOff))
             .Where(layer => entitiesByLayer.Contains(layer.Id))
             .OrderBy(layer => layer.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(layer => layer.Id, StringComparer.Ordinal);
+            .ThenBy(layer => layer.Id.Value, StringComparer.Ordinal);
 
         return includedLayers
             .Select(layer => CreateLayerNode(layer, entitiesByLayer[layer.Id], cancellationToken))
@@ -103,7 +103,7 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
             .ToImmutableArray();
 
         return new LensNode(
-            layer.Id,
+            layer.Id.Value,
             layer.Name,
             [.. types.SelectMany(type => type.Objects)],
             types,
