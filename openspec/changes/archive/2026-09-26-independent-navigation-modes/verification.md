@@ -36,3 +36,9 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
 4. Collapse and reopen with all modes enabled; selection/highlight should restore without moving the camera. Close during pending work, switch documents/spaces, and close the last drawing; no old effects should return. Failed collapse cleanup must still be retried on close or context change.
 
 Tasks 5.1 and 5.2 remain unchecked until these native results are supplied. This change is not archived or synced into the main specs. The separate panel/switching change and its outstanding checks are unchanged.
+
+## Closure — 2026-09-26
+
+The user reported that they checked the current implementation in AutoCAD and that everything works. This is user-reported acceptance, not a new agent-run host check. The host version and individual results for the detailed scenarios in tasks 5.1 and 5.2 were not supplied, so those checkboxes stay unchecked. Rider-only inspections remain unverified; the managed and WPF results above remain the recorded agent-run evidence.
+
+The earlier statement that the change was active records its state before this closure. The change was closed with the detailed native verification limits retained.

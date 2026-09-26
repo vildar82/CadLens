@@ -64,3 +64,9 @@ The change remains active and has not been archived.
 - ExplorerOwner no longer subscribes to database object events. ILens and the shared UI no longer forward drawing-edit notifications. Refresh remains the explicit action for reading edits in the active space; document and space context changes still reset and reload the active lens.
 - Debug solution build: zero warnings and errors. Ten focused UI tests passed; strict OpenSpec validation passed. The full UI suite had 15 failures in tests expecting Auto Highlight on by default, while the worktree's existing independent-navigation change defaults it off. These failures are outside this notification removal and remain unresolved here.
 - Native AutoCAD behavior and Rider inspections were not run for this change.
+
+## Closure — 2026-09-26
+
+The user reported that they checked the current implementation in AutoCAD and that everything works. This is user-reported acceptance, not a new agent-run host check. The host version and a result for each detailed scenario were not supplied, so the remaining native scenario checkboxes stay unchecked. The Rider-only inspection checkbox also remains unchecked; prior managed build and test results are recorded above.
+
+The earlier failure and unverified-host notes are historical records of intermediate builds. The user's acceptance applies to the current implementation. The change was closed with these verification limits retained.

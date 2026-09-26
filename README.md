@@ -60,7 +60,7 @@ Create `AutoCadTaskService` on the host UI thread. Call selection actions on tha
 
 ## Adding a lens
 
-A lens is an independent module implementing `ILens` in `CadLens.UI`. It supplies its descriptor and WPF view, handles activation/deactivation, and receives context-change, drawing-edit, and close notifications. Its view model, models, services, commands, and XAML are entirely its own.
+A lens is an independent module implementing `ILens` in `CadLens.UI`. It supplies its descriptor and WPF view, handles activation/deactivation, and receives context-change and close notifications. Its view model, models, services, commands, and XAML are entirely its own.
 
 Register the module and its constructor dependencies in the composition root:
 
@@ -72,7 +72,7 @@ services.AddScoped<ILens, MyLens>();
 
 The shell consumes `IEnumerable<ILens>`, creates toolbar buttons in registration order, and displays the selected module's `View` in a `ContentControl`. Construct views lazily on the UI thread, so discovering registrations does not create WPF content or read drawings. Descriptor IDs must be unique. The shell has no Layers data, navigation, filter, Focus, or highlighting contract.
 
-One module is active at a time. The activation token remains valid until collapse, switching, or close. Deactivation receives a separate cleanup token and must settle module-owned work and remove its effects. Failed cleanup blocks switching until a retry succeeds. `OnContextChanged` invalidates each module's saved context; `OnDrawingChanged` lets the active module decide whether and how to update. `Close` must synchronously cancel work and detach effects, respecting the host-shutdown flag. Module services are scoped to the panel session.
+One module is active at a time. The activation token remains valid until collapse, switching, or close. Deactivation receives a separate cleanup token and must settle module-owned work and remove its effects. Failed cleanup blocks switching until a retry succeeds. `OnContextChanged` invalidates each module's saved context. Drawing edits require an explicit Refresh; document and space changes reload the active lens. `Close` must synchronously cancel work and detach effects, respecting the host-shutdown flag. Module services are scoped to the panel session.
 
 Only `LayersLens` is registered in production. `CadLens.UI/Lenses/Layers` contains `LayersView.xaml`, `LayersViewModel`, and `ILayersActions`; `CadLens.Lenses` contains its provider, presentation models, and navigation. The AutoCAD-specific `LayersActions` supplies its drawing operations. These are Layers implementation details, not interfaces another lens must implement. The shared AutoCAD task queue and host utilities remain available for reuse.
 
@@ -108,13 +108,13 @@ New sessions start as a compact bar with Layers inactive. Press Layers to read t
 
 Each action has its own Auto toggle, available from the initial layer list. Enabled modes follow layers, types, objects, Back, breadcrumbs, and Previous/Next. To browse from a fixed overview, turn Auto Select on and leave Auto Focus off. Select remains available when Focus cannot use bounds or the viewport is locked. Hidden objects remain hidden.
 
-Reset clears selection and highlighting while keeping the camera, navigation, and Auto settings. The next navigation reapplies enabled modes. Reset is disabled while work is pending. Returning to the root also clears selection and highlighting without moving the camera. Turning Auto Select or Auto Highlight off clears only that effect. With Auto Select off, manual selection stays until replaced or cleared; with Auto Highlight off, manual highlighting clears on the next navigation. Closing discards the session settings. These operations do not modify stored drawing geometry or properties.
+Reset clears selection and highlighting, turns off all Auto modes, and keeps the camera, navigation, and filters. Subsequent navigation leaves selection and highlighting clear until a mode is enabled again. Reset is disabled while work is pending. Returning to the root also clears selection and highlighting without moving the camera. Turning Auto Select or Auto Highlight off clears only that effect. With Auto Select off, manual selection stays until replaced or cleared; with Auto Highlight off, manual highlighting clears on the next navigation. Closing discards the session settings. These operations do not modify stored drawing geometry or properties.
 
-The `lens-panel-and-switching` implementation and remaining native checks are recorded in [panel verification](openspec/changes/lens-panel-and-switching/verification.md).
+The archived `lens-panel-and-switching` change and its verification limits are recorded in [panel verification](openspec/changes/archive/2026-09-26-lens-panel-and-switching/verification.md).
 
 ## Explorer preview status
 
-The `first-layers-lens` change is archived by user acceptance, with remaining verification limits recorded. The panel uses CommunityToolkit.Mvvm and a scoped WPF UI theme, with inclusion filters, group/type/object navigation, breadcrumbs, Back, and Previous/Next. Earlier native checks are recorded in [first-lens verification](openspec/changes/archive/2026-09-20-first-layers-lens/verification.md). Those checks do not verify the newly separated selection modes; see [mode integration verification](openspec/changes/independent-navigation-modes/verification.md) for current evidence and native checks still needed.
+The `first-layers-lens` change is archived by user acceptance, with remaining verification limits recorded. The panel uses CommunityToolkit.Mvvm and a scoped WPF UI theme, with inclusion filters, group/type/object navigation, breadcrumbs, Back, and Previous/Next. Earlier native checks are recorded in [first-lens verification](openspec/changes/archive/2026-09-20-first-layers-lens/verification.md). Those checks do not verify the newly separated selection modes; see the archived [mode integration verification](openspec/changes/archive/2026-09-26-independent-navigation-modes/verification.md) for the later evidence and its limits.
 
 ## Verification of the first plugin
 
