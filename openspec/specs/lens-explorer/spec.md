@@ -26,7 +26,7 @@ The explorer SHALL use one floating panel with a draggable header and a close bu
 
 ### Requirement: Navigation between exploration levels
 
-The explorer SHALL provide breadcrumbs and Back navigation. Returning to an ancestor SHALL restore that level's content and visual emphasis, clearing emphasis belonging only to the deeper selection.
+The explorer SHALL provide breadcrumbs and Back navigation. With Auto Highlight enabled, returning to an ancestor SHALL restore that level's content and visual emphasis, clearing emphasis belonging only to the deeper selection.
 
 #### Scenario: Return from a type to its parent group
 

@@ -24,7 +24,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private ImmutableArray<LensNode> _groups = [];
     private bool _disposed;
     private bool _hasDrawing = true;
-    private bool _isAutoFocus;
+    private bool _isAutoFocus = true;
+    private bool _isAutoHighlight = true;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
@@ -32,7 +33,9 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     {
         _actions = actions;
         ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
-        EmphasizeCommand = new AsyncRelayCommand(() => ExecuteActionAsync(_actions.EmphasizeAsync), CanRun);
+        HighlightCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(token => _actions.EmphasizeObjectsAsync(Current!.Objects, token)),
+            () => CanRun() && Current is { Objects.IsEmpty: false });
         ClearCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ClearEffectsAsync), CanRun);
         FocusCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => _actions.FocusAsync(Current!.Objects, token)),
@@ -48,6 +51,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
             filter => ExecuteActionAsync(token => ToggleFilterAsync(filter!, token)),
             filter => CanRun() && filter is not null && Filters.Contains(filter));
+        ToggleAutoHighlightCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(ToggleAutoHighlightAsync), CanRun);
     }
 
     /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
@@ -124,6 +129,13 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>Highlights the current target during navigation.</summary>
+    public bool IsAutoHighlight
+    {
+        get => _isAutoHighlight;
+        private set => SetProperty(ref _isAutoHighlight, value);
+    }
+
     /// <summary>Whether the current result has no root groups.</summary>
     public bool IsEmpty => Groups.IsEmpty;
 
@@ -154,6 +166,9 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Reloads inventory with one inclusion option toggled.</summary>
     public IAsyncRelayCommand<FilterOption> ToggleFilterCommand { get; }
 
+    /// <summary>Switches navigation highlighting on or off.</summary>
+    public IAsyncRelayCommand ToggleAutoHighlightCommand { get; }
+
     /// <summary>Number of included groups.</summary>
     public int GroupCount => Groups.Length;
 
@@ -169,8 +184,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Refreshes the active-space inventory.</summary>
     public IAsyncRelayCommand ReadCommand { get; }
 
-    /// <summary>Highlights the drawing selection.</summary>
-    public IAsyncRelayCommand EmphasizeCommand { get; }
+    /// <summary>Highlights the current group or object.</summary>
+    public IAsyncRelayCommand HighlightCommand { get; }
 
     /// <summary>Removes temporary rendering.</summary>
     public IAsyncRelayCommand ClearCommand { get; }
@@ -296,7 +311,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private void NotifyCommands()
     {
         ReadCommand.NotifyCanExecuteChanged();
-        EmphasizeCommand.NotifyCanExecuteChanged();
+        HighlightCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
         FocusCommand.NotifyCanExecuteChanged();
         EnterCommand.NotifyCanExecuteChanged();
@@ -306,6 +321,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         PreviousCommand.NotifyCanExecuteChanged();
         NextCommand.NotifyCanExecuteChanged();
         ToggleFilterCommand.NotifyCanExecuteChanged();
+        ToggleAutoHighlightCommand.NotifyCanExecuteChanged();
     }
 
     private async Task<string> ReadInventoryAsync(CancellationToken cancellationToken)
@@ -338,16 +354,28 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(EmptyMessage));
         NotifyNavigation();
 
-        if (Current is not null)
+        if (IsAutoHighlight && Current is not null)
             return await _actions.EmphasizeObjectsAsync(Current.Objects, cancellationToken);
 
-        return HasGroups ? "Open a group to highlight its objects." : success.Value.EmptyMessage;
+        return Current is not null ? "Auto highlight is off." : HasGroups ? "Open a group to highlight its objects." : success.Value.EmptyMessage;
+    }
+
+    private async Task<string> ToggleAutoHighlightAsync(CancellationToken cancellationToken)
+    {
+        IsAutoHighlight = !IsAutoHighlight;
+
+        if (IsAutoHighlight && Current is not null)
+            return await _actions.EmphasizeObjectsAsync(Current.Objects, cancellationToken);
+
+        return await ClearEffectsAsync(cancellationToken);
     }
 
     private Task NavigateAsync(Action navigate) => ExecuteActionAsync(async token =>
     {
         navigate();
-        var message = await _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token);
+        var message = IsAutoHighlight
+            ? await _actions.EmphasizeObjectsAsync(Current?.Objects ?? [], token)
+            : await ClearEffectsAsync(token);
 
         if (!IsAutoFocus || !HasFocusTarget())
             return message;

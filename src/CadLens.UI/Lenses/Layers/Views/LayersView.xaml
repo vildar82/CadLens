@@ -88,7 +88,8 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Visibility="{Binding HasCurrent, Converter={StaticResource BooleanVisibility}}" Margin="0,0,0,10">
                         <DockPanel Margin="0,0,0,8">
-                            <Button DockPanel.Dock="Left" Content="‹ Back" Command="{Binding BackCommand}" Style="{StaticResource QuietButton}" Margin="0,0,6,0" />
+                            <Button DockPanel.Dock="Left" Content="⟵" Width="42" Padding="0" FontSize="20" Command="{Binding BackCommand}"
+                                    Style="{StaticResource QuietButton}" Margin="0,0,6,0" ToolTip="Back" AutomationProperties.Name="Back" />
                             <Button Content="All layers" Command="{Binding RootCommand}" Style="{StaticResource QuietButton}" HorizontalAlignment="Left" />
                         </DockPanel>
                         <ItemsControl ItemsSource="{Binding Breadcrumbs}" Margin="0,0,0,8">
@@ -168,9 +169,14 @@
                 </Grid>
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <Button Content="Highlight CAD selection" Command="{Binding EmphasizeCommand}" Style="{StaticResource QuietButton}" Margin="0,0,6,0"
-                            ToolTip="Highlight AutoCAD preselected objects and dim the others. Does not zoom or change layers." />
-                    <Button Grid.Column="1" Content="Clear highlight" Command="{Binding ClearCommand}" Style="{StaticResource QuietButton}" Padding="8,6" />
+                    <Button Content="Clear highlight" Command="{Binding ClearCommand}" Style="{StaticResource QuietButton}" Padding="8,6" HorizontalAlignment="Left" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="Highlight" MinWidth="92" Command="{Binding HighlightCommand}" Style="{StaticResource AccentButton}"
+                                ToolTip="Highlight this group or object and dim the others." />
+                        <ToggleButton Content="✦" Width="34" Padding="0" Margin="6,0,0,0" Style="{StaticResource QuietToggle}"
+                                      IsChecked="{Binding IsAutoHighlight, Mode=OneWay}" Command="{Binding ToggleAutoHighlightCommand}"
+                                      ToolTip="Auto highlight when browsing layers, types, or objects" AutomationProperties.Name="Auto highlight" />
+                    </StackPanel>
                 </Grid>
                 <TextBlock Text="Temporary · no drawing edits" FontSize="10" Foreground="{StaticResource QuietMuted}" Margin="1,6,0,4" />
                 <Grid Height="42" ToolTip="{Binding Status}">

@@ -20,10 +20,6 @@ internal sealed class PreviewLayersActions(ILayersProvider provider, int delayMi
     }
 
     /// <inheritdoc />
-    public Task<string> EmphasizeAsync(CancellationToken cancellationToken) =>
-        DescribeAsync("Preview: CAD preselection highlighting is simulated.", cancellationToken);
-
-    /// <inheritdoc />
     public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
         DescribeAsync($"Preview: temporary emphasis for {objects.Length:N0} sample objects.", cancellationToken);
 

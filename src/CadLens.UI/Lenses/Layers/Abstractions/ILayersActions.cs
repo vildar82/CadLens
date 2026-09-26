@@ -16,10 +16,6 @@ public interface ILayersActions
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken);
 
-    /// <summary>Applies the candidate rendering effect to the current implied selection.</summary>
-    /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<string> EmphasizeAsync(CancellationToken cancellationToken);
-
     /// <summary>Updates emphasis for the panel selection; empty targets clear it.</summary>
     /// <param name="objects">Current group or object targets.</param>
     /// <param name="cancellationToken">Request cancellation.</param>

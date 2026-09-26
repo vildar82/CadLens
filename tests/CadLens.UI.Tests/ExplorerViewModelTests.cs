@@ -21,7 +21,9 @@ public sealed class ExplorerViewModelTests
         var actions = new Actions();
         var viewModel = new LayersViewModel(actions);
         await viewModel.ActivateAsync(CancellationToken.None);
-        var running = viewModel.EmphasizeCommand.ExecuteAsync(null);
+        await viewModel.EnterCommand.ExecuteAsync(viewModel.Items[0]);
+        actions.DelayHighlight = true;
+        var running = viewModel.HighlightCommand.ExecuteAsync(null);
         Assert.True(viewModel.IsBusy);
         Assert.False(viewModel.ReadCommand.CanExecute(null));
         Assert.False(viewModel.ClearCommand.CanExecute(null));
@@ -30,7 +32,7 @@ public sealed class ExplorerViewModelTests
         actions.Completion.SetResult("late result");
         await running;
         Assert.DoesNotContain("late result", viewModel.Status);
-        Assert.False(viewModel.EmphasizeCommand.CanExecute(null));
+        Assert.False(viewModel.HighlightCommand.CanExecute(null));
     }
 
     /// <summary>Changing documents prevents an old result from overwriting the new state.</summary>
@@ -54,7 +56,9 @@ public sealed class ExplorerViewModelTests
         var actions = new Actions();
         using var viewModel = new LayersViewModel(actions);
         await viewModel.ActivateAsync(CancellationToken.None);
-        var running = viewModel.EmphasizeCommand.ExecuteAsync(null);
+        await viewModel.EnterCommand.ExecuteAsync(viewModel.Items[0]);
+        actions.DelayHighlight = true;
+        var running = viewModel.HighlightCommand.ExecuteAsync(null);
         actions.Completion.SetException(new InvalidOperationException("fixture failure"));
         await running;
         Assert.Contains("fixture failure", viewModel.Status);
@@ -289,6 +293,7 @@ public sealed class ExplorerViewModelTests
 
         internal TaskCompletionSource<HostResult<bool>>? PendingCleanup { get; set; }
         internal bool DelayInventory { get; init; }
+        internal bool DelayHighlight { get; set; }
         internal CancellationToken Token { get; private set; }
 
         internal TaskCompletionSource<string> Completion { get; } =
@@ -301,16 +306,16 @@ public sealed class ExplorerViewModelTests
             ? InventoryCompletion.Task
             : Task.FromResult<HostResult<LayersPresentation>>(new HostResult<LayersPresentation>.Success(Presentation()));
 
-        public Task<string> EmphasizeAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) => PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
+        public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
         {
+            if (!DelayHighlight)
+                return Task.FromResult("Selection updated.");
+
             Token = cancellationToken;
             return Completion.Task;
         }
-
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) => PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
-
-        public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
-            Task.FromResult("Selection updated.");
 
         public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult("Focused.");

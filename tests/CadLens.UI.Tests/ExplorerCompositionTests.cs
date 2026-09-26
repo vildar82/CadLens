@@ -125,8 +125,6 @@ public sealed class ExplorerCompositionTests
         public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
             provider.LoadAsync(enabledFilters, cancellationToken);
 
-        public Task<string> EmphasizeAsync(CancellationToken cancellationToken) => Task.FromResult("Highlighted.");
-
         public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult("Selection updated.");
 

@@ -1,5 +1,4 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.EditorInput;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace Common.AutoCAD;
@@ -36,28 +35,6 @@ public sealed class EntityHighlightActions(
             cancellationToken);
 
         return result.Bind(value => value);
-    }
-
-    /// <inheritdoc />
-    public async Task<HostResult<int>> EmphasizeSelectionAsync(CancellationToken cancellationToken)
-    {
-        // Capture the current selection before the queued operation runs.
-        var selectedDocument = Application.DocumentManager.MdiActiveDocument;
-
-        if (selectedDocument is null)
-            return new HostResult<int>.Unavailable("No active drawing.");
-
-        var selection = selectedDocument.Editor.SelectImplied();
-
-        if (selection.Status != PromptStatus.OK)
-            return new HostResult<int>.Unavailable("No implied selection.");
-
-        ObjectId[] selectedIds;
-
-        using (var selectedSet = selection.Value)
-            selectedIds = selectedSet.GetObjectIds();
-
-        return await EmphasizeAsync(selectedIds, cancellationToken);
     }
 
     /// <inheritdoc />

@@ -219,6 +219,33 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(3, actions.FocusCount);
     }
 
+    /// <summary>Manual highlighting works while automatic navigation highlighting is off.</summary>
+    [Fact]
+    public async Task HighlightCanBeManualOrAutomatic()
+    {
+        var actions = new Actions();
+        using var model = new LayersViewModel(actions);
+        await ToggleAsync(model);
+        Assert.True(model.IsAutoHighlight);
+
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Equal(model.Current!.Objects, actions.EmphasisTargets);
+        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        Assert.False(model.IsAutoHighlight);
+        Assert.Empty(actions.EmphasisTargets);
+
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Empty(actions.EmphasisTargets);
+        await model.HighlightCommand.ExecuteAsync(null);
+        Assert.Equal(model.Current!.Objects, actions.EmphasisTargets);
+        await model.BackCommand.ExecuteAsync(null);
+        Assert.Empty(actions.EmphasisTargets);
+
+        await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
+        Assert.True(model.IsAutoHighlight);
+        Assert.Equal(model.Current!.Objects, actions.EmphasisTargets);
+    }
+
     /// <summary>Unavailable bounds are explained without losing navigation or leaving commands busy.</summary>
     [Fact]
     public async Task FocusUnavailableKeepsSelection()
@@ -335,7 +362,7 @@ public sealed class ExplorerNavigationTests
         Assert.Null(model.Current);
         Assert.Equal("No active drawing", model.SpaceLabel);
         Assert.False(model.ReadCommand.CanExecute(null));
-        Assert.False(model.EmphasizeCommand.CanExecute(null));
+        Assert.False(model.HighlightCommand.CanExecute(null));
         Assert.False(model.ClearCommand.CanExecute(null));
         Assert.False(model.FocusCommand.CanExecute(null));
         Assert.False(model.ToggleFilterCommand.CanExecute(model.Filters[0]));
@@ -371,7 +398,7 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.IsLensActive);
         Assert.False(model.ReadCommand.CanExecute(null));
         await model.ReadCommand.ExecuteAsync(null);
-        await model.EmphasizeCommand.ExecuteAsync(null);
+        await model.HighlightCommand.ExecuteAsync(null);
         Assert.Equal(0, actions.ReadCount);
         Assert.Equal(0, actions.HostCalls);
         await ToggleAsync(model);
@@ -650,12 +677,6 @@ public sealed class ExplorerNavigationTests
                 presentation = presentation with { Groups = [.. presentation.Groups.Select(group => group with { Actions = [] })] };
 
             return Pending?.Task ?? Task.FromResult<HostResult<LayersPresentation>>(new HostResult<LayersPresentation>.Success(presentation));
-        }
-
-        public Task<string> EmphasizeAsync(CancellationToken cancellationToken)
-        {
-            HostCalls++;
-            return Task.FromResult("Highlighted");
         }
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
