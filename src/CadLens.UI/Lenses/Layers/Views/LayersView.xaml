@@ -96,6 +96,7 @@
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <Border Background="#182730" BorderBrush="#34434B" BorderThickness="1" CornerRadius="5" Padding="9,7" Margin="0,0,0,6">
@@ -118,8 +119,80 @@
                         <TextBlock Text="{Binding Current.Count, StringFormat={}{0:N0} objects}" Foreground="{StaticResource QuietAccent}" FontSize="11" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
-                <TextBlock Grid.Row="1" Text="{Binding EmptyMessage}" TextWrapping="Wrap" Margin="2,8" Foreground="{StaticResource QuietMuted}" Visibility="{Binding IsEmpty, Converter={StaticResource BooleanVisibility}}" />
-                <ListBox Grid.Row="1" ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                <Grid Grid.Row="1" Margin="0,0,0,5">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasCurrent}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Border Background="#182730" BorderBrush="#42545E" BorderThickness="1" CornerRadius="4" Height="30" Margin="0,0,0,5">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                        <Setter Property="BorderBrush" Value="#78E3CE" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <DockPanel Margin="8,0,3,0">
+                            <Path DockPanel.Dock="Left" Data="M 8,1 A 7,7 0 1 1 7.99,1 M 13,13 L 19,19" Width="16" Height="16" Stretch="Uniform" Stroke="{StaticResource QuietMuted}" StrokeThickness="1.5" Margin="0,0,7,0" VerticalAlignment="Center" IsHitTestVisible="False" />
+                            <Button DockPanel.Dock="Right" Content="×" Width="23" Height="23" Padding="0" FontSize="14" Command="{Binding ClearSearchCommand}" ToolTip="Clear layer search" AutomationProperties.Name="Clear layer search">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ModeButton}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding LayerSearch}" Value="">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Grid>
+                                <TextBox Text="{Binding LayerSearch, UpdateSourceTrigger=PropertyChanged}" Background="Transparent" Foreground="{StaticResource QuietText}" BorderThickness="0" Padding="0" VerticalContentAlignment="Center" CaretBrush="{StaticResource QuietText}" AutomationProperties.Name="Search layers by name" />
+                                <TextBlock Text="Search layers" Foreground="{StaticResource QuietMuted}" VerticalAlignment="Center" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding LayerSearch}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding LayerSearch}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                    <DockPanel Grid.Row="1">
+                        <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding IsCountSortActive, Mode=OneWay}" Command="{Binding SortByCountCommand}" Style="{StaticResource ModeSortHeader}" ToolTip="Sort layers by object count" AutomationProperties.Name="Sort layers by object count" MinWidth="78">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Objects" />
+                                <TextBlock Text="{Binding CountSortArrow}" Margin="4,0,0,0" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton DockPanel.Dock="Left" IsChecked="{Binding IsNameSortActive, Mode=OneWay}" Command="{Binding SortByNameCommand}" Style="{StaticResource ModeSortHeader}" ToolTip="Sort layers by name" AutomationProperties.Name="Sort layers by name">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Name" />
+                                <TextBlock Text="{Binding NameSortArrow}" Margin="4,0,0,0" />
+                            </StackPanel>
+                        </ToggleButton>
+                    </DockPanel>
+                </Grid>
+                <TextBlock Grid.Row="2" Text="{Binding EmptyMessage}" TextWrapping="Wrap" Margin="2,8" Foreground="{StaticResource QuietMuted}" Visibility="{Binding IsEmpty, Converter={StaticResource BooleanVisibility}}" />
+                <ListBox Grid.Row="2" ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                     <ListBox.Style>
                         <Style TargetType="ListBox">
                             <Style.Triggers>
@@ -155,7 +228,7 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <ScrollViewer x:Name="ObjectDetails" Grid.RowSpan="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding IsObject, Converter={StaticResource BooleanVisibility}}">
+                <ScrollViewer x:Name="ObjectDetails" Grid.RowSpan="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding IsObject, Converter={StaticResource BooleanVisibility}}">
                     <Border Background="#182730" BorderBrush="#34434B" BorderThickness="1" CornerRadius="5" Padding="9,8">
                         <StackPanel>
                             <TextBlock Text="{Binding Current.Label}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" Margin="0,0,0,9" />

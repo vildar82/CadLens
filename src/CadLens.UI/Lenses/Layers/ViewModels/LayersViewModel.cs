@@ -22,6 +22,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private string _spaceLabel = "Active drawing";
     private string _lensLabel = "Overview";
     private ImmutableArray<LensNode> _groups = [];
+    private ImmutableArray<LensNode> _visibleGroups = [];
+    private string _layerSearch = "";
+    private bool _sortByCount;
+    private bool _sortDescending;
     private bool _disposed;
     private bool _needsCleanup;
     private bool _hasDrawing = true;
@@ -62,6 +66,9 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             () => ExecuteActionAsync(ToggleAutoSelectAsync), CanRun);
         ToggleAutoFocusCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(ToggleAutoFocusAsync), CanRun);
+        SortByNameCommand = new RelayCommand(() => ChangeSort(false));
+        SortByCountCommand = new RelayCommand(() => ChangeSort(true));
+        ClearSearchCommand = new RelayCommand(() => LayerSearch = "");
     }
 
     /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
@@ -103,6 +110,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         private set
         {
             SetProperty(ref _groups, value);
+            UpdateVisibleGroups();
             OnPropertyChanged(nameof(GroupCount));
             OnPropertyChanged(nameof(ObjectCount));
             OnPropertyChanged(nameof(HasGroups));
@@ -110,7 +118,30 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Children at the current exploration level.</summary>
-    public ImmutableArray<LensNode> Items => _navigation.Items;
+    public ImmutableArray<LensNode> Items => Current is null ? _visibleGroups : _navigation.Items;
+
+    /// <summary>Finds layers by name in the root list.</summary>
+    public string LayerSearch
+    {
+        get => _layerSearch;
+        set
+        {
+            if (SetProperty(ref _layerSearch, value))
+                UpdateVisibleGroups();
+        }
+    }
+
+    /// <summary>Whether the name column controls root ordering.</summary>
+    public bool IsNameSortActive => !_sortByCount;
+
+    /// <summary>Whether the object count column controls root ordering.</summary>
+    public bool IsCountSortActive => _sortByCount;
+
+    /// <summary>Current direction indicator for the name column.</summary>
+    public string NameSortArrow => !_sortByCount ? (_sortDescending ? "↓" : "↑") : "";
+
+    /// <summary>Current direction indicator for the object count column.</summary>
+    public string CountSortArrow => _sortByCount ? (_sortDescending ? "↓" : "↑") : "";
 
     /// <summary>Current group or object details.</summary>
     public LensNode? Current => _navigation.Current;
@@ -149,10 +180,21 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Whether the current result has no root groups.</summary>
-    public bool IsEmpty => Groups.IsEmpty;
+    public bool IsEmpty => Current is null && _visibleGroups.IsEmpty;
 
     /// <summary>Lens-provided explanation for an empty inventory.</summary>
-    public string EmptyMessage => _emptyMessage;
+    public string EmptyMessage => !Groups.IsEmpty && _visibleGroups.IsEmpty
+        ? "No layers match your search."
+        : _emptyMessage;
+
+    /// <summary>Sorts root layers by name; clicking again reverses direction.</summary>
+    public IRelayCommand SortByNameCommand { get; }
+
+    /// <summary>Sorts root layers by object count; clicking again reverses direction.</summary>
+    public IRelayCommand SortByCountCommand { get; }
+
+    /// <summary>Clears the layer-name search.</summary>
+    public IRelayCommand ClearSearchCommand { get; }
 
     /// <summary>Lens options and their current inclusion state.</summary>
     public ImmutableArray<FilterOption> Filters => _filters;
@@ -262,6 +304,34 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private bool CanRun() => !_disposed && !_activationToken.IsCancellationRequested && IsLensActive && _hasDrawing && !IsBusy;
 
     private bool HasFocusTarget() => Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus);
+
+    private void ChangeSort(bool byCount)
+    {
+        _sortDescending = _sortByCount == byCount ? !_sortDescending : byCount;
+        _sortByCount = byCount;
+        OnPropertyChanged(nameof(IsNameSortActive));
+        OnPropertyChanged(nameof(IsCountSortActive));
+        OnPropertyChanged(nameof(NameSortArrow));
+        OnPropertyChanged(nameof(CountSortArrow));
+        UpdateVisibleGroups();
+    }
+
+    private void UpdateVisibleGroups()
+    {
+        var groups = Groups.Where(group => group.Label.Contains(LayerSearch.Trim(), StringComparison.OrdinalIgnoreCase));
+        _visibleGroups = (_sortByCount
+                ? _sortDescending
+                    ? groups.OrderByDescending(group => group.Count).ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
+                    : groups.OrderBy(group => group.Count).ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
+                : _sortDescending
+                    ? groups.OrderByDescending(group => group.Label, StringComparer.OrdinalIgnoreCase)
+                    : groups.OrderBy(group => group.Label, StringComparer.OrdinalIgnoreCase))
+            .ToImmutableArray();
+        OnPropertyChanged(nameof(Items));
+        OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(EmptyMessage));
+        EnterCommand.NotifyCanExecuteChanged();
+    }
 
     /// <summary>Loads the Layers view for the active session.</summary>
     /// <param name="cancellationToken">Canceled when the panel deactivates this lens.</param>

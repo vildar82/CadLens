@@ -8,6 +8,53 @@ namespace CadLens.UI.Tests;
 /// <summary>Layers exploration behavior over a detached inventory fixture.</summary>
 public sealed class ExplorerNavigationTests
 {
+    /// <summary>Root search and sorting change only visible layers, without reading or changing CAD state.</summary>
+    [Fact]
+    public async Task RootSearchAndSortKeepInventoryAndNavigationIntact()
+    {
+        var actions = new Actions();
+        var group = CreatePresentation(false, false).Groups[0];
+        var presentation = CreatePresentation(false, false) with
+        {
+            Groups =
+            [
+                group with { Id = "zulu", Label = "Zulu", Objects = [new TestEntityId(1)] },
+                group with { Id = "alpha", Label = "Alpha", Objects = [new TestEntityId(1), new TestEntityId(2), new TestEntityId(3)] },
+                group with { Id = "beta", Label = "Beta", Objects = [new TestEntityId(1), new TestEntityId(2)] }
+            ]
+        };
+        actions.Pending = new TaskCompletionSource<HostResult<LayersPresentation>>();
+        actions.Pending.SetResult(new HostResult<LayersPresentation>.Success(presentation));
+        using var model = new LayersViewModel(actions);
+        await model.ActivateAsync(CancellationToken.None);
+        var reads = actions.ReadCount;
+        var clears = actions.ClearCount;
+
+        Assert.Equal(["Alpha", "Beta", "Zulu"], model.Items.Select(node => node.Label));
+        model.SortByCountCommand.Execute(null);
+        Assert.Equal(["Alpha", "Beta", "Zulu"], model.Items.Select(node => node.Label));
+        Assert.Equal("↓", model.CountSortArrow);
+        model.SortByCountCommand.Execute(null);
+        Assert.Equal(["Zulu", "Beta", "Alpha"], model.Items.Select(node => node.Label));
+        model.SortByNameCommand.Execute(null);
+        Assert.Equal("↑", model.NameSortArrow);
+
+        model.LayerSearch = " alp ";
+        Assert.Equal("Alpha", Assert.Single(model.Items).Label);
+        Assert.Equal(3, model.GroupCount);
+        Assert.Equal(reads, actions.ReadCount);
+        Assert.Equal(clears, actions.ClearCount);
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        Assert.Single(model.Items);
+        await model.RootCommand.ExecuteAsync(null);
+        model.LayerSearch = "missing";
+        Assert.True(model.IsEmpty);
+        Assert.Equal("No layers match your search.", model.EmptyMessage);
+        model.ClearSearchCommand.Execute(null);
+        Assert.Equal(3, model.Items.Length);
+        Assert.Equal(reads, actions.ReadCount);
+    }
+
     /// <summary>Navigation restores broader isolation and never invokes Focus.</summary>
     [Fact]
     public async Task BrowseObjectsAndReturnThroughBreadcrumbs()
