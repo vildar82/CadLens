@@ -1,7 +1,9 @@
 ﻿<Project>
     <PropertyGroup>
+        <version>0.1.0</version>
         <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0-windows</TargetFramework>
         <Nullable>enable</Nullable>
+        <LangVersion>14</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
