@@ -1,10 +1,11 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace Common.AutoCAD;
 
-/// <summary>View navigation without changes to drawing objects.</summary>
+/// <summary>View navigation and selection without changes to drawing objects.</summary>
 public static class EditorExtensions
 {
     private const double Padding = 1.1;
@@ -35,5 +36,37 @@ public static class EditorExtensions
             extents.MinPoint.X * Midpoint + extents.MaxPoint.X * Midpoint,
             extents.MinPoint.Y * Midpoint + extents.MaxPoint.Y * Midpoint);
         editor.SetCurrentView(view);
+    }
+
+    /// <summary>Selects direct current-space objects in the active drawing.</summary>
+    public static int SelectObjects(this Editor editor, IReadOnlyCollection<ObjectId> objects)
+    {
+        if (objects.Count == 0)
+        {
+            editor.SetImpliedSelection([]);
+            editor.UpdateScreen();
+            return 0;
+        }
+
+        var database = Application.DocumentManager.MdiActiveDocument.Database;
+        var selected = new List<ObjectId>();
+
+        using (var transaction = database.TransactionManager.StartTransaction())
+        {
+            foreach (var id in objects)
+            {
+                if (!id.IsValid || id.IsErased || id.Database != database)
+                    continue;
+
+                var entity = id.GetObject<Entity>();
+
+                if (entity?.OwnerId == database.CurrentSpaceId)
+                    selected.Add(id);
+            }
+        }
+
+        editor.SetImpliedSelection([.. selected]);
+        editor.UpdateScreen();
+        return selected.Count;
     }
 }

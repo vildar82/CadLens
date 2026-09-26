@@ -5,7 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../CadLens.Core/CadLens.Core.csproj"/>
+        <ProjectReference Include="../CadLens.Lenses/CadLens.Lenses.csproj"/>
     </ItemGroup>
 
 </Project>

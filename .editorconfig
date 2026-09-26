@@ -42,3 +42,7 @@ resharper_csharp_wrap_arguments_style = chop_if_long
 resharper_csharp_wrap_parameters_style = chop_if_long
 resharper_csharp_wrap_after_invocation_lpar = true
 resharper_csharp_wrap_after_declaration_lpar = true
+
+# Standard TOML parsers reject a leading BOM.
+[.codex/agents/*.toml]
+charset = utf-8

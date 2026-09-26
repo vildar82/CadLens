@@ -1,9 +1,7 @@
-﻿using System.Collections.Immutable;
 using CadLens.AutoCAD;
-using CadLens.Core;
+using System.Collections.Immutable;
 using CadLens.Lenses;
 using Common;
-using Common.AutoCAD;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -23,7 +21,7 @@ public sealed class ExplorerCompositionTests
         Assert.Throws<AggregateException>(() => ExplorerComposition.Build(services =>
         {
             RegisterHost(services);
-            services.AddSingleton<IExplorerActions, ExplorerActions>();
+            services.AddSingleton<ILens, LayersLens>();
         }));
 
     /// <summary>Scoped state cannot be resolved from the plugin root.</summary>
@@ -48,19 +46,21 @@ public sealed class ExplorerCompositionTests
             previous = scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
             source = (SnapshotSource)scope.ServiceProvider.GetRequiredService<ILayersSnapshotSource>();
             Assert.Same(previous, scope.ServiceProvider.GetRequiredService<ExplorerViewModel>());
-            await previous.ReadCommand.ExecuteAsync(null);
-            await previous.ToggleFilterCommand.ExecuteAsync(previous.Filters[0]);
+            await previous.ToggleLensCommand.ExecuteAsync(previous.Lenses[0]);
+            var layers = scope.ServiceProvider.GetRequiredService<LayersViewModel>();
+            await layers.ToggleFilterCommand.ExecuteAsync(layers.Filters[0]);
         }
 
-        Assert.False(previous.ReadCommand.CanExecute(null));
+        Assert.False(previous.ToggleLensCommand.CanExecute(previous.Lenses[0]));
         Assert.Equal(1, source.DisposeCount);
 
         using var reopened = root.CreateScope();
         var current = reopened.ServiceProvider.GetRequiredService<ExplorerViewModel>();
         Assert.NotSame(previous, current);
         Assert.NotSame(source, reopened.ServiceProvider.GetRequiredService<ILayersSnapshotSource>());
-        await current.ReadCommand.ExecuteAsync(null);
-        Assert.All(current.Filters, filter => Assert.False(filter.IsEnabled));
+        Assert.False(current.IsLensActive);
+        await current.ToggleLensCommand.ExecuteAsync(current.Lenses[0]);
+        Assert.All(reopened.ServiceProvider.GetRequiredService<LayersViewModel>().Filters, filter => Assert.False(filter.IsEnabled));
     }
 
     /// <summary>The production presentation assemblies do not reference the DI container or AutoCAD.</summary>
@@ -78,12 +78,34 @@ public sealed class ExplorerCompositionTests
         }
     }
 
+    /// <summary>Registering another provider and adapter automatically exposes and loads it in the panel.</summary>
+    [Fact]
+    public async Task AdditionalRegistrationIsDiscoveredWithoutPanelChanges()
+    {
+        using var root = ExplorerComposition.Build(services =>
+        {
+            RegisterHost(services);
+            services.AddScoped<CounterService>();
+            services.AddScoped<CounterViewModel>();
+            services.AddScoped<ILens, CounterLens>();
+        });
+        using var scope = root.CreateScope();
+        var model = scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
+        var second = scope.ServiceProvider.GetServices<ILens>().OfType<CounterLens>().Single();
+        Assert.Equal(new[] { "layers", "counter" }, model.Lenses.Select(lens => lens.Descriptor.Id));
+        Assert.False(model.IsLensActive);
+        Assert.Equal(0, second.ActivationCount);
+        await model.ToggleLensCommand.ExecuteAsync(model.Lenses[1]);
+        Assert.Equal(1, second.ActivationCount);
+        Assert.True(model.Lenses[1].IsActive);
+        Assert.False(model.Lenses[0].IsActive);
+        Assert.Equal(0, scope.ServiceProvider.GetRequiredService<CounterService>().Count);
+    }
+
     private static void RegisterHost(IServiceCollection services)
     {
         services.AddScoped<ILayersSnapshotSource, SnapshotSource>();
-        services.AddScoped<IEntityHighlightActions, Highlights>();
-        services.AddScoped<IHostActions, HostActions>();
-        services.AddScoped<IExplorerActions, ExplorerActions>();
+        services.AddScoped<ILayersActions, Actions>();
     }
 
     private sealed class SnapshotSource : ILayersSnapshotSource, IDisposable
@@ -96,24 +118,25 @@ public sealed class ExplorerCompositionTests
         public void Dispose() => DisposeCount++;
     }
 
-    private sealed class HostActions : IHostActions
+    private sealed class Actions(ILayersProvider provider) : ILayersActions
     {
-        public Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+        public void ClearImmediately(bool hostTerminating) { }
+
+        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<HostResult<bool>> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
-    }
+        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
 
-    private sealed class Highlights : IEntityHighlightActions
-    {
-        public Task<HostResult<int>> EmphasizeAsync(Autodesk.AutoCAD.DatabaseServices.ObjectId[] objects, CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<int>>(new HostResult<int>.Success(objects.Length));
+        public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
+            provider.LoadAsync(enabledFilters, cancellationToken);
 
-        public Task<HostResult<int>> EmphasizeSelectionAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<int>>(new HostResult<int>.Success(0));
+        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult("Selection updated.");
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
+        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult("Focused.");
     }
 }

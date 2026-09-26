@@ -32,11 +32,12 @@ namespace Autodesk.AutoCAD.ApplicationServices
         internal bool IsApplicationContext { get; private set; }
         internal int PendingCount => _callbacks.Count;
         internal Exception? SchedulingError { get; set; }
+        internal int ActiveCommand { get; set; }
 
         internal void ExecuteInApplicationContext(Action<object> callback, object state)
         {
-            if (MdiActiveDocument?.Editor.IsQuiescent == false)
-                throw new InvalidOperationException("The queue must wait until the drawing is idle.");
+            if (ActiveCommand != 0)
+                throw new InvalidOperationException("The queue must wait until the active command finishes.");
 
             if (SchedulingError is not null)
                 throw SchedulingError;
@@ -67,6 +68,9 @@ namespace Autodesk.AutoCAD.ApplicationServices.Core
         internal static DocumentCollection DocumentManager { get; set; } = new();
         internal static event EventHandler? Idle;
         internal static void RaiseIdle() => Idle?.Invoke(null, EventArgs.Empty);
+        internal static object GetSystemVariable(string name) => name == "CMDACTIVE"
+            ? DocumentManager.ActiveCommand
+            : throw new ArgumentOutOfRangeException(nameof(name));
     }
 }
 

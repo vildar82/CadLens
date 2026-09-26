@@ -39,3 +39,12 @@
 - Hide host API details (handle parsing, object lookup flags, and context transitions) behind clearly named extensions or services.
 - Use one host task service that owns its queue and performs the native context transition itself.
 - Prefer List<T> for local collection construction. Use immutable collections for published snapshots when callers must not change their contents.
+
+## Design agents
+
+- For a requested window design cycle, use the focused roles in `.codex/agents/` and follow
+  [the design agent workflow](docs/design/agent-workflow.md). Delegate independent work only.
+- Keep ordinary edits local; do not start the full design cycle unless requested.
+- Compare runnable WPF variants in one `CadLens.Preview` application by default; Figma is optional.
+- Keep experimental styling in the preview until a variant is selected for production integration.
+- Role TOML files use UTF-8 without BOM for TOML parser compatibility.

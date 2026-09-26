@@ -12,7 +12,7 @@ public sealed class CadLensCommand
     private const string CommandName = "CADLENS";
 
     /// <summary>
-    /// Writes the greeting and opens the single panel for this plugin session.
+    /// Opens or activates the single panel for this plugin session.
     /// </summary>
     [UsedImplicitly]
     [CommandMethod(CommandName, CommandFlags.NoUndoMarker | CommandFlags.UsePickSet)]

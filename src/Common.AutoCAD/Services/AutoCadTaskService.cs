@@ -59,7 +59,7 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
         if (_running)
             return;
 
-        if (!_stopping && Application.DocumentManager.MdiActiveDocument?.Editor.IsQuiescent == false)
+        if (!_stopping && Convert.ToInt32(Application.GetSystemVariable("CMDACTIVE")) != 0)
             return;
 
         if (_requests.TryDequeue(out var request))
