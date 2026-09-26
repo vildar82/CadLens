@@ -1,4 +1,5 @@
 ﻿using Trace = System.Diagnostics.Trace;
+using System.Windows;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
 using CadLens.Lenses;
@@ -35,6 +36,7 @@ internal sealed class ExplorerOwner
     private IHostTaskService? _requests;
     private Document? _observedDocument;
     private bool _closing;
+    private bool _diagnosticsRunning;
     private bool _terminated;
     private bool _rootDisposed;
 
@@ -57,6 +59,7 @@ internal sealed class ExplorerOwner
             _viewModel = _scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
             _window = _scope.ServiceProvider.GetRequiredService<ExplorerWindow>();
             _window.Closed += OnClosed;
+            _window.DiagnosticsRequested += OnDiagnosticsRequested;
             Application.DocumentManager.DocumentToBeDeactivated += OnContextLeaving;
             Application.DocumentManager.DocumentToBeDestroyed += OnContextLeaving;
             Application.DocumentManager.DocumentActivated += OnDocumentActivated;
@@ -83,6 +86,42 @@ internal sealed class ExplorerOwner
     }
 
     private void OnClosed(object? sender, EventArgs args) => _ = CloseSessionAsync();
+
+    private async void OnDiagnosticsRequested(object? sender, EventArgs args)
+    {
+        if (_requests is null || _window is null || _diagnosticsRunning)
+            return;
+
+        _diagnosticsRunning = true;
+        var window = _window;
+
+        try
+        {
+            var result = await _requests.RunAsync(
+                () => DrawingDiagnostics.Capture(Application.DocumentManager.MdiActiveDocument),
+                CancellationToken.None);
+
+            if (result is not HostResult<DrawingSnapshot>.Success success)
+            {
+                MessageBox.Show(window, ((HostResult<DrawingSnapshot>.Unavailable)result).Reason, "CAD Lens diagnostics");
+                return;
+            }
+
+            var path = await DrawingDiagnostics.SaveAsync(success.Value);
+
+            if (window.IsVisible)
+                MessageBox.Show(window, $"Saved to {path}", "CAD Lens diagnostics");
+        }
+        catch (Exception exception)
+        {
+            if (window.IsVisible)
+                MessageBox.Show(window, exception.Message, "CAD Lens diagnostics");
+        }
+        finally
+        {
+            _diagnosticsRunning = false;
+        }
+    }
 
     private void OnContextLeaving(object sender, DocumentCollectionEventArgs args)
     {
@@ -135,6 +174,7 @@ internal sealed class ExplorerOwner
             if (_window is not null)
             {
                 _window.Closed -= OnClosed;
+                _window.DiagnosticsRequested -= OnDiagnosticsRequested;
 
                 if (_window.IsVisible)
                     _window.Close();

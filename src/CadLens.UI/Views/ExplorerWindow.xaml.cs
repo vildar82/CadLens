@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Input;
 using JetBrains.Annotations;
 
 namespace CadLens.UI;
@@ -16,6 +17,9 @@ public partial class ExplorerWindow
     private readonly ExplorerViewModel _viewModel;
     private Size _expandedSize = new(370, 660);
 
+    /// <summary>Raised by the hidden drawing diagnostics shortcut.</summary>
+    public event EventHandler? DiagnosticsRequested;
+
     /// <summary>Creates the panel without changing application-wide WPF resources.</summary>
     /// <param name="viewModel">Constructor-injected explorer commands.</param>
     public ExplorerWindow(ExplorerViewModel viewModel)
@@ -26,7 +30,17 @@ public partial class ExplorerWindow
         viewModel.PropertyChanged += OnViewModelChanged;
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
+        PreviewKeyDown += OnPreviewKeyDown;
         UpdateMode();
+    }
+
+    private void OnPreviewKeyDown(object sender, KeyEventArgs args)
+    {
+        if (args.Key != Key.F12 || Keyboard.Modifiers != (ModifierKeys.Control | ModifierKeys.Shift))
+            return;
+
+        args.Handled = true;
+        DiagnosticsRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)
