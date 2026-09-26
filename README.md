@@ -43,14 +43,14 @@ CAD Lens uses one exploration session for the active drawing. Highlighting and d
 
 ## Project map
 
-- `Common` contains host results and typed ID contracts without WPF or AutoCAD.
-- `Common.AutoCAD` owns queued AutoCAD work, database helpers, and temporary graphics.
+- `Common` contains host results, typed ID contracts, and the object visualization contract without WPF or AutoCAD.
+- `Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary graphics, and object visualization including Focus and bounds reading.
 - `CadLens.Lenses` turns detached drawing snapshots into Layers groups and navigation state.
 - `CadLens.UI` owns the window, lens switching, and the Layers WPF module.
 - `CadLens.AutoCAD` connects the UI to AutoCAD and owns the plugin and panel lifetime.
 - `CadLens.Preview` runs the same UI with sample data.
 
-A Layers refresh travels from `LayersViewModel` through `ILayersActions` to the AutoCAD adapter. The adapter reads a detached snapshot through `LayersLensProvider` and performs graphics or Focus requests through `Common.AutoCAD`.
+A Layers refresh travels from `LayersViewModel` through `ILayersActions` to the AutoCAD adapter. The adapter reads a detached snapshot through `LayersLensProvider` and sends object visualization requests to `IObjectVisualizationService`.
 
 ## AutoCAD lifetime
 

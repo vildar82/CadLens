@@ -89,7 +89,10 @@ public sealed class EntityHighlightActions(
             transaction.Commit();
         }
 
-        var targets = selectedIds.Intersect(inventory).Where(id => id.IsValid && !id.IsErased).ToArray();
+        var targets = selectedIds
+            .Intersect(inventory)
+            .Where(id => id is {IsValid: true, IsErased: false})
+            .ToArray();
 
         if (targets.Length == 0)
         {

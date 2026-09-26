@@ -5,6 +5,7 @@ using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using CadLens.Lenses;
 using CadLens.UI;
+using Common;
 using Common.AutoCAD;
 using Microsoft.Extensions.DependencyInjection;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
@@ -27,6 +28,7 @@ internal sealed class ExplorerOwner
         services.AddSingleton(HighlightColors);
         services.AddScoped<IEntityHighlightService, EntityHighlightService>();
         services.AddScoped<IEntityHighlightActions, EntityHighlightActions>();
+        services.AddScoped<IObjectVisualizationService, AutoCadObjectVisualizationService>();
     });
 
     private IServiceScope? _scope;
