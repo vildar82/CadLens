@@ -1,4 +1,4 @@
-﻿using CadLens.Core;
+﻿using Common;
 using System.Collections.Immutable;
 
 namespace CadLens.Lenses;
@@ -13,7 +13,7 @@ namespace CadLens.Lenses;
 public sealed record LensNode(
     string Id,
     string Label,
-    ImmutableArray<HostObjectId> Objects,
+    ImmutableArray<IPlacedObjectId> Objects,
     ImmutableArray<LensNode> Children,
     ImmutableArray<DetailField> Fields,
     ImmutableArray<LensAction> Actions)

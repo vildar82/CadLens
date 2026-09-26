@@ -6,7 +6,6 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using CadLens.Core;
 using Common;
 using Xunit;
 
@@ -277,7 +276,7 @@ public sealed class ExplorerViewModelTests
         var groups = Enumerable.Range(1, 24).Select(index => new LensNode(
             index.ToString(),
             index == 1 ? "Site — roads and pedestrian connections — existing conditions" : $"Drawing group {index:00}",
-            [new HostObjectId(index)],
+            [new TestEntityId(index)],
             [],
             [new DetailField("Category", "Example category"), new DetailField("Visibility", "Hidden: frozen. Inclusion does not reveal this object.")],
             [LensAction.Focus])).ToImmutableArray();
@@ -310,10 +309,10 @@ public sealed class ExplorerViewModelTests
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) => PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+        public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult("Selection updated.");
 
-        public Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult("Focused.");
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using CadLens.Core;
 using CadLens.Lenses;
 using CadLens.UI;
 using Common;
@@ -25,7 +24,7 @@ internal sealed class PreviewLayersActions(ILayersProvider provider, int delayMi
         DescribeAsync("Preview: CAD preselection highlighting is simulated.", cancellationToken);
 
     /// <inheritdoc />
-    public Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+    public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
         DescribeAsync($"Preview: temporary emphasis for {objects.Length:N0} sample objects.", cancellationToken);
 
     /// <inheritdoc />
@@ -36,7 +35,7 @@ internal sealed class PreviewLayersActions(ILayersProvider provider, int delayMi
     }
 
     /// <inheritdoc />
-    public Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+    public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
         DescribeAsync($"Preview: Focus on {objects.Length:N0} sample objects; no drawing camera is connected.", cancellationToken);
 
     private async Task<string> DescribeAsync(string message, CancellationToken cancellationToken)

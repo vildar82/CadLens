@@ -30,7 +30,7 @@ internal sealed class LayersActions(
     public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
         highlights.ClearAsync(cancellationToken);
 
-    public async Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
+    public async Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
     {
         var result = await host.EmphasizeAsync(objects, cancellationToken);
 
@@ -39,7 +39,7 @@ internal sealed class LayersActions(
             reason => reason);
     }
 
-    public async Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
+    public async Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
     {
         var result = await host.FocusAsync(objects, cancellationToken);
 

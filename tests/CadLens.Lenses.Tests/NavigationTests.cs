@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using CadLens.Core;
 using Common;
 using Xunit;
 
@@ -75,7 +74,7 @@ public sealed class NavigationTests
         return state;
     }
 
-    private static LensNode Object(string id) => new(id, id, [new HostObjectId(id)], [], [], []);
+    private static LensNode Object(string id) => new(id, id, [new TestEntityId(id)], [], [], []);
 
     private static LensNode Group(ImmutableArray<LensNode> objects)
     {

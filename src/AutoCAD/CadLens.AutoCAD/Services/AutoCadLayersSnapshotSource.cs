@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using Autodesk.AutoCAD.DatabaseServices;
-using CadLens.Core;
 using CadLens.Lenses;
 using Common;
 using Common.AutoCAD;
@@ -29,8 +28,8 @@ internal sealed class AutoCadLayersSnapshotSource(IHostTaskService hostTasks) : 
 
         var entities = space.GetObjects<Entity>()
             .Select(entity => new EntitySnapshot(
-                new HostObjectId(entity.ObjectId),
-                new LayerId(entity.LayerId.Handle.ToString()),
+                new EntityId(entity.ObjectId),
+                new LayerId(entity.LayerId),
                 entity.GetRXClass().Name))
             .ToImmutableArray();
 
@@ -54,7 +53,7 @@ internal sealed class AutoCadLayersSnapshotSource(IHostTaskService hostTasks) : 
     }
 
     private static LayerSnapshot ReadLayer(LayerTableRecord layer, HashSet<ObjectId> frozenLayers) => new(
-        new LayerId(layer.ObjectId.Handle.ToString()),
+        new LayerId(layer.ObjectId),
         layer.Name,
         layer.IsOff,
         layer.IsFrozen,

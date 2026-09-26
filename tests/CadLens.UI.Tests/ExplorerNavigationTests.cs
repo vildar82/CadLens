@@ -1,6 +1,5 @@
 ﻿using CadLens.Lenses;
 using System.Collections.Immutable;
-using CadLens.Core;
 using Common;
 using Xunit;
 
@@ -22,14 +21,14 @@ public sealed class ExplorerNavigationTests
         model.EnterCommand.Execute(type);
         Assert.Equal(type.Objects, actions.EmphasisTargets);
         model.EnterCommand.Execute(model.Items[0]);
-        Assert.Equal(new HostObjectId(1), Assert.Single(actions.EmphasisTargets));
+        Assert.Equal(new TestEntityId(1), Assert.Single(actions.EmphasisTargets));
 
         Assert.Equal("1 of 2", model.ObjectPosition);
         Assert.False(model.PreviousCommand.CanExecute(null));
         Assert.True(model.NextCommand.CanExecute(null));
         Assert.Equal("Category", model.Current!.Fields[0].Label);
         model.NextCommand.Execute(null);
-        Assert.Equal(new HostObjectId(2), Assert.Single(actions.EmphasisTargets));
+        Assert.Equal(new TestEntityId(2), Assert.Single(actions.EmphasisTargets));
         Assert.Equal("2 of 2", model.ObjectPosition);
         Assert.False(model.NextCommand.CanExecute(null));
         model.PreviousCommand.Execute(null);
@@ -170,7 +169,7 @@ public sealed class ExplorerNavigationTests
         model.NextCommand.Execute(null);
         Assert.Equal(1, actions.HostCalls);
         await model.FocusCommand.ExecuteAsync(null);
-        Assert.Equal(new HostObjectId(2), Assert.Single(actions.FocusTargets));
+        Assert.Equal(new TestEntityId(2), Assert.Single(actions.FocusTargets));
         Assert.Equal("2 of 2", model.ObjectPosition);
         model.RootCommand.Execute(null);
         Assert.False(model.FocusCommand.CanExecute(null));
@@ -505,8 +504,8 @@ public sealed class ExplorerNavigationTests
 
     private static LayersPresentation CreatePresentation(bool single, bool hidden)
     {
-        var first = new LensNode("first", "First", [new HostObjectId(1)], [], [new DetailField("Category", "Fixture")], [LensAction.Focus]);
-        var second = new LensNode("second", "Second", [new HostObjectId(2)], [], first.Fields, [LensAction.Focus]);
+        var first = new LensNode("first", "First", [new TestEntityId(1)], [], [new DetailField("Category", "Fixture")], [LensAction.Focus]);
+        var second = new LensNode("second", "Second", [new TestEntityId(2)], [], first.Fields, [LensAction.Focus]);
         ImmutableArray<LensNode> objects = single ? [first] : [first, second];
         var type = new LensNode("type", "Fixture type", [.. objects.SelectMany(node => node.Objects)], objects, [], [LensAction.Focus]);
         var group = new LensNode("group", "Fixture group", type.Objects, [type], [], [LensAction.Focus]);
@@ -535,12 +534,12 @@ public sealed class ExplorerNavigationTests
         internal bool SingleObject { get; set; }
         internal bool Empty { get; init; }
         internal int HostCalls { get; private set; }
-        internal ImmutableArray<HostObjectId> EmphasisTargets { get; private set; } = [];
+        internal ImmutableArray<IPlacedObjectId> EmphasisTargets { get; private set; } = [];
         internal TaskCompletionSource<string>? PendingEmphasis { get; set; }
         internal CancellationToken EmphasisToken { get; private set; }
         internal bool AllowFocus { get; init; } = true;
         internal string FocusMessage { get; init; } = "Focused.";
-        internal ImmutableArray<HostObjectId> FocusTargets { get; private set; }
+        internal ImmutableArray<IPlacedObjectId> FocusTargets { get; private set; }
         internal CancellationToken FocusToken { get; private set; }
         internal TaskCompletionSource<string>? PendingFocus { get; init; }
         internal TaskCompletionSource<HostResult<LayersPresentation>>? Pending { get; set; }
@@ -575,7 +574,7 @@ public sealed class ExplorerNavigationTests
             return PendingClear?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<string> EmphasizeObjectsAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> EmphasizeObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
         {
             EmphasisTargets = objects;
             EmphasisToken = cancellationToken;
@@ -583,7 +582,7 @@ public sealed class ExplorerNavigationTests
             return PendingEmphasis?.Task ?? Task.FromResult("Selection updated.");
         }
 
-        public Task<string> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
         {
             HostCalls++;
             FocusCount++;

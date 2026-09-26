@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using CadLens.Core;
 using Common;
 using Xunit;
 
@@ -19,7 +18,7 @@ public sealed class LayersLensTests
         foreach (var includeOff in new[] { false, true })
         foreach (var includeFrozen in new[] { false, true })
         {
-            var layer = new LayerSnapshot(new LayerId("roads"), "Roads", off, frozen, viewportFrozen, locked);
+            var layer = new LayerSnapshot(new TestLayerId("roads"), "Roads", off, frozen, viewportFrozen, locked);
             var filters = new HashSet<string>();
 
             if (includeOff)
@@ -42,7 +41,7 @@ public sealed class LayersLensTests
             index.ToString("D4"),
             "roads",
             index < 180 ? "AcDbPolyline" : index < 228 ? "AcDbLine" : "AcDbArc")).ToImmutableArray();
-        var layers = ImmutableArray.Create(new LayerSnapshot(new LayerId("roads"), "Roads", false, false, false, false));
+        var layers = ImmutableArray.Create(new LayerSnapshot(new TestLayerId("roads"), "Roads", false, false, false, false));
         var first = await Load(layers, entities, new HashSet<string>());
         var shuffled = await Load(layers, entities.Reverse().ToImmutableArray(), new HashSet<string>());
         var group = Assert.Single(first.Groups);
@@ -61,9 +60,9 @@ public sealed class LayersLensTests
     {
         var result = await Load(
             [
-                new(new LayerId("empty"), "Empty", false, false, false, false),
-                new(new LayerId("a"), "alpha", false, false, false, true),
-                new(new LayerId("b"), "Alpha", false, false, false, false)
+                new(new TestLayerId("empty"), "Empty", false, false, false, false),
+                new(new TestLayerId("a"), "alpha", false, false, false, true),
+                new(new TestLayerId("b"), "Alpha", false, false, false, false)
             ],
             [
                 Entity("2", "a", "AcDbBlockReference"), Entity("1", "a", "AcDbBlockReference"),
@@ -73,7 +72,7 @@ public sealed class LayersLensTests
         Assert.Equal(new[] { "a", "b" }, result.Groups.Select(group => group.Id));
         var blocks = Assert.Single(result.Groups[0].Children);
         Assert.Equal(2, blocks.Count);
-        Assert.Equal(new[] { "1", "2" }, blocks.Objects.Select(reference => reference.ToString()));
+        Assert.Equal(new[] { "1", "2" }, blocks.Objects.Select(reference => reference.DisplayId));
         Assert.Equal(new[] { "Custom.One", "Custom.Two" }, result.Groups[1].Children.Select(type => type.Label));
     }
 
@@ -82,7 +81,7 @@ public sealed class LayersLensTests
     public async Task HiddenObjectPreviewExplainsItsLayerAndType()
     {
         var result = await Load(
-            [new(new LayerId("a"), "Roads", true, false, true, false)],
+            [new(new TestLayerId("a"), "Roads", true, false, true, false)],
             [Entity("1", "a", "AcDbPolyline")],
             new HashSet<string> { LayersLensProvider.IncludeFrozen, LayersLensProvider.IncludeOff });
         var item = result.Groups[0].Children[0].Children[0];
@@ -104,7 +103,7 @@ public sealed class LayersLensTests
     }
 
     private static EntitySnapshot Entity(string key, string layer, string type) =>
-        new(new HostObjectId(key), new LayerId(layer), type);
+        new(new TestEntityId(key), new TestLayerId(layer), type);
 
     private static async Task<LayersPresentation> Load(
         ImmutableArray<LayerSnapshot> layers,

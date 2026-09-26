@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes an experiment, not the current CAD Lens architecture. Apply it only to a deliberately selected slice after its scope has been agreed. Do not retrofit the entire solution.
+This document describes a limited experiment, not a repository-wide architecture. The selected host-identity slice keeps `IHostId`, `IPlacedObjectId`, and `ILayerId` in `Common`. `Common.AutoCAD` implements these with native `ObjectId` values; preview and tests provide their own identifiers. Do not retrofit unrelated values throughout the solution.
 
 ## Hypothesis
 
@@ -39,7 +39,6 @@ Use the type system to prevent invalid composition. Do not rely on parameter nam
 Values with different domain meanings must use different types even when they contain the same primitive value.
 
 ```csharp
-public readonly record struct LayerId(string Value);
 public readonly record struct DrawingId(Guid Value);
 public readonly record struct Distance(double Meters);
 public readonly record struct Angle(double Radians);
@@ -179,7 +178,7 @@ The first experiment should choose only one candidate:
 - world coordinates versus viewport or screen coordinates;
 - drawing distances versus UI pixel distances;
 - radians versus degrees at a transformation boundary;
-- AutoCAD object identity versus a stable domain identity;
+- AutoCAD object identity versus a stable domain identity (selected host-identity slice);
 - a validated non-empty highlight target set;
 - an active lens session token versus a stale request token.
 

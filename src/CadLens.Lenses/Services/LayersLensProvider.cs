@@ -72,7 +72,7 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
             .Where(layer => IsIncluded(layer, includeFrozen, includeOff))
             .Where(layer => entitiesByLayer.Contains(layer.Id))
             .OrderBy(layer => layer.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(layer => layer.Id.Value, StringComparer.Ordinal);
+            .ThenBy(layer => layer.Id.DisplayId, StringComparer.Ordinal);
 
         return includedLayers
             .Select(layer => CreateLayerNode(layer, entitiesByLayer[layer.Id], cancellationToken))
@@ -103,7 +103,7 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
             .ToImmutableArray();
 
         return new LensNode(
-            layer.Id.Value,
+            layer.Id.DisplayId,
             layer.Name,
             [.. types.SelectMany(type => type.Objects)],
             types,
@@ -117,7 +117,7 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
         CancellationToken cancellationToken)
     {
         var label = entities.Key.GetTypeLabel();
-        var objects = entities.OrderBy(entity => entity.Id.ToString(), StringComparer.Ordinal)
+        var objects = entities.OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal)
             .Select(entity => CreateObjectNode(layer, entity, label, cancellationToken))
             .ToImmutableArray();
 
@@ -139,8 +139,8 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
         cancellationToken.ThrowIfCancellationRequested();
 
         return new LensNode(
-            entity.Id.ToString(),
-            $"{typeLabel} {entity.Id}",
+            entity.Id.DisplayId,
+            $"{typeLabel} {entity.Id.DisplayId}",
             [entity.Id],
             [],
             [.. CreateLayerDetails(layer), new DetailField("Primitive type", typeLabel)],

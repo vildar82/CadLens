@@ -124,10 +124,10 @@ public sealed class ExplorerCompositionTests
 
     private sealed class HostActions : IHostActions
     {
-        public Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> EmphasizeAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<HostResult<bool>> FocusAsync(ImmutableArray<HostObjectId> objects, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
     }
 

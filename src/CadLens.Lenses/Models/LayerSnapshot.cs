@@ -1,4 +1,6 @@
-﻿namespace CadLens.Lenses;
+﻿using Common;
+
+namespace CadLens.Lenses;
 
 /// <summary>Read-only layer status, including the active viewport's freeze state.</summary>
 /// <param name="Id">Opaque layer identity.</param>
@@ -8,7 +10,7 @@
 /// <param name="IsViewportFrozen">Frozen in the currently active layout viewport.</param>
 /// <param name="IsLocked">Locked status, which does not affect inclusion.</param>
 public sealed record LayerSnapshot(
-    LayerId Id,
+    ILayerId Id,
     string Name,
     bool IsOff,
     bool IsFrozen,

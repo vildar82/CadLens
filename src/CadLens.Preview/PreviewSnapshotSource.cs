@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using CadLens.Core;
-using CadLens.Lenses;
+﻿using CadLens.Lenses;
 using Common;
 
 namespace CadLens.Preview;
@@ -51,13 +49,13 @@ internal sealed class PreviewSnapshotSource(bool empty, bool unavailable) : ILay
 
         void AddLayer(string name, int count, bool frozen, bool off)
         {
-            var layerId = new LayerId(name);
+            var layerId = new LayerId(layers.Count + 1);
             layers.Add(new LayerSnapshot(layerId, name, off, frozen, false, false));
 
             for (var index = 0; index < count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var id = new HostObjectId((entities.Count + 1).ToString("X4", CultureInfo.InvariantCulture));
+                var id = new EntityId(entities.Count + 1);
                 entities.Add(new EntitySnapshot(id, layerId, EntityTypes[index % EntityTypes.Length]));
             }
         }

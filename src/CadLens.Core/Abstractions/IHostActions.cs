@@ -10,13 +10,13 @@ public interface IHostActions
     /// <param name="objects">Objects to emphasize.</param>
     /// <param name="cancellationToken">Request cancellation.</param>
     Task<HostResult<bool>> EmphasizeAsync(
-        ImmutableArray<HostObjectId> objects,
+        ImmutableArray<IPlacedObjectId> objects,
         CancellationToken cancellationToken);
 
     /// <summary>Fits usable bounds without revealing hidden objects.</summary>
     /// <param name="objects">Focus targets.</param>
     /// <param name="cancellationToken">Request cancellation.</param>
     Task<HostResult<bool>> FocusAsync(
-        ImmutableArray<HostObjectId> objects,
+        ImmutableArray<IPlacedObjectId> objects,
         CancellationToken cancellationToken);
 }
