@@ -73,19 +73,14 @@ public sealed class MultipleLensTests
         Assert.True(model.Lenses[1].IsActive);
     }
 
-    /// <summary>Every module receives context changes; only the active one receives drawing edits.</summary>
+    /// <summary>Every module receives context changes.</summary>
     [Fact]
-    public async Task NotificationsDoNotAssumeRefreshCommands()
+    public async Task ContextChangesReachEveryModule()
     {
         var first = new Lens("first");
         var second = new Lens("second");
         using var model = new ExplorerViewModel([first, second]);
-        model.OnDrawingChanged();
-        Assert.Equal(0, first.EditCount + second.EditCount);
         await model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]);
-        model.OnDrawingChanged();
-        Assert.Equal(1, first.EditCount);
-        Assert.Equal(0, second.EditCount);
         model.ResetContext(false);
         Assert.Equal(1, first.ContextCount);
         Assert.Equal(1, second.ContextCount);
@@ -139,7 +134,6 @@ public sealed class MultipleLensTests
         internal int ActivationCount { get; private set; }
         internal int CleanupCount { get; private set; }
         internal int ContextCount { get; private set; }
-        internal int EditCount { get; private set; }
         internal int CloseCount { get; private set; }
         internal bool HostTerminating { get; private set; }
         internal bool CleanupFails { get; set; }
@@ -172,7 +166,6 @@ public sealed class MultipleLensTests
         }
 
         public void OnContextChanged(bool hasDrawing) => ContextCount++;
-        public void OnDrawingChanged() => EditCount++;
 
         public void Close(bool hostTerminating)
         {

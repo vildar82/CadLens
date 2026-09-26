@@ -143,21 +143,23 @@ internal static class ModePreviewCapture
             await model.HighlightCommand.ExecuteAsync(null);
             Require(actions.CameraTargets.SequenceEqual(camera), "Highlight independence");
             await model.ResetCommand.ExecuteAsync(null);
-            Require(!model.IsAutoFocus && model.IsAutoSelect && !model.IsAutoHighlight, "Reset retains modes");
+            Require(!model.IsAutoFocus && !model.IsAutoSelect && !model.IsAutoHighlight, "Reset turns off Auto modes");
             Require(actions.SelectedTargets.IsEmpty && actions.HighlightedTargets.IsEmpty && actions.CameraTargets.SequenceEqual(camera), "Reset clears only selection/highlight");
             await layers.EnterCommand.ExecuteAsync(layers.Items[0]);
-            Require(actions.SelectedTargets.SequenceEqual(layers.Current!.Objects), "Auto select resumes after Reset");
-            Require(actions.CameraTargets.SequenceEqual(camera) && actions.HighlightedTargets.IsEmpty, "disabled modes stay inactive after Reset");
-            checks.Add("PASS: manual Focus and Highlight are independent; Reset clears selection/highlight, retains camera/modes and navigation resumes enabled modes.");
+            Require(actions.SelectedTargets.IsEmpty && actions.HighlightedTargets.IsEmpty && actions.CameraTargets.SequenceEqual(camera), "Auto modes stay off after Reset");
+            checks.Add("PASS: manual Focus and Highlight are independent; Reset clears selection/highlight, turns off Auto modes, and keeps the camera.");
 
+            await model.ToggleAutoSelectCommand.ExecuteAsync(null);
             await model.ToggleAutoFocusCommand.ExecuteAsync(null);
             await (model.FocusCommand.ExecutionTask ?? Task.CompletedTask);
             await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
             Require(actions.CameraTargets.SequenceEqual(layers.Current.Objects) && actions.HighlightedTargets.SequenceEqual(layers.Current.Objects), "auto enable applies immediately");
+            camera = actions.CameraTargets;
             await model.ResetCommand.ExecuteAsync(null);
-            Require(model.IsAutoFocus && model.IsAutoSelect && model.IsAutoHighlight, "Reset retains all enabled modes");
+            Require(!model.IsAutoFocus && !model.IsAutoSelect && !model.IsAutoHighlight, "Reset turns off all enabled modes");
             await layers.NextCommand.ExecuteAsync(null);
-            Require(actions.CameraTargets.SequenceEqual(layers.Current!.Objects) && actions.SelectedTargets.SequenceEqual(layers.Current.Objects) && actions.HighlightedTargets.SequenceEqual(layers.Current.Objects), "all modes resume after Reset");
+            Require(actions.CameraTargets.SequenceEqual(camera) && actions.SelectedTargets.IsEmpty && actions.HighlightedTargets.IsEmpty, "all modes stay off after Reset");
+            await model.ToggleAutoSelectCommand.ExecuteAsync(null);
             await model.ToggleAutoSelectCommand.ExecuteAsync(null);
             Require(actions.SelectedTargets.IsEmpty, "Auto select off clears selection");
             camera = actions.CameraTargets;
@@ -165,8 +167,6 @@ internal static class ModePreviewCapture
             Require(actions.SelectedTargets.IsEmpty && actions.HighlightedTargets.IsEmpty && actions.CameraTargets.SequenceEqual(camera), "root clears effects without moving camera");
             checks.Add("PASS: enabling Auto applies immediately, turning Auto select off clears selection, and root clears selection/highlight without moving camera.");
 
-            await model.ToggleAutoFocusCommand.ExecuteAsync(null);
-            await model.ToggleAutoHighlightCommand.ExecuteAsync(null);
             await layers.EnterCommand.ExecuteAsync(layers.Items[0]);
             await model.SelectCommand.ExecuteAsync(null);
             var selection = actions.SelectedTargets;

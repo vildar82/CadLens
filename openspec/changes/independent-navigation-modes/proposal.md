@@ -14,7 +14,7 @@ The user selected preview variant B, **Action strip**, for production integratio
 - Allow Auto settings to be changed at the initial layer list. With no current target, disable manual actions. Returning to that list clears selection and highlight without moving the camera or changing Auto settings.
 - Enabling an Auto mode applies it immediately when a target exists. Turning Auto Select or Auto Highlight off clears its effect; turning Auto Focus off leaves the camera in place.
 - Use the preview's initial settings: Auto Focus off, Auto Select off, Auto Highlight on.
-- Replace Clear highlight with one Reset action. Reset clears CAD selection and temporary highlight, preserves navigation, camera, and Auto settings, and lets the next navigation reapply enabled modes. Disable Reset while work is pending.
+- Replace Clear highlight with one Reset action. Reset clears CAD selection and temporary highlight, turns off all Auto modes, and preserves navigation and camera. Disable Reset while work is pending.
 - Use B's compact, vertically centered Back arrow and retain readable, reachable breadcrumbs and object details.
 - Preserve cleanup and cancellation across collapse, close, and drawing-context changes so stale work cannot restore effects. Keep hidden objects hidden and preserve stored drawing geometry and properties.
 

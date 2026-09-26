@@ -25,8 +25,5 @@ public sealed class LayersLens(LayersViewModel viewModel) : ILens
     public void OnContextChanged(bool hasDrawing) => _ = viewModel.ResetContextAsync(hasDrawing);
 
     /// <inheritdoc />
-    public void OnDrawingChanged() => viewModel.OnDrawingChanged();
-
-    /// <inheritdoc />
     public void Close(bool hostTerminating) => viewModel.Close(hostTerminating);
 }

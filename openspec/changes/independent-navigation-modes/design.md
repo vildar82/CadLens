@@ -49,7 +49,7 @@ After inventory refresh or reactivation, restore the valid path using the existi
 
 Retain a clearly named highlight-only operation for Auto Highlight off and navigation while it is off. Use empty Select targets for selection-only clearing. Make the Layers cleanup operation clear both selection and graphics, returning success only when both have cleared; attempt both even if one reports unavailable.
 
-Replace the visible Clear command with Reset. Reset runs complete cleanup through the existing busy-state wrapper and changes no settings or navigation. It needs no suppression flag: effects are applied by explicit commands and navigation, not by property notifications or timers.
+Replace the visible Clear command with Reset. Reset turns off all Auto modes and runs complete cleanup through the existing busy-state wrapper, preserving navigation and the camera. It needs no suppression flag: effects are applied by explicit commands and navigation, not by property notifications or timers.
 
 Collapse continues to cancel and await pending work before cleanup, using the independent cleanup token. Close and context changes continue to use synchronous cleanup after cancellation. Extend that path to clear implied selection in the active editor as well as detach graphics. Pass host-shutdown intent explicitly through the Layers immediate-cleanup contract so shutdown skips editor access and regeneration.
 

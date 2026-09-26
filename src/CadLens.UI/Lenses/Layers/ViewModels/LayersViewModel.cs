@@ -27,7 +27,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private bool _hasDrawing = true;
     private bool _isAutoFocus;
     private bool _isAutoSelect;
-    private bool _isAutoHighlight = true;
+    private bool _isAutoHighlight;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
@@ -38,7 +38,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         HighlightCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => _actions.EmphasizeObjectsAsync(Current!.Objects, token)),
             () => CanRun() && Current is { Objects.IsEmpty: false });
-        ResetCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ClearEffectsAsync), CanRun);
+        ResetCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ResetAsync), CanRun);
         SelectCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(SelectCurrentAsync),
             () => CanRun() && Current is { Objects.IsEmpty: false });
@@ -208,7 +208,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Highlights the current group or object.</summary>
     public IAsyncRelayCommand HighlightCommand { get; }
 
-    /// <summary>Clears selection and highlighting while preserving Auto settings and the camera.</summary>
+    /// <summary>Clears selection and highlighting, turns off Auto modes, and preserves the camera.</summary>
     public IAsyncRelayCommand ResetCommand { get; }
 
     /// <summary>Explicitly fits the selected group's or object's live bounds.</summary>
@@ -316,13 +316,6 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Invites an explicit refresh without scheduling more drawing work.</summary>
-    public void OnDrawingChanged()
-    {
-        if (CanRun())
-            Status = "Drawing changed. Refresh to update the layer list.";
-    }
-
     private async Task RefreshContextAsync()
     {
         var previous = _operation;
@@ -334,6 +327,18 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
     private async Task<string> ClearEffectsAsync(CancellationToken cancellationToken) =>
         DescribeCleanup(await _actions.ClearAsync(cancellationToken));
+
+    private async Task<string> ResetAsync(CancellationToken cancellationToken)
+    {
+        IsAutoFocus = false;
+        IsAutoSelect = false;
+        IsAutoHighlight = false;
+
+        var result = await _actions.ClearAsync(cancellationToken);
+        return result.Match(
+            cleared => cleared ? "Selection and highlight cleared. Auto modes off." : "Cleanup did not complete.",
+            reason => $"Cleanup unavailable: {reason}");
+    }
 
     private static string DescribeCleanup(HostResult<bool> result) => result.Match(
         cleared => cleared ? "Selection and highlight cleared. Auto settings kept." : "Cleanup did not complete.",

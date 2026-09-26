@@ -48,7 +48,7 @@ internal sealed class ModePreviewWindow : Window
         panel.Children.Add(_evidence);
         panel.Children.Add(new TextBlock
         {
-            Text = "Focus changes camera only. Select changes selection only. Highlight adds temporary emphasis.\n\nReset keeps Auto settings and camera. It is available after pending work finishes.\n\nSwitching starts the same scenario afresh. No AutoCAD connection.",
+            Text = "Focus changes camera only. Select changes selection only. Highlight adds temporary emphasis.\n\nReset turns off Auto modes and keeps the camera. It is available after pending work finishes.\n\nSwitching starts the same scenario afresh. No AutoCAD connection.",
             TextWrapping = TextWrapping.Wrap,
             Opacity = 0.7,
             Margin = new Thickness(0, 16, 0, 0)

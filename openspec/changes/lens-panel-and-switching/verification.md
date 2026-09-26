@@ -8,7 +8,7 @@ Initial verification: 2026-09-20. Simplification follow-up: 2026-09-26.
 - Collapse retains navigation and inclusion settings, invalidates late results, cancels pending drawing work, waits for it to settle, and clears effects through the existing host queue with an independent lifetime token.
 - Pending cleanup disables reactivation and appears as an ellipsis with a status tooltip. Failed/unavailable cleanup remains explained in the compact status tooltip; Close stays available.
 - Reactivation reads fresh data and restores valid targets without Focus. Root restoration remains unselected; erased targets fall back through the existing navigation reconciliation.
-- The shell forwards drawing edits to the active module. Layers shows a Refresh hint for idle edits and does not schedule reads from edit notifications. Activation, Refresh, filter changes, and active context changes load data. Closing lets modules cancel work and clear their effects before the host queue stops.
+- Drawing edits do not trigger database subscriptions or inventory reads. Activation, Refresh, filter changes, and active context changes load data. Closing lets modules cancel work and clear their effects before the host queue stops.
 - Expanded dimensions are remembered within the session. Expansion clamps to the current monitor work area, using the window's device transform. No transition animation was added.
 
 ## Executed checks
@@ -28,14 +28,14 @@ Initial verification: 2026-09-20. Simplification follow-up: 2026-09-26.
 - ILens exposes a descriptor, its own WPF view, and lifecycle callbacks. ExplorerViewModel consumes all ILens registrations; generated toolbar buttons and a ContentControl discover and display each module automatically.
 - LayersView, LayersViewModel, and ILayersActions live in CadLens.UI. Layers data contracts and navigation belong to CadLens.Lenses. The shared shell depends on ILens; lens implementations use folders within the existing UI project.
 - Production registers only Layers. A test-only Counter module has unrelated XAML, its own view model and service, and an Increment command. DI composition and an STA window test verify discovery, activation through the generated button, and invocation of its own command. The rendered Counter view was visually inspected.
-- Module lifecycle tests cover independent state, activation cancellation, cleanup ordering, failed/thrown cleanup retry, context and drawing notifications, and close/context changes during switching.
-- Layers tests cover edit notifications without automatic reads and context reloads after pending work, in addition to existing navigation, filtering, cancellation, and focus behavior.
+- Module lifecycle tests cover independent state, activation cancellation, cleanup ordering, failed/thrown cleanup retry, context notifications, and close/context changes during switching.
+- Layers tests cover context reloads after pending work, in addition to existing navigation, filtering, cancellation, and focus behavior.
 - The full 77-test suite and Debug/Release builds pass after the module refactor. Strict OpenSpec validation and diff checks pass. Roslynator reports no warning diagnostics in the shell or Layers UI.
 
 ## Outstanding verification
 
 - No running acad.exe was available. No new build was loaded in AutoCAD or Civil 3D. Native tasks 4.2 and 4.3 remain unchecked, including camera/DWG preservation, cleanup during an active command, close/document/space transitions, and repeated command invocation.
-- ExplorerOwner event forwarding and close ordering were source-reviewed, not exercised against real AutoCAD events. Tasks 2.1 and 2.3 remain unchecked pending integration verification.
+- ExplorerOwner context forwarding and close ordering were source-reviewed, not exercised against real AutoCAD events. Tasks 2.1 and 2.3 remain unchecked pending integration verification.
 - Live hover, keyboard focus/toggle/Close, dragging, and multi-monitor/mixed-DPI behavior remain unverified. Tasks 3.1, 3.3, and 3.4 remain unchecked. Rendered images and STA tests do not substitute for these checks.
 - Rider/InspectCode was not available on PATH or in the searched JetBrains/tool locations, and no Rider connector was exposed. Task 4.1 remains unchecked despite passing builds, managed tests, Roslynator analysis, and diff review.
 - Existing hatch/block native rendering limitations remain unchanged. No host validation from earlier changes is claimed for this implementation.
@@ -54,7 +54,13 @@ The change remains active and has not been archived.
 
 - Removed both drawing-edit refresh schedulers, delayed retries, duplicate Layers cleanup/busy flags, Layers lifetime/version tracking, and UI completion-source handshakes. The existing native queue remains the only host executor.
 - Layers stores its actual operation task and cancellation source. The shell stores its actual activation task and owns switching/cleanup state. Canceled results cannot publish data or status, and cleanup still waits for old work.
-- Drawing notifications never enqueue a read. Idle edits show a Refresh hint; notifications during work are ignored. Activation, explicit Refresh, filter changes, and active document/space changes read current data.
+- At that stage, drawing notifications did not enqueue a read. Idle edits showed a Refresh hint; notifications during work were ignored. Activation, explicit Refresh, filter changes, and active document/space changes read current data.
 - Debug and Release solution builds: zero warnings and errors. Full Debug managed suite: 81 passed (Common 4, Lenses 8, AutoCAD stubs 12, UI 57). Regressions cover edit notifications during/after work, explicit Refresh/reactivation, repeated context changes, and collapse while a context reload is waiting.
 - Independent source review found no actionable issues. Strict OpenSpec validation and `git diff --check` passed. InspectCode remains unavailable on PATH; no Rider inspection result is claimed.
 - Validation output: `C:/Users/vilda/AppData/Local/Temp/CadLens-validation/simplified-flow/bin/CadLens.AutoCAD/debug/CadLens.AutoCAD.dll`. This build was not loaded into AutoCAD. In a fresh host session, verify that the large drawing finishes loading, rows and filters respond, drawing edits require Refresh, and collapse/close leave no effects. Also verify active document/space switches load the new root without repeated reads.
+
+## Removed drawing-edit notifications
+
+- ExplorerOwner no longer subscribes to database object events. ILens and the shared UI no longer forward drawing-edit notifications. Refresh remains the explicit action for reading edits in the active space; document and space context changes still reset and reload the active lens.
+- Debug solution build: zero warnings and errors. Ten focused UI tests passed; strict OpenSpec validation passed. The full UI suite had 15 failures in tests expecting Auto Highlight on by default, while the worktree's existing independent-navigation change defaults it off. These failures are outside this notification removal and remain unresolved here.
+- Native AutoCAD behavior and Rider inspections were not run for this change.

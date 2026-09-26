@@ -28,7 +28,4 @@ public interface ILens
     /// <summary>Cancels work and releases owned effects synchronously when the panel closes.</summary>
     /// <param name="hostTerminating">Whether shutdown forbids redraw or access to surviving document views.</param>
     void Close(bool hostTerminating);
-
-    /// <summary>Notifies the active lens of drawing edits; the lens decides how to react.</summary>
-    void OnDrawingChanged();
 }

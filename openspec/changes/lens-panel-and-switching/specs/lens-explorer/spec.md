@@ -51,7 +51,7 @@ Each registered lens control SHALL toggle between inactive compact mode and acti
 
 #### Scenario: Refresh while inactive
 
-- **WHEN** drawing changes are detected while Layers is inactive
+- **WHEN** the drawing is edited while Layers is inactive
 - **THEN** the panel remains compact and the drawing remains free of session-owned visualization
 
 #### Scenario: Close compact panel
@@ -91,7 +91,7 @@ Collapsing SHALL preserve the current navigation position and inclusion settings
 
 ### Requirement: Discover and switch registered lenses
 
-Adding a lens SHALL require implementing ILens and registering the module and its dependencies in DI. Each lens SHALL own its WPF view, view model, data models, services, and commands. The shell SHALL discover its identity and label without creating its view or loading drawing data, generate its toolbar control, and display its view in a ContentControl. The shared contract SHALL be limited to identity, view, lifecycle, and context/drawing-change notifications. It SHALL NOT require a common inventory presentation, navigation, filters, Focus, or highlighting methods. No lens-specific change to the window, shell view model, or host owner SHALL be required.
+Adding a lens SHALL require implementing ILens and registering the module and its dependencies in DI. Each lens SHALL own its WPF view, view model, data models, services, and commands. The shell SHALL discover its identity and label without creating its view or loading drawing data, generate its toolbar control, and display its view in a ContentControl. The shared contract SHALL be limited to identity, view, lifecycle, and context notifications. It SHALL NOT require a common inventory presentation, navigation, filters, Focus, or highlighting methods. No lens-specific change to the window, shell view model, or host owner SHALL be required.
 
 Only one lens SHALL be active at a time. Switching SHALL cancel and settle pending work and clear the old lens's effects before loading the new lens. Failed cleanup SHALL leave the panel inactive and report the failure; a later activation attempt SHALL retry cleanup. Each lens SHALL own its session state. Layers SHALL retain its navigation and inclusion settings. Context changes SHALL invalidate all saved paths, and closing SHALL discard all lens state.
 
@@ -124,10 +124,9 @@ Only one lens SHALL be active at a time. Switching SHALL cancel and settle pendi
 - **WHEN** a registered lens supplies a different WPF layout and commands unrelated to drawing exploration
 - **THEN** the shell displays that view and its bindings without requiring Layers models or actions
 
-#### Scenario: Module close and drawing notifications
+#### Scenario: Module close and context notifications
 
 - **WHEN** the drawing context changes
 - **THEN** every module receives context invalidation without automatic activation
-- **AND** drawing edits are forwarded only to the active module, which decides how to react
 - **WHEN** the panel closes or the host terminates
 - **THEN** modules cancel their own work and synchronously release effects before the shared host queue is disposed

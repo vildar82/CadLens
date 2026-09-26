@@ -221,8 +221,8 @@
                     <ToggleButton x:Name="AutoHighlight" Grid.Row="2" Grid.Column="4" MinHeight="26" Style="{StaticResource ModeAuto}" IsChecked="{Binding IsAutoHighlight, Mode=OneWay}" Command="{Binding ToggleAutoHighlightCommand}" AutomationProperties.Name="Auto Highlight" ToolTip="Automatically emphasize objects and dim the others while browsing. Turning this off clears the temporary effect." />
                 </Grid>
                 <DockPanel Margin="0,7,0,0">
-                    <Button x:Name="ResetAction" DockPanel.Dock="Left" Content="Reset" Style="{StaticResource ModeButton}" Command="{Binding ResetCommand}" Padding="10,4" ToolTip="Clear CAD selection and temporary highlight. Keep the camera and Auto settings; enabled modes apply on the next navigation." AutomationProperties.Name="Reset selection and highlight" />
-                    <TextBlock Text="Keeps Auto · camera" FontSize="10" Foreground="{StaticResource QuietMuted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <Button x:Name="ResetAction" DockPanel.Dock="Left" Content="Reset" Style="{StaticResource ModeButton}" Command="{Binding ResetCommand}" Padding="10,4" ToolTip="Clear CAD selection and temporary highlight, turn off all Auto modes, and keep the camera." AutomationProperties.Name="Reset selection, highlight, and Auto modes" />
+                    <TextBlock Text="Auto off · camera kept" FontSize="10" Foreground="{StaticResource QuietMuted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </DockPanel>
                 <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="11" Height="28" Margin="1,4,1,0" ToolTip="{Binding Status}" AutomationProperties.LiveSetting="Polite">
                     <TextBlock.Style>

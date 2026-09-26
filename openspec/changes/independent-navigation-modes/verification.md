@@ -2,7 +2,7 @@
 
 ## Implemented
 
-Variant B is integrated into the production Layers view. Focus changes the camera, Select changes CAD selection, and Highlight changes temporary emphasis. Each has its own Auto setting; Reset keeps those settings and the camera.
+Variant B is integrated into the production Layers view. Focus changes the camera, Select changes CAD selection, and Highlight changes temporary emphasis. Each has its own Auto setting; Reset turns off those settings and keeps the camera.
 
 Selection uses the shared editor extension and existing host queue. Navigation and lifecycle handling stay in the existing Layers view model. Preview uses the same mode commands; the duplicate mode wrapper was removed.
 
@@ -31,7 +31,7 @@ Rider inspections could not be run: no inspection tool was available through PAT
 Load the rebuilt plugin in a fresh host session and record the host/version and outcomes:
 
 1. With objects already selected, open CADLENS compact; preselection should remain. Activate Layers, turn Auto Select on and Auto Focus off, then browse layer/type/object, Previous/Next, Back, and breadcrumbs. Selection should follow without camera movement.
-2. Try each manual action independently. Turn Auto Highlight off while keeping Auto Select on; only the temporary effect should clear. Press Reset with modes enabled, then navigate; effects should clear and resume without changing the settings.
+2. Try each manual action independently. Turn Auto Highlight off while keeping Auto Select on; only the temporary effect should clear. Press Reset with modes enabled, then navigate; effects should clear and remain off until a mode is enabled again.
 3. In a locked viewport, Select should work while Focus reports unavailable. Check erased targets, included hidden layers, model/paper space, and multiple viewports. Hidden objects must stay hidden, with no stored geometry, property, or layer-visibility changes.
 4. Collapse and reopen with all modes enabled; selection/highlight should restore without moving the camera. Close during pending work, switch documents/spaces, and close the last drawing; no old effects should return. Failed collapse cleanup must still be retried on close or context change.
 

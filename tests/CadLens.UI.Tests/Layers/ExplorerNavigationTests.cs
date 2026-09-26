@@ -547,46 +547,6 @@ public sealed class ExplorerNavigationTests
         Assert.DoesNotContain("effects cleared", model.Status);
     }
 
-    /// <summary>Drawing notifications never restart a read or leave commands busy.</summary>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task DrawingEditsDoNotScheduleReads(bool collapse)
-    {
-        var actions = new Actions();
-        using var model = new LayersViewModel(actions);
-        await model.ActivateAsync(CancellationToken.None);
-        var completion = new TaskCompletionSource<HostResult<LayersPresentation>>();
-        actions.Pending = completion;
-        var read = model.ReadCommand.ExecuteAsync(null);
-        model.OnDrawingChanged();
-        model.OnDrawingChanged();
-        var cleanup = collapse ? model.DeactivateAsync(CancellationToken.None) : Task.CompletedTask;
-        actions.Pending = null;
-        completion.SetResult(new HostResult<LayersPresentation>.Success(CreatePresentation(false, false)));
-        await read;
-        await cleanup;
-
-        if (!collapse)
-        {
-            Assert.False(model.IsBusy);
-            Assert.True(model.EnterCommand.CanExecute(model.Items[0]));
-
-            model.OnDrawingChanged();
-            model.OnDrawingChanged();
-            Assert.Contains("Refresh to update", model.Status);
-        }
-
-        Assert.Equal(2, actions.ReadCount);
-
-        if (collapse)
-            await model.ActivateAsync(CancellationToken.None);
-        else
-            await model.ReadCommand.ExecuteAsync(null);
-
-        Assert.Equal(3, actions.ReadCount);
-    }
-
     /// <summary>Repeated context changes replace old work with one fresh root read unless collapsed.</summary>
     [Theory]
     [InlineData(false)]
@@ -653,9 +613,9 @@ public sealed class ExplorerNavigationTests
         Assert.True(model.IsAutoSelect);
     }
 
-    /// <summary>Reset keeps modes and navigation while clearing their current effects.</summary>
+    /// <summary>Reset turns off Auto modes and clears effects while preserving navigation and camera.</summary>
     [Fact]
-    public async Task ResetPreservesModesAndResumesOnNextNavigation()
+    public async Task ResetTurnsOffAutoModesAndKeepsEffectsClearedOnNavigation()
     {
         var actions = new Actions();
         using var model = new LayersViewModel(actions);
@@ -677,11 +637,12 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(focuses, actions.FocusCount);
         Assert.Empty(actions.SelectionTargets);
         Assert.Empty(actions.EmphasisTargets);
-        Assert.True(model.IsAutoFocus && model.IsAutoSelect && model.IsAutoHighlight);
+        Assert.False(model.IsAutoFocus || model.IsAutoSelect || model.IsAutoHighlight);
+        Assert.Equal("Selection and highlight cleared. Auto modes off.", model.Status);
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
-        Assert.Equal(model.Current!.Objects, actions.SelectionTargets);
-        Assert.Equal(model.Current.Objects, actions.EmphasisTargets);
-        Assert.Equal(focuses + 1, actions.FocusCount);
+        Assert.Empty(actions.SelectionTargets);
+        Assert.Empty(actions.EmphasisTargets);
+        Assert.Equal(focuses, actions.FocusCount);
     }
 
     /// <summary>Manual actions preserve states previously set by the other actions.</summary>

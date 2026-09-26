@@ -26,12 +26,17 @@ The expanded Layers explorer SHALL use the selected Action strip layout: Focus, 
 
 ### Requirement: CAD object selection
 
-Select and enabled Auto Select SHALL replace CAD selection with valid objects from the current group, type, or object in the active drawing space. Selection SHALL NOT move the camera, change temporary highlighting, or depend on usable focus bounds or an unlocked viewport. Invalid or deleted targets SHALL be excluded. If no valid targets remain, the action SHALL clear stale CAD selection and explain that selection is unavailable. With Auto Select off, ordinary navigation between targets SHALL leave existing CAD selection unchanged; root navigation and session cleanup SHALL still clear it. Selection SHALL NOT modify stored geometry or properties or reveal hidden objects.
+Select and enabled Auto Select SHALL replace CAD selection with valid objects from the current group, type, or object in the active drawing space. The drawing SHALL show the updated selection without requiring focus to leave the modeless panel. Selection SHALL NOT move the camera, change temporary highlighting, or depend on usable focus bounds or an unlocked viewport. Invalid or deleted targets SHALL be excluded. If no valid targets remain, the action SHALL clear stale CAD selection and explain that selection is unavailable. With Auto Select off, ordinary navigation between targets SHALL leave existing CAD selection unchanged; root navigation and session cleanup SHALL still clear it. Selection SHALL NOT modify stored geometry or properties or reveal hidden objects.
 
 #### Scenario: Select without usable focus
 
 - **WHEN** a valid object has no usable focus bounds or the active viewport is locked, and the user presses Select
 - **THEN** the object is selected without moving the camera or changing temporary highlighting
+
+#### Scenario: Select from the modeless panel
+
+- **WHEN** the user presses Select while the CAD Lens panel has focus
+- **THEN** the selection appears in the drawing without clicking the AutoCAD window
 
 #### Scenario: Keep a manual selection while browsing
 
@@ -45,7 +50,7 @@ Select and enabled Auto Select SHALL replace CAD selection with valid objects fr
 
 ### Requirement: Automatic drawing actions
 
-Each Auto mode SHALL be independent and apply its action to the current target immediately when enabled. Subsequent navigation SHALL apply all enabled modes to the destination target. An unavailable focus operation SHALL NOT prevent selection or highlighting from running. Turning Auto Select off SHALL clear CAD selection only; turning Auto Highlight off SHALL clear temporary emphasis and dimming only; turning Auto Focus off SHALL leave the camera unchanged. Auto settings SHALL persist through Reset, root navigation, and collapse/reactivation within the session. Restoring a collapsed session SHALL NOT invoke Auto Focus.
+Each Auto mode SHALL be independent and apply its action to the current target immediately when enabled. Subsequent navigation SHALL apply all enabled modes to the destination target. An unavailable focus operation SHALL NOT prevent selection or highlighting from running. Turning Auto Select off SHALL clear CAD selection only; turning Auto Highlight off SHALL clear temporary emphasis and dimming only; turning Auto Focus off SHALL leave the camera unchanged. Auto settings SHALL persist through root navigation and collapse/reactivation within the session. Reset SHALL turn all Auto modes off. Restoring a collapsed session SHALL NOT invoke Auto Focus.
 
 #### Scenario: Enable an Auto mode for the current target
 
@@ -64,18 +69,18 @@ Each Auto mode SHALL be independent and apply its action to the current target i
 
 ### Requirement: Shared drawing reset
 
-Reset SHALL clear CAD selection and temporary emphasis and dimming. It SHALL preserve the camera, current navigation, inclusion filters, and all Auto settings. Enabled modes SHALL remain idle after Reset until the next navigation or an explicit action. Reset SHALL be disabled while work is pending, so a completed Reset cannot be overwritten by an older operation. The explorer SHALL provide no separate Clear highlight or Highlight CAD Selection button.
+Reset SHALL clear CAD selection and temporary emphasis and dimming, and turn off all Auto modes. It SHALL preserve the camera, current navigation, and inclusion filters. Reset SHALL be disabled while work is pending, so a completed Reset cannot be overwritten by an older operation. The explorer SHALL provide no separate Clear highlight or Highlight CAD Selection button.
 
 #### Scenario: Reset with automatic modes enabled
 
 - **WHEN** the user presses Reset after all pending work finishes
-- **THEN** selection and highlighting are cleared without moving the camera or changing navigation, filters, or Auto settings
-- **AND** the effects stay cleared until navigation or another explicit action
+- **THEN** selection and highlighting are cleared, all Auto modes are off, and the camera, navigation, and filters remain unchanged
+- **AND** the effects stay cleared during navigation until an Auto mode is enabled or a manual action runs
 
 #### Scenario: Navigate after Reset
 
 - **WHEN** the user navigates to another layer, type, object, or ancestor after Reset
-- **THEN** each enabled Auto mode applies to that destination
+- **THEN** selection, highlighting, and camera remain unchanged while all Auto modes are off
 
 #### Scenario: Work is still pending
 

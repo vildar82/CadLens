@@ -89,22 +89,6 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         ToggleLensCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary>Lets the active module decide what drawing edits mean for its own UI and services.</summary>
-    public void OnDrawingChanged()
-    {
-        if (_disposed || !_hasDrawing || !IsLensActive || IsCleanupPending)
-            return;
-
-        try
-        {
-            _selectedLens!.Lens.OnDrawingChanged();
-        }
-        catch (Exception exception)
-        {
-            Status = $"{_selectedLens!.Descriptor.Label}: {exception.Message}";
-        }
-    }
-
     /// <inheritdoc />
     public void Dispose() => Close(false);
 

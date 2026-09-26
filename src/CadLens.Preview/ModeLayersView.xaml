@@ -114,8 +114,8 @@
                 <ContentControl x:Name="ActionPanel" HorizontalContentAlignment="Stretch" />
                 <DockPanel Margin="0,7,0,0">
                     <Button x:Name="ResetAction" DockPanel.Dock="Left" Content="Reset" Style="{StaticResource ModeButton}" Command="{Binding ResetCommand}" Padding="10,4"
-                            ToolTip="Clear CAD selection and temporary highlight. Keep the camera and Auto settings; enabled modes apply on the next navigation." AutomationProperties.Name="Reset selection and highlight" />
-                    <TextBlock Text="Keeps Auto · camera" FontSize="10" Foreground="{StaticResource QuietMuted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                            ToolTip="Clear CAD selection and temporary highlight, turn off all Auto modes, and keep the camera." AutomationProperties.Name="Reset selection, highlight, and Auto modes" />
+                    <TextBlock Text="Auto off · camera kept" FontSize="10" Foreground="{StaticResource QuietMuted}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </DockPanel>
                 <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="11" Height="28" Margin="1,4,1,0" ToolTip="{Binding Status}" AutomationProperties.LiveSetting="Polite">
                     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="#ADC0C9" /><Style.Triggers><DataTrigger Binding="{Binding IsBusy}" Value="True"><Setter Property="Foreground" Value="{StaticResource QuietAccent}" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>

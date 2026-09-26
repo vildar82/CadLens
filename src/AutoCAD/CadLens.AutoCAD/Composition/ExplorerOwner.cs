@@ -1,7 +1,6 @@
 ﻿using Trace = System.Diagnostics.Trace;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.Colors;
-using Autodesk.AutoCAD.DatabaseServices;
 using CadLens.Lenses;
 using CadLens.UI;
 using Common;
@@ -90,7 +89,7 @@ internal sealed class ExplorerOwner
         if (args.Document != _observedDocument)
             return;
 
-        DetachDocument();
+        _observedDocument = null;
         ResetContext(false);
     }
 
@@ -101,44 +100,8 @@ internal sealed class ExplorerOwner
         if (_observedDocument == document)
             return;
 
-        DetachDocument();
         _observedDocument = document;
-
-        if (document is not null)
-        {
-            document.Database.ObjectAppended += OnObjectChanged;
-            document.Database.ObjectModified += OnObjectChanged;
-            document.Database.ObjectErased += OnObjectErased;
-            document.Database.ObjectUnappended += OnObjectChanged;
-            document.Database.ObjectReappended += OnObjectChanged;
-        }
-
         ResetContext(document is not null);
-    }
-
-    private void DetachDocument()
-    {
-        if (_observedDocument is null)
-            return;
-
-        _observedDocument.Database.ObjectAppended -= OnObjectChanged;
-        _observedDocument.Database.ObjectModified -= OnObjectChanged;
-        _observedDocument.Database.ObjectErased -= OnObjectErased;
-        _observedDocument.Database.ObjectUnappended -= OnObjectChanged;
-        _observedDocument.Database.ObjectReappended -= OnObjectChanged;
-        _observedDocument = null;
-    }
-
-    private void OnObjectChanged(object sender, ObjectEventArgs args)
-    {
-        if (args.DBObject is Entity or LayerTableRecord)
-            _viewModel?.OnDrawingChanged();
-    }
-
-    private void OnObjectErased(object sender, ObjectErasedEventArgs args)
-    {
-        if (args.DBObject is Entity or LayerTableRecord)
-            _viewModel?.OnDrawingChanged();
     }
 
     private void OnSystemVariableChanged(object sender, SystemVariableChangedEventArgs args)
@@ -167,7 +130,7 @@ internal sealed class ExplorerOwner
             Application.DocumentManager.DocumentToBeDestroyed -= OnContextLeaving;
             Application.DocumentManager.DocumentActivated -= OnDocumentActivated;
             Application.SystemVariableChanged -= OnSystemVariableChanged;
-            DetachDocument();
+            _observedDocument = null;
 
             if (_window is not null)
             {

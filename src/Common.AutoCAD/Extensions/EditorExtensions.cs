@@ -44,6 +44,7 @@ public static class EditorExtensions
         if (objects.Count == 0)
         {
             editor.SetImpliedSelection([]);
+            editor.UpdateScreen();
             return 0;
         }
 
@@ -65,6 +66,7 @@ public static class EditorExtensions
         }
 
         editor.SetImpliedSelection([.. selected]);
+        editor.UpdateScreen();
         return selected.Count;
     }
 }

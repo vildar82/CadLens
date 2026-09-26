@@ -46,6 +46,5 @@ internal sealed class CounterLens(CounterViewModel viewModel, string id = "count
         Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
     public void OnContextChanged(bool hasDrawing) { }
-    public void OnDrawingChanged() { }
     public void Close(bool hostTerminating) { }
 }

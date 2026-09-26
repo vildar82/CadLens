@@ -13,6 +13,5 @@ internal sealed class ModePreviewLens(LayersViewModel model, bool useActionStrip
     public Task ActivateAsync(CancellationToken cancellationToken) => model.ActivateAsync(cancellationToken);
     public Task<HostResult<bool>> DeactivateAsync(CancellationToken cancellationToken) => model.DeactivateAsync(cancellationToken);
     public void OnContextChanged(bool hasDrawing) => _ = model.ResetContextAsync(hasDrawing);
-    public void OnDrawingChanged() => model.OnDrawingChanged();
     public void Close(bool hostTerminating) => model.Close(hostTerminating);
 }

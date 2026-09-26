@@ -10,7 +10,7 @@
 
 - [x] 2.1 Add independent Select, Auto Select, and awaited Auto Focus commands to LayersViewModel. Set defaults to Focus off, Select off, Highlight on. Verify root-level toggle availability, disabled manual actions without targets, immediate application when enabling a mode, and independent manual actions using focused managed checks.
 - [x] 2.2 Apply enabled modes through the existing navigation method, with Focus last. Verify layer/type/object entry, Previous/Next, Back, and breadcrumbs; selection-only browsing must leave the camera unchanged. Check that unavailable Focus does not prevent selection/highlighting and that root navigation clears effects without changing modes.
-- [x] 2.3 Replace Clear with Reset. Verify that Reset clears selection/highlighting, preserves camera/navigation/filters/modes, stays disabled while busy, and leaves effects cleared until a subsequent action. Check that navigation after Reset reapplies enabled modes.
+- [x] 2.3 Replace Clear with Reset. Verify that Reset clears selection/highlighting, turns off all Auto modes, preserves camera/navigation/filters, stays disabled while busy, and leaves effects cleared during subsequent navigation.
 - [x] 2.4 Preserve modes through collapse and restore valid navigation after fresh reads. Verify selection/highlight restoration without Focus, deleted/excluded-target fallback, and late completion after collapse, close, or context changes. Keep the existing cleanup failure/retry behavior and new-session defaults.
 
 ## 3. Integrate layout B

@@ -9,7 +9,7 @@
 
 ## 2. Host session integration
 
-- [ ] 2.1 Forward drawing edits without scheduling inventory reads; verify compact edits trigger no background work, activation and explicit Refresh load fresh data, and active document/space changes reload the root once old work settles.
+- [ ] 2.1 Keep drawing edits free of database event subscriptions and background reads; verify activation and explicit Refresh load fresh data, and active document/space changes reload the root once old work settles.
 - [x] 2.2 Preserve compact/inactive state across document and space changes while discarding old navigation; verify the next activation uses the new context root, closing the last drawing disables drawing actions, and existing context cleanup remains effective.
 - [ ] 2.3 Keep CADLENS startup compact and repeated invocation state-preserving; verify one window/session is reused in either mode and closing/reopening starts a fresh inactive session with default filters. Verify closing during pending activation or cleanup cannot recreate effects.
 

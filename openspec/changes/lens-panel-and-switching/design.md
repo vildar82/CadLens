@@ -2,7 +2,7 @@
 
 ## Context
 
-See proposal.md for motivation and the two delta specifications for observable behavior. The original ExplorerViewModel owned both navigation and the panel lifecycle; these responsibilities are now split between LayersViewModel and the shared shell. NavigationState.Reset reconciles saved node identities with refreshed data. ExplorerOwner forwards document and drawing notifications. ReadInventoryAsync clears effects, reads, restores navigation, and reapplies selection emphasis.
+See proposal.md for motivation and the two delta specifications for observable behavior. The original ExplorerViewModel owned both navigation and the panel lifecycle; these responsibilities are now split between LayersViewModel and the shared shell. NavigationState.Reset reconciles saved node identities with refreshed data. ExplorerOwner forwards document and space changes. ReadInventoryAsync clears effects, reads, restores navigation, and reapplies selection emphasis.
 
 These existing paths need activation awareness; hiding the content alone would allow background refresh to reapply effects while compact.
 
@@ -56,7 +56,7 @@ Alternative: cancellation alone. Rejected because it does not remove an effect a
 
 ### 5. Make drawing-edit refresh explicit
 
-ExplorerOwner forwards entity and layer-record changes directly through the shell to the active module. Layers displays a Refresh hint when idle; notifications while busy do not schedule work. There is no owner Idle refresh loop, pending-edit flag, delay, or reread from operation completion. This prevents graphics regeneration and inventory reads from repeatedly triggering each other.
+ExplorerOwner does not subscribe to database object changes. Drawing edits do not schedule work; the user can press Refresh to load the active space. This avoids event traffic from graphics regeneration and inventory reads.
 
 Reads happen on activation, Refresh, filter changes, and document/space changes while active. Context changes cancel old work, clear effects and navigation, wait for the old operation, and load the new root. Multiple context notifications waiting on the same operation produce one new read. Compact lenses remain inactive. Preserve inclusion settings across collapse; a new session retains the default-off filters.
 
@@ -66,7 +66,7 @@ Automatic rereads after every database event were removed after the user reporte
 
 Keep LayersLensProvider as the sole production lens, but make composition support any number of provider/action registrations. CADLENS still opens or activates the same window; the view model's inactive default supplies compact startup. Repeated command invocation only brings the current window forward and does not toggle its mode.
 
-ILens is a WPF module contract in CadLens.UI. It exposes only a descriptor, its own FrameworkElement view, activation/deactivation, context and drawing-edit notifications, and synchronous close. No common presentation DTO, filter model, command set, or view-model base class is required. Modules and their constructor dependencies are registered in DI; ExplorerViewModel consumes IEnumerable<ILens> and ExplorerWindow uses a ContentControl to host ActiveView.
+ILens is a WPF module contract in CadLens.UI. It exposes only a descriptor, its own FrameworkElement view, activation/deactivation, context notifications, and synchronous close. No common presentation DTO, filter model, command set, or view-model base class is required. Modules and their constructor dependencies are registered in DI; ExplorerViewModel consumes IEnumerable<ILens> and ExplorerWindow uses a ContentControl to host ActiveView.
 
 The shared shell tracks toolbar selection and lifecycle ordering only. It cancels the outgoing activation lifetime and waits for activation to settle before deactivation, which must settle any additional module-owned work. Successful cleanup is required before another module can activate. Failed cleanup is reported and retried on the next activation attempt. Close notifies every module before the host queue and DI scope are disposed, with a host-termination flag to prevent unsafe redraw during shutdown.
 
