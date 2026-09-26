@@ -125,6 +125,8 @@ The project uses OpenSpec to agree on behavior and verification criteria before 
 
 On every push, the Windows GitHub Actions workflow restores dependencies, builds the solution, runs managed tests, and uploads the bundle ZIP. Native AutoCAD rendering and lifecycle checks are separate.
 
+To publish a prerelease, update `Version` in `Directory.Build.props`, merge it into `main`, and run the **Build and test** workflow on `main` using **Run workflow** or `gh workflow run build.yml --ref main`. The workflow creates the `v<Version>` tag and attaches `CadLens.bundle.zip` to the GitHub Release. Each release needs a new version; rerunning the workflow with an existing tag fails.
+
 ## Verification
 
 The first plugin is implemented, and its bootstrap, Layers, panel, and navigation changes are archived. Their records distinguish managed checks, UI preview checks, and native host observations:
