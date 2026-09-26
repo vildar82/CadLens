@@ -40,7 +40,6 @@ jobs:
         with:
           name: CadLens.bundle
           path: artifacts/bundle/CadLens.bundle.zip
-          archive: false
           if-no-files-found: error
 
   release:
