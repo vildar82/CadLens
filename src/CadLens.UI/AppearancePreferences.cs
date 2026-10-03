@@ -6,7 +6,6 @@ namespace CadLens.UI;
 /// <summary>Per-user appearance choices, independent of drawings and lens sessions.</summary>
 public sealed class AppearancePreferences : ObservableObject
 {
-    private readonly SettingsService _settings;
     private string _theme = "Follow AutoCAD";
     private string _palette = "Quiet";
     private string _accent = "Mint";
@@ -15,11 +14,11 @@ public sealed class AppearancePreferences : ObservableObject
     /// <param name="settings">Optional isolated settings service, primarily for managed tests.</param>
     public AppearancePreferences(SettingsService? settings = null)
     {
-        _settings = settings ?? SettingsService.Current;
+        SettingsStore = settings ?? SettingsService.Current;
         Load();
     }
 
-    internal SettingsService SettingsStore => _settings;
+    internal SettingsService SettingsStore { get; }
 
     /// <summary>Available base themes.</summary>
     public ImmutableArray<string> Themes { get; } = ["Follow AutoCAD", "Light", "Dark"];
@@ -84,7 +83,7 @@ public sealed class AppearancePreferences : ObservableObject
 
     private void Load()
     {
-        var settings = _settings.Load<Settings>("appearance.json");
+        var settings = SettingsStore.Load<Settings>("appearance.json");
 
         if (settings is null)
             return;
@@ -94,7 +93,7 @@ public sealed class AppearancePreferences : ObservableObject
         _accent = Accents.Contains(settings.Accent) ? settings.Accent : _accent;
     }
 
-    private void Save() => SaveFailed = !_settings.Save("appearance.json", new Settings(Theme, Palette, Accent));
+    private void Save() => SaveFailed = !SettingsStore.Save("appearance.json", new Settings(Theme, Palette, Accent));
 
     private sealed record Settings(string Theme, string Palette, string Accent);
 }
