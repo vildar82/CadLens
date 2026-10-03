@@ -1,6 +1,4 @@
 using System.Collections.Immutable;
-using System.IO;
-using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace CadLens.UI;
@@ -8,19 +6,16 @@ namespace CadLens.UI;
 /// <summary>Per-user appearance choices, independent of drawings and lens sessions.</summary>
 public sealed class AppearancePreferences : ObservableObject
 {
-    private readonly string _settingsPath;
+    private readonly SettingsService _settings;
     private string _theme = "Follow AutoCAD";
     private string _palette = "Quiet";
     private string _accent = "Mint";
 
     /// <summary>Loads saved choices; missing or damaged settings use the defaults.</summary>
-    /// <param name="settingsPath">Optional isolated settings file, primarily for managed tests.</param>
-    public AppearancePreferences(string? settingsPath = null)
+    /// <param name="settings">Optional isolated settings service, primarily for managed tests.</param>
+    public AppearancePreferences(SettingsService? settings = null)
     {
-        _settingsPath = settingsPath ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CadLens",
-            "appearance.json");
+        _settings = settings ?? SettingsService.Current;
         Load();
     }
 
@@ -87,60 +82,17 @@ public sealed class AppearancePreferences : ObservableObject
 
     private void Load()
     {
-        try
-        {
-            if (!File.Exists(_settingsPath))
-                return;
+        var settings = _settings.Load<Settings>("appearance.json");
 
-            var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(_settingsPath));
+        if (settings is null)
+            return;
 
-            if (settings is null)
-                return;
-
-            _theme = Themes.Contains(settings.Theme) ? settings.Theme : _theme;
-            _palette = Palettes.Contains(settings.Palette) ? settings.Palette : _palette;
-            _accent = Accents.Contains(settings.Accent) ? settings.Accent : _accent;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
-        {
-            System.Diagnostics.Trace.TraceWarning(
-                "CAD Lens appearance settings could not be read: {0}",
-                exception.Message);
-        }
+        _theme = Themes.Contains(settings.Theme) ? settings.Theme : _theme;
+        _palette = Palettes.Contains(settings.Palette) ? settings.Palette : _palette;
+        _accent = Accents.Contains(settings.Accent) ? settings.Accent : _accent;
     }
 
-    private void Save()
-    {
-        var temporaryPath = _settingsPath + $".{Guid.NewGuid():N}.tmp";
-
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_settingsPath))!);
-            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(new Settings(Theme, Palette, Accent)));
-            File.Move(temporaryPath, _settingsPath, true);
-            SaveFailed = false;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            System.Diagnostics.Trace.TraceWarning(
-                "CAD Lens appearance settings could not be saved: {0}",
-                exception.Message);
-            SaveFailed = true;
-        }
-        finally
-        {
-            try
-            {
-                File.Delete(temporaryPath);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                System.Diagnostics.Trace.TraceWarning(
-                    "CAD Lens temporary preferences could not be removed: {0}",
-                    exception.Message);
-            }
-        }
-    }
+    private void Save() => SaveFailed = !_settings.Save("appearance.json", new Settings(Theme, Palette, Accent));
 
     private sealed record Settings(string Theme, string Palette, string Accent);
 }

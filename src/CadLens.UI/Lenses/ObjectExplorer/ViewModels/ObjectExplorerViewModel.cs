@@ -12,10 +12,13 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 {
     private readonly IObjectExplorerActions _actions;
     private readonly DrawingGrouping _grouping;
+    private readonly SettingsService? _settings;
+    private readonly string _settingsFileName;
     private readonly NavigationState _navigation = new();
     private ImmutableHashSet<string> _enabledFilters = [];
     private CancellationToken _activationToken;
     private string _emptyMessage = "Refresh to explore the active space.";
+    private string _searchText = "";
     private CancellationTokenSource? _pendingRequest;
     private Task _operation = Task.CompletedTask;
     private ImmutableArray<LensNode> _visibleGroups = [];
@@ -24,16 +27,23 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     private bool _needsCleanup;
     private bool _hasDrawing = true;
     private bool _spaceIsDrawingData;
+    private bool _saveFailed;
     private UiMessage _status = new("Activate a lens to explore the drawing.");
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
     /// <param name="grouping">Root organization for this lens.</param>
-    public ObjectExplorerViewModel(IObjectExplorerActions actions, DrawingGrouping grouping)
+    /// <param name="settings">Optional persistent preferences; omitted for isolated transient sessions.</param>
+    public ObjectExplorerViewModel(
+        IObjectExplorerActions actions,
+        DrawingGrouping grouping,
+        SettingsService? settings = null)
     {
         UiText.Current.PropertyChanged += OnLanguageChanged;
         _actions = actions;
         _grouping = grouping;
+        _settings = settings;
+        _settingsFileName = grouping == DrawingGrouping.Layers ? "lens-layers.json" : "lens-object-types.json";
         LensLabel = grouping == DrawingGrouping.Layers ? "Layers" : "Object Types";
         RootLabel = grouping == DrawingGrouping.Layers ? "All layers" : "All types";
         SearchPlaceholder = grouping == DrawingGrouping.Layers ? "Search layers" : "Search types";
@@ -82,6 +92,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         SortByNameCommand = new RelayCommand(() => ChangeSort(false));
         SortByCountCommand = new RelayCommand(() => ChangeSort(true));
         ClearSearchCommand = new RelayCommand(() => SearchText = "");
+        RestorePreferences();
     }
 
     /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
@@ -96,7 +107,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Current operation result or explanation.</summary>
-    public string Status => _status.ToString();
+    public string Status => _saveFailed
+        ? new UiMessage(
+            "{0} {1}",
+            _status,
+            new UiMessage("Unable to save preferences. Changes apply for this session.")).ToString()
+        : _status.ToString();
 
     /// <summary>Active space supplied by the lens.</summary>
     public string SpaceLabel
@@ -185,13 +201,16 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Finds groups by name in the root list.</summary>
     public string SearchText
     {
-        get;
+        get => _searchText;
         set
         {
-            if (SetProperty(ref field, value))
-                UpdateVisibleGroups();
+            if (!SetProperty(ref _searchText, value))
+                return;
+
+            UpdateVisibleGroups();
+            SavePreferences();
         }
-    } = "";
+    }
 
     /// <summary>Whether the name column controls root ordering.</summary>
     public bool IsNameSortActive => !IsCountSortActive;
@@ -388,6 +407,38 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(NameSortArrow));
         OnPropertyChanged(nameof(CountSortArrow));
         UpdateVisibleGroups();
+        SavePreferences();
+    }
+
+    private void RestorePreferences()
+    {
+        if (_settings?.Load<LensPreferences>(_settingsFileName) is not { } preferences)
+            return;
+
+        IsAutoFocus = preferences.IsAutoFocus;
+        IsAutoSelect = preferences.IsAutoSelect;
+        IsAutoIsolation = preferences.IsAutoIsolation;
+        _enabledFilters = [.. (preferences.EnabledFilters ?? []).Where(id => !string.IsNullOrEmpty(id))];
+        IsCountSortActive = preferences.IsCountSortActive;
+        _sortDescending = preferences.SortDescending;
+        _searchText = preferences.SearchText ?? "";
+    }
+
+    private void SavePreferences()
+    {
+        if (_disposed || _settings is null)
+            return;
+
+        var preferences = new LensPreferences(
+            IsAutoFocus,
+            IsAutoSelect,
+            IsAutoIsolation,
+            [.. _enabledFilters.Order(StringComparer.Ordinal)],
+            SearchText,
+            IsCountSortActive,
+            _sortDescending);
+        _saveFailed = !_settings.Save(_settingsFileName, preferences);
+        OnPropertyChanged(nameof(Status));
     }
 
     private void UpdateVisibleGroups()
@@ -484,6 +535,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         IsAutoFocus = false;
         IsAutoSelect = false;
         IsAutoIsolation = false;
+        SavePreferences();
 
         var result = await _actions.ClearAsync(cancellationToken);
         return result.Match(
@@ -551,6 +603,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         GroupLabel = success.Value.GroupLabel;
         Groups = success.Value.Groups;
         _emptyMessage = success.Value.EmptyMessage;
+        _enabledFilters = _enabledFilters.Intersect(success.Value.Filters.Select(filter => filter.Id));
         Filters =
         [
             .. success.Value.Filters.Select(filter => new FilterOption(filter, _enabledFilters.Contains(filter.Id)))
@@ -573,6 +626,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     private async Task<UiMessage> ToggleAutoIsolationAsync(CancellationToken cancellationToken)
     {
         IsAutoIsolation = !IsAutoIsolation;
+        SavePreferences();
 
         if (IsAutoIsolation && Current is not null)
             return await _actions.IsolateObjectsAsync(Current.Objects, cancellationToken);
@@ -583,6 +637,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     private async Task<UiMessage> ToggleAutoSelectAsync(CancellationToken cancellationToken)
     {
         IsAutoSelect = !IsAutoSelect;
+        SavePreferences();
 
         return IsAutoSelect && Current is not null
             ? await SelectCurrentAsync(cancellationToken)
@@ -592,6 +647,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     private async Task<UiMessage> ToggleAutoFocusAsync(CancellationToken cancellationToken)
     {
         IsAutoFocus = !IsAutoFocus;
+        SavePreferences();
 
         if (IsAutoFocus && Current is not null)
             return await FocusCurrentAsync(cancellationToken);
@@ -681,6 +737,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             .. Filters.Select(option => option with {IsEnabled = _enabledFilters.Contains(option.Descriptor.Id)})
         ];
         OnPropertyChanged(nameof(Filters));
+        SavePreferences();
 
         try
         {

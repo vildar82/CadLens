@@ -12,9 +12,13 @@ public sealed class ObjectExplorerLens : ILens, IDisposable
     /// <summary>Creates a lens with its own navigation, options, and host action state.</summary>
     /// <param name="actions">Context-checked host operations.</param>
     /// <param name="grouping">Root organization for this lens.</param>
-    public ObjectExplorerLens(IObjectExplorerActions actions, DrawingGrouping grouping)
+    /// <param name="settings">Optional persistent preferences for this lens's grouping.</param>
+    public ObjectExplorerLens(
+        IObjectExplorerActions actions,
+        DrawingGrouping grouping,
+        SettingsService? settings = null)
     {
-        ViewModel = new ObjectExplorerViewModel(actions, grouping);
+        ViewModel = new ObjectExplorerViewModel(actions, grouping, settings);
         Descriptor = grouping == DrawingGrouping.Layers
             ? new LensDescriptor("layers", "Layers")
             : new LensDescriptor("object-types", "Objects");

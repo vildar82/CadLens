@@ -27,12 +27,13 @@ public sealed class AppearanceTests
     public void PreferencesRoundTripAndReset()
     {
         using var file = new SettingsFile();
-        var preferences = new AppearancePreferences(file.Path) {Theme = "Light", Palette = "Paper", Accent = "Amber"};
-        var reopened = new AppearancePreferences(file.Path);
+        var preferences = new AppearancePreferences(file.Service)
+            {Theme = "Light", Palette = "Paper", Accent = "Amber"};
+        var reopened = new AppearancePreferences(file.Service);
         Assert.Equal(("Light", "Paper", "Amber"), (reopened.Theme, reopened.Palette, reopened.Accent));
         Assert.False(preferences.SaveFailed);
         reopened.Reset();
-        var defaults = new AppearancePreferences(file.Path);
+        var defaults = new AppearancePreferences(file.Service);
         Assert.Equal(("Follow AutoCAD", "Quiet", "Mint"), (defaults.Theme, defaults.Palette, defaults.Accent));
         Assert.Empty(Directory.GetFiles(file.Directory, "*.tmp"));
     }
@@ -47,7 +48,7 @@ public sealed class AppearanceTests
     {
         using var file = new SettingsFile();
         File.WriteAllText(file.Path, json);
-        var preferences = new AppearancePreferences(file.Path);
+        var preferences = new AppearancePreferences(file.Service);
         Assert.Equal(
             ("Follow AutoCAD", "Quiet", "Mint"),
             (preferences.Theme, preferences.Palette, preferences.Accent));
@@ -59,7 +60,7 @@ public sealed class AppearanceTests
     {
         using var file = new SettingsFile();
         Directory.CreateDirectory(file.Path);
-        var preferences = new AppearancePreferences(file.Path) {Theme = "Light"};
+        var preferences = new AppearancePreferences(file.Service) {Theme = "Light"};
         Assert.Equal("Light", preferences.Theme);
         Assert.True(preferences.SaveFailed);
         Assert.Empty(Directory.GetFiles(file.Directory, "*.tmp"));
@@ -77,8 +78,8 @@ public sealed class AppearanceTests
                 [new CounterLens(new CounterViewModel(new CounterService()))]);
             using var secondModel =
                 new ExplorerViewModel([new CounterLens(new CounterViewModel(new CounterService()))]);
-            var first = new ExplorerWindow(firstModel, new AppearancePreferences(firstFile.Path));
-            var second = new ExplorerWindow(secondModel, new AppearancePreferences(secondFile.Path));
+            var first = new ExplorerWindow(firstModel, new AppearancePreferences(firstFile.Service));
+            var second = new ExplorerWindow(secondModel, new AppearancePreferences(secondFile.Service));
             var defaultBackground = Brush(first, "QuietBackground").Color;
             first.SetHostTheme(true);
             Assert.NotEqual(defaultBackground, Brush(first, "QuietBackground").Color);
@@ -103,7 +104,7 @@ public sealed class AppearanceTests
             using var layers = new ObjectExplorerLens(actions, DrawingGrouping.Layers);
             using var types = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
             using var model = new ExplorerViewModel([layers, types]);
-            var window = new ExplorerWindow(model, new AppearancePreferences(file.Path));
+            var window = new ExplorerWindow(model, new AppearancePreferences(file.Service));
             RenderSized((FrameworkElement) window.Content, 300, 52, "appearance-compact-dark.png");
             window.Appearance.Theme = "Light";
             RenderSized((FrameworkElement) window.Content, 300, 52, "appearance-compact-light.png");
@@ -134,7 +135,7 @@ public sealed class AppearanceTests
         {
             using var file = new SettingsFile();
             using var model = new ExplorerViewModel([new CounterLens(new CounterViewModel(new CounterService()))]);
-            var window = new ExplorerWindow(model, new AppearancePreferences(file.Path));
+            var window = new ExplorerWindow(model, new AppearancePreferences(file.Service));
 
             foreach (var theme in ThemeChoices)
             foreach (var palette in window.Appearance.Palettes)
@@ -168,7 +169,7 @@ public sealed class AppearanceTests
         {
             using var file = new SettingsFile();
             using var model = new ExplorerViewModel([new CounterLens(new CounterViewModel(new CounterService()))]);
-            var window = new ExplorerWindow(model, new AppearancePreferences(file.Path));
+            var window = new ExplorerWindow(model, new AppearancePreferences(file.Service));
             var popup = Assert.IsType<Popup>(window.FindName("AppearancePopup"));
             var choice = Assert.IsType<ComboBox>(window.FindName("ThemeChoice"));
             var button = Assert.IsType<ToggleButton>(window.FindName("AppearanceButton"));
@@ -258,7 +259,7 @@ public sealed class AppearanceTests
             var actions = new Actions(114);
             using var lens = new ObjectExplorerLens(actions, grouping);
             using var model = new ExplorerViewModel([lens]);
-            var preferences = new AppearancePreferences(file.Path) {Theme = theme};
+            var preferences = new AppearancePreferences(file.Service) {Theme = theme};
             var window = new ExplorerWindow(model, preferences);
 
             try
@@ -330,20 +331,6 @@ public sealed class AppearanceTests
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var output = File.Create(Path.Combine(AppContext.BaseDirectory, name));
         encoder.Save(output);
-    }
-
-    internal sealed class SettingsFile : IDisposable
-    {
-        internal string Directory { get; } = System.IO.Path.Combine(
-            System.IO.Path.GetTempPath(),
-            "CadLens.Appearance.Tests",
-            Guid.NewGuid().ToString("N"));
-
-        internal string Path => System.IO.Path.Combine(Directory, "appearance.json");
-
-        internal SettingsFile() => System.IO.Directory.CreateDirectory(Directory);
-
-        public void Dispose() => System.IO.Directory.Delete(Directory, true);
     }
 
     internal sealed class Actions(int groupCount = 12) : IObjectExplorerActions

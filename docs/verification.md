@@ -39,7 +39,8 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    should bring the existing panel forward. Activate Object Types and browse Type → Object across layers;
    check per-object layer details, search, count sorting, inclusion filters, and switching between lenses.
    Each lens should retain its own valid navigation and Auto settings. Drawing edits should require Refresh.
-2. Try Focus, Select, and Isolate independently. All Auto modes start off. Auto Select should follow
+2. Try Focus, Select, and Isolate independently. With no saved preferences, all Auto modes start off.
+   Saved Auto modes should apply only after choosing a target. Auto Select should follow
    navigation without moving the camera; Select should remain usable when a locked viewport blocks Focus.
 3. Isolate patterned/solid hatches, text, blocks with attributes/nested blocks, repeated insertions,
    xrefs, and custom/proxy entities. Targets should retain their original appearance; other direct
@@ -58,3 +59,9 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    Reopen the panel and restart the host to confirm preferences persist; Restore defaults should
    return to Follow AutoCAD, Quiet, and Mint. Theme changes must preserve camera, selection, isolation,
    active navigation, and drawing properties. Managed WPF renders do not verify native host styling.
+8. Set different filters, search text, sorting directions, and Auto modes in Layers and Objects.
+   Close/reopen the panel and restart the host. Confirm compact startup preserves preselection,
+   each lens restores its own controls on activation, and the first inventory uses its saved filters.
+   Fresh sessions must start at the root list without old drawing targets or effects. Switch drawings
+   and spaces to confirm preferences survive while navigation resets. Press Reset and reopen again:
+   Auto modes should stay off while filters, search, and sorting remain saved.

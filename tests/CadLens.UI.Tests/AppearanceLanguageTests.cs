@@ -21,11 +21,11 @@ public sealed class AppearanceLanguageTests
         WpfTest.Run(() =>
         {
             var previousLanguage = UiText.Current.Preference;
-            using var file = new AppearanceTests.SettingsFile();
+            using var file = new SettingsFile();
             using var layers = new ObjectExplorerLens(new AppearanceTests.Actions(), DrawingGrouping.Layers);
             using var objects = new ObjectExplorerLens(new AppearanceTests.Actions(), DrawingGrouping.ObjectTypes);
             using var model = new ExplorerViewModel([layers, objects]);
-            var preferences = new AppearancePreferences(file.Path) {Theme = "Light"};
+            var preferences = new AppearancePreferences(file.Service) {Theme = "Light"};
             var window = new ExplorerWindow(model, preferences);
 
             try
