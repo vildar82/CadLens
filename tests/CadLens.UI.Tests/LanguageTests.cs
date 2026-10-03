@@ -236,7 +236,7 @@ public sealed class LanguageTests : IDisposable
             var window = new ExplorerWindow(shell);
             var content = (FrameworkElement)window.Content;
             Layout(content, 340, 52);
-            var buttons = WpfTest.Descendants(content).OfType<ToggleButton>().ToArray();
+            var buttons = WpfTest.Descendants(content).OfType<ToggleButton>().Where(button => ReferenceEquals(button.Command, shell.ToggleLensCommand)).ToArray();
             Assert.Equal(["Слои", "Объекты"], buttons.Select(button => button.Content));
             var scroller = WpfTest.Descendants(content).OfType<ScrollViewer>().Single();
             Assert.True(scroller.ExtentWidth <= scroller.ViewportWidth, "Russian lens choices must fit without scrolling.");
