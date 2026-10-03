@@ -212,6 +212,9 @@
   <data name="Layers" xml:space="preserve">
     <value>Слои</value>
   </data>
+  <data name="Browse active-space objects by layer, then by type and object." xml:space="preserve">
+    <value>Просматривайте объекты текущего пространства по слоям, затем по типам и отдельным объектам.</value>
+  </data>
   <data name="Lens effects cleared." xml:space="preserve">
     <value>Эффекты линзы сброшены.</value>
   </data>
@@ -267,6 +270,9 @@
   </data>
   <data name="Objects" xml:space="preserve">
     <value>Объекты</value>
+  </data>
+  <data name="Browse active-space objects by type across layers, then by object." xml:space="preserve">
+    <value>Просматривайте объекты текущего пространства по типам из всех слоёв, затем по отдельным объектам.</value>
   </data>
   <data name="Open a drawing to explore its objects." xml:space="preserve">
     <value>Откройте чертёж для просмотра его объектов.</value>

@@ -212,6 +212,9 @@
   <data name="Layers" xml:space="preserve">
     <value>Layers</value>
   </data>
+  <data name="Browse active-space objects by layer, then by type and object." xml:space="preserve">
+    <value>Browse active-space objects by layer, then by type and object.</value>
+  </data>
   <data name="Lens effects cleared." xml:space="preserve">
     <value>Lens effects cleared.</value>
   </data>
@@ -267,6 +270,9 @@
   </data>
   <data name="Objects" xml:space="preserve">
     <value>Objects</value>
+  </data>
+  <data name="Browse active-space objects by type across layers, then by object." xml:space="preserve">
+    <value>Browse active-space objects by type across layers, then by object.</value>
   </data>
   <data name="Open a drawing to explore its objects." xml:space="preserve">
     <value>Open a drawing to explore its objects.</value>
