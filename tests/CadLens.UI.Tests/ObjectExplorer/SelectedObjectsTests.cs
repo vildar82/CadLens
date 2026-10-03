@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -12,6 +13,66 @@ namespace CadLens.UI.Tests;
 [Collection("Language changes")]
 public sealed class SelectedObjectsTests
 {
+    /// <summary>The real radio click requests objects and either switches scope or displays the host failure.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("The active drawing space has changed. Refresh to try again.")]
+    [InlineData("Object selection canceled. Previous view kept.")]
+    public void ScopeButtonClickRequestsObjectsAndShowsTheResult(string? failure) => WpfTest.Run(() =>
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        model.ActivateAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var groups = model.Groups;
+        var view = new ObjectExplorerView(model);
+        view.Measure(new Size(300, 450));
+        view.Arrange(new Rect(0, 0, 300, 450));
+        view.UpdateLayout();
+        var selected = Assert.IsType<RadioButton>(view.FindName("SelectedObjectsScope"));
+        var all = Assert.IsType<RadioButton>(view.FindName("AllObjectsScope"));
+        Assert.True(selected.IsEnabled);
+        Assert.True(selected.IsHitTestVisible);
+        Assert.True(selected is {ActualWidth: > 0, ActualHeight: > 0});
+        actions.PendingSelection = new TaskCompletionSource<HostResult<ImmutableArray<IPlacedObjectId>>>();
+        actions.Calls.Clear();
+
+        typeof(ToggleButton).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(selected, null);
+
+        Assert.Equal(["request"], actions.Calls);
+        Assert.True(model.IsBusy);
+        Assert.False(selected.IsEnabled);
+        Assert.False(all.IsEnabled);
+        Assert.Equal(groups, model.Groups);
+        actions.PendingSelection.SetResult(failure is null
+            ? new HostResult<ImmutableArray<IPlacedObjectId>>.Success([new TestEntityId(1)])
+            : new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(failure));
+        Assert.NotNull(model.ShowSelectedObjectsCommand.ExecutionTask);
+        model.ShowSelectedObjectsCommand.ExecutionTask.GetAwaiter().GetResult();
+        view.UpdateLayout();
+        Assert.False(model.IsBusy);
+        Assert.True(selected.IsEnabled);
+        Assert.True(all.IsEnabled);
+
+        if (failure is null)
+        {
+            Assert.Equal(["request", "clear", "read"], actions.Calls);
+            Assert.True(model.IsSelectedObjectsOnly);
+            Assert.True(selected.IsChecked);
+            Assert.False(all.IsChecked);
+            Assert.Equal("1", Assert.Single(model.Groups.SelectMany(group => group.Objects)).DisplayId);
+        }
+        else
+        {
+            Assert.Equal(["request"], actions.Calls);
+            Assert.True(model.IsAllObjects);
+            Assert.False(selected.IsChecked);
+            Assert.True(all.IsChecked);
+            Assert.Equal(groups, model.Groups);
+            Assert.Equal(UiText.Current.Get(failure), model.Status);
+            Assert.Contains(model.Status, WpfTest.Descendants(view).OfType<TextBlock>().Select(block => block.Text));
+        }
+    });
+
     /// <summary>Real controls reflect selected scope and update their refresh text when language changes.</summary>
     [Fact]
     public void ScopeControlsShowLocalizedSelectionAndRefresh() => WpfTest.Run(() =>

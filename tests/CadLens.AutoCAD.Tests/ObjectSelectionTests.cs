@@ -78,16 +78,21 @@ public sealed class ObjectSelectionTests
 
     /// <summary>Escape, native failure, and exceptions preserve isolation and the original empty CAD preselection.</summary>
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    public Task FailedPickRestoresPreviousEffects(int failure) => AutoCadTaskServiceTests.OnUiThread(async () =>
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    public Task FailedPickRestoresPreviousEffects(int failure, bool focusSuccess) => AutoCadTaskServiceTests.OnUiThread(async () =>
     {
         var document = CreateDocument();
         using var tasks = new AutoCadTaskService();
         var graphics = new EntityIsolationService();
         var hidden = document.Database.Add(new Entity());
         graphics.Apply(document.Database, [], [hidden]);
+        document.Window.FocusSuccess = focusSuccess;
+        Application.MainWindow.FocusSuccess = false;
         document.Editor.Pick = _ =>
         {
             document.Editor.Selection = [hidden];
@@ -106,6 +111,7 @@ public sealed class ObjectSelectionTests
             await ExecuteQueuedRequest();
 
             Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable>(await request);
+            Assert.Equal(1, document.Editor.PromptCount);
             Assert.Empty(document.Editor.Selection);
             Assert.True(graphics.IsApplicable(document.Database.Objects[hidden.Value]));
         }
@@ -138,6 +144,7 @@ public sealed class ObjectSelectionTests
             await ExecuteQueuedRequest();
 
             Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable>(await request);
+            Assert.Equal(1, document.Editor.PromptCount);
             Assert.Empty(document.Editor.Selection);
             Assert.True(graphics.IsApplicable(document.Database.Objects[hidden.Value]));
         }
@@ -154,6 +161,8 @@ public sealed class ObjectSelectionTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
     public Task ChangedSpaceRejectsSelectionAtEveryNativeBoundary(int boundary) => AutoCadTaskServiceTests.OnUiThread(async () =>
     {
         var document = CreateDocument();
@@ -169,6 +178,14 @@ public sealed class ObjectSelectionTests
                 break;
             case 2:
                 document.Drawing.OnRegen = ChangeSpace;
+                break;
+            case 4:
+                document.Window.FocusSuccess = false;
+                Application.MainWindow.OnFocus = ChangeSpace;
+                break;
+            case 5:
+                document.Window.FocusSuccess = false;
+                document.Window.OnFocus = ChangeSpace;
                 break;
         }
 
@@ -190,8 +207,15 @@ public sealed class ObjectSelectionTests
             Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable>(await request);
             Assert.Equal(boundary == 3 ? 1 : 0, document.Editor.PromptCount);
 
-            if (boundary == 3)
-                Assert.Equal([hidden], document.Editor.Selection);
+            switch (boundary)
+            {
+                case 5:
+                    Assert.Equal(0, Application.MainWindow.FocusCount);
+                    break;
+                case 3:
+                    Assert.Equal([hidden], document.Editor.Selection);
+                    break;
+            }
         }
         finally
         {
@@ -206,9 +230,11 @@ public sealed class ObjectSelectionTests
 
     /// <summary>Panel cancellation during focus or redraw prevents starting native selection.</summary>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public Task CancellationBeforePickDoesNotPrompt(bool duringRedraw) => AutoCadTaskServiceTests.OnUiThread(async () =>
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public Task CancellationBeforePickDoesNotPrompt(int boundary) => AutoCadTaskServiceTests.OnUiThread(async () =>
     {
         var document = CreateDocument();
         using var tasks = new AutoCadTaskService();
@@ -217,16 +243,33 @@ public sealed class ObjectSelectionTests
         var hidden = document.Database.Add(new Entity());
         graphics.Apply(document.Database, [], [hidden]);
 
-        if (duringRedraw)
-            document.Drawing.OnRegen = Cancel;
-        else
-            document.Window.OnFocus = Cancel;
+        switch (boundary)
+        {
+            case 0:
+                document.Window.OnFocus = Cancel;
+                break;
+            case 1:
+                document.Window.FocusSuccess = false;
+                Application.MainWindow.OnFocus = Cancel;
+                break;
+            case 2:
+                document.Drawing.OnRegen = Cancel;
+                break;
+            case 3:
+                document.Window.FocusSuccess = false;
+                document.Window.OnFocus = Cancel;
+                break;
+        }
 
         var request = CreateActions(tasks, graphics).RequestObjectsAsync(cancellation.Token);
         await ExecuteQueuedRequest();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
 
         Assert.Equal(0, document.Editor.PromptCount);
+
+        if (boundary == 3)
+            Assert.Equal(0, Application.MainWindow.FocusCount);
+
         Assert.False(graphics.IsApplicable(document.Database.Objects[hidden.Value]));
         await tasks.StopAsync();
 
@@ -270,9 +313,11 @@ public sealed class ObjectSelectionTests
         await tasks.StopAsync();
     });
 
-    /// <summary>Drawing focus failure leaves the existing isolation active.</summary>
-    [Fact]
-    public Task FocusFailureDoesNotSuspendIsolation() => AutoCadTaskServiceTests.OnUiThread(async () =>
+    /// <summary>Focus return values never block selection, and the public main-window fallback is attempted.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task FocusFailureStillReturnsChosenObjects(bool mainWindowFocusSuccess) => AutoCadTaskServiceTests.OnUiThread(async () =>
     {
         var document = CreateDocument();
         using var tasks = new AutoCadTaskService();
@@ -280,14 +325,25 @@ public sealed class ObjectSelectionTests
         var hidden = document.Database.Add(new Entity());
         graphics.Apply(document.Database, [], [hidden]);
         document.Window.FocusSuccess = false;
+        Application.MainWindow.FocusSuccess = mainWindowFocusSuccess;
+        document.Editor.Pick = _ =>
+        {
+            Assert.False(graphics.IsApplicable(document.Database.Objects[hidden.Value]));
+            document.Editor.Selection = [hidden];
+            return new PromptSelectionResult([hidden]);
+        };
 
         try
         {
             var request = CreateActions(tasks, graphics).RequestObjectsAsync(CancellationToken.None);
             await ExecuteQueuedRequest();
 
-            Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable>(await request);
-            Assert.Equal(0, document.Editor.PromptCount);
+            var selected = Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Success>(await request).Value;
+            Assert.Equal(hidden, Assert.IsType<EntityId>(Assert.Single(selected)).NativeId);
+            Assert.Equal(1, document.Window.FocusCount);
+            Assert.Equal(1, Application.MainWindow.FocusCount);
+            Assert.Equal(1, document.Editor.PromptCount);
+            Assert.Empty(document.Editor.Selection);
             Assert.True(graphics.IsApplicable(document.Database.Objects[hidden.Value]));
         }
         finally

@@ -331,9 +331,6 @@
   <data name="Object selection canceled. Previous view kept." xml:space="preserve">
     <value>Выбор объектов отменён. Предыдущий вид сохранён.</value>
   </data>
-  <data name="Unable to activate the drawing for selection." xml:space="preserve">
-    <value>Не удалось активировать чертёж для выбора объектов.</value>
-  </data>
   <data name="No selected objects match the inclusion filters." xml:space="preserve">
     <value>Нет выбранных объектов, соответствующих фильтрам.</value>
   </data>

@@ -63,9 +63,8 @@ internal sealed class ObjectExplorerActions(
         if (!selected.IsEmpty)
             return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(selected);
 
-        if (!document.Window.Focus())
-            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
-                "Unable to activate the drawing for selection.");
+        if (!document.Window.Focus() && !cancellationToken.IsCancellationRequested && HasContext(document, space))
+            Application.MainWindow.Focus();
 
         cancellationToken.ThrowIfCancellationRequested();
 

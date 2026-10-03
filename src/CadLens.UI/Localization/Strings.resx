@@ -331,9 +331,6 @@
   <data name="Object selection canceled. Previous view kept." xml:space="preserve">
     <value>Object selection canceled. Previous view kept.</value>
   </data>
-  <data name="Unable to activate the drawing for selection." xml:space="preserve">
-    <value>Unable to activate the drawing for selection.</value>
-  </data>
   <data name="No selected objects match the inclusion filters." xml:space="preserve">
     <value>No selected objects match the inclusion filters.</value>
   </data>

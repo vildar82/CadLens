@@ -45,6 +45,7 @@ namespace Autodesk.AutoCAD.ApplicationServices
     {
         private readonly Queue<Action> _callbacks = new();
         internal Document? MdiActiveDocument { get; set; } = new();
+        internal DrawingWindow MainWindow { get; } = new();
         internal bool IsApplicationContext { get; private set; }
         internal int PendingCount => _callbacks.Count;
         internal Exception? SchedulingError { get; set; }
@@ -82,6 +83,7 @@ namespace Autodesk.AutoCAD.ApplicationServices.Core
     internal static class Application
     {
         internal static DocumentCollection DocumentManager { get; set; } = new();
+        internal static DrawingWindow MainWindow => DocumentManager.MainWindow;
         internal static event EventHandler? Idle;
         internal static void RaiseIdle() => Idle?.Invoke(null, EventArgs.Empty);
         internal static object GetSystemVariable(string name) => name == "CMDACTIVE"
