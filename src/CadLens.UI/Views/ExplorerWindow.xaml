@@ -189,9 +189,25 @@
                                         CommandParameter="{Binding}"
                                         Content="{local:Localize Binding={Binding Descriptor.Label}}"
                                         IsChecked="{Binding IsActive, Mode=OneWay}"
-                                        Style="{StaticResource QuietToggle}"
-                                        ToolTip="{Binding DataContext.Status,
-                                            RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        Style="{StaticResource QuietToggle}">
+                                        <ToggleButton.ToolTip>
+                                            <ToolTip>
+                                                <StackPanel>
+                                                    <TextBlock
+                                                        FontWeight="SemiBold"
+                                                        Text="{local:Localize Binding={Binding Descriptor.Label}}" />
+                                                    <TextBlock
+                                                        Margin="0,4,0,0"
+                                                        Text="{local:Localize Binding={Binding Descriptor.Description}}" />
+                                                    <TextBlock
+                                                        Margin="0,8,0,0"
+                                                        Foreground="{DynamicResource QuietMuted}"
+                                                        Text="{Binding PlacementTarget.(AutomationProperties.HelpText),
+                                                            RelativeSource={RelativeSource AncestorType=ToolTip}}" />
+                                                </StackPanel>
+                                            </ToolTip>
+                                        </ToggleButton.ToolTip>
+                                    </ToggleButton>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
