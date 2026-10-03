@@ -273,7 +273,10 @@ public sealed class ObjectTypesTests
                     .Where(block => block.Visibility == Visibility.Visible)
                     .Select(block => block.Text)
             ];
-            Assert.Contains("Object Types", text);
+            var activeLens = WpfTest.Descendants(content).OfType<ToggleButton>()
+                .Single(button => ReferenceEquals(button.CommandParameter, shell.Lenses[1]));
+            Assert.Equal("Objects", activeLens.Content);
+            Assert.True(activeLens.IsChecked);
             Assert.DoesNotContain("All layers", text);
             Assert.DoesNotContain("Search layers", text);
 

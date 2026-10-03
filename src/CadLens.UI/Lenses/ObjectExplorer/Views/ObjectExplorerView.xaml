@@ -29,21 +29,6 @@
                 <DynamicResource ResourceKey="QuietHeader" />
             </Border.Background>
             <StackPanel>
-                <DockPanel Margin="1,0,1,8">
-                    <TextBlock
-                        MaxWidth="170"
-                        VerticalAlignment="Center"
-                        DockPanel.Dock="Right"
-                        FontSize="11"
-                        Foreground="{DynamicResource QuietMuted}"
-                        Text="{Binding DisplaySpaceLabel}"
-                        TextTrimming="CharacterEllipsis"
-                        ToolTip="{Binding DisplaySpaceLabel}" />
-                    <TextBlock
-                        FontSize="17"
-                        FontWeight="SemiBold"
-                        Text="{ui:Localize Binding={Binding LensLabel}}" />
-                </DockPanel>
                 <UniformGrid Margin="0,0,0,8" Columns="2">
                     <RadioButton
                         x:Name="AllObjectsScope"

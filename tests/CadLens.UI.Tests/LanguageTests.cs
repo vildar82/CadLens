@@ -176,7 +176,10 @@ public sealed partial class LanguageTests : IDisposable
             var content = (FrameworkElement) window.Content;
             Layout(content, 370, 660);
             string[] texts = [.. WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text)];
-            Assert.Contains("Слои", texts);
+            var activeLens = WpfTest.Descendants(content).OfType<ToggleButton>()
+                .Single(button => ReferenceEquals(button.CommandParameter, shell.Lenses[0]));
+            Assert.Equal("Слои", activeLens.Content);
+            Assert.True(activeLens.IsChecked);
             Assert.Contains("Тип примитива", texts);
             Assert.Contains("Слой", texts);
             Assert.Contains("Да", texts);
@@ -221,13 +224,12 @@ public sealed partial class LanguageTests : IDisposable
             shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
             var content = (FrameworkElement) window.Content;
             Layout(content, 370, 660);
-            Assert.Contains(
-                "No active drawing",
-                WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
+            Assert.Equal("No active drawing", lens.ViewModel.DisplaySpaceLabel);
             lens.ViewModel.ResetContextAsync(false).GetAwaiter().GetResult();
             Layout(content, 370, 660);
+            Assert.Equal("Нет текущего чертежа", lens.ViewModel.DisplaySpaceLabel);
             Assert.Contains(
-                "Нет текущего чертежа",
+                UiText.Current.Get("Open a drawing to explore its objects."),
                 WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
             Assert.DoesNotContain(
                 "No active drawing",
