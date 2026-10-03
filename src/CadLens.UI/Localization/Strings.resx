@@ -319,14 +319,26 @@
   <data name="Browse all direct objects in the active drawing space" xml:space="preserve">
     <value>Browse all direct objects in the active drawing space</value>
   </data>
-  <data name="Capture the current CAD selection. Refresh captures it again." xml:space="preserve">
-    <value>Capture the current CAD selection. Refresh captures it again.</value>
+  <data name="Use selected CAD objects, or select objects in CAD. Refresh updates the selection scope." xml:space="preserve">
+    <value>Use selected CAD objects, or select objects in CAD. Refresh updates the selection scope.</value>
+  </data>
+  <data name="Select objects to explore:" xml:space="preserve">
+    <value>Select objects to explore:</value>
+  </data>
+  <data name="Remove objects from selection:" xml:space="preserve">
+    <value>Remove objects from selection:</value>
+  </data>
+  <data name="Object selection canceled. Previous view kept." xml:space="preserve">
+    <value>Object selection canceled. Previous view kept.</value>
+  </data>
+  <data name="Unable to activate the drawing for selection." xml:space="preserve">
+    <value>Unable to activate the drawing for selection.</value>
   </data>
   <data name="No selected objects match the inclusion filters." xml:space="preserve">
     <value>No selected objects match the inclusion filters.</value>
   </data>
-  <data name="No selected objects in the active space. Select objects in CAD and refresh." xml:space="preserve">
-    <value>No selected objects in the active space. Select objects in CAD and refresh.</value>
+  <data name="No selected objects in the active space. Refresh to select objects." xml:space="preserve">
+    <value>No selected objects in the active space. Refresh to select objects.</value>
   </data>
   <data name="The active drawing space has changed. Refresh to try again." xml:space="preserve">
     <value>The active drawing space has changed. Refresh to try again.</value>

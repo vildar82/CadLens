@@ -512,6 +512,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
+        IsSelectedObjectsOnly = false;
         _inventory = null;
         Precision = DrawingPrecision.Default;
         Groups = [];
@@ -810,7 +811,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         if (selectedOnly)
         {
-            var captured = _actions.CaptureSelectedObjects();
+            var captured = await _actions.RequestObjectsAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (captured is not HostResult<ImmutableArray<IPlacedObjectId>>.Success selection)
                 return ((HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable) captured).Reason;
@@ -881,7 +883,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         _emptyMessage = IsSelectedObjectsOnly
             ? _inventory is {Entities.IsEmpty: false}
                 ? "No selected objects match the inclusion filters."
-                : "No selected objects in the active space. Select objects in CAD and refresh."
+                : "No selected objects in the active space. Refresh to select objects."
             : presentation.EmptyMessage;
         _enabledFilters = _enabledFilters.Intersect(presentation.Filters.Select(filter => filter.Id));
         Filters =

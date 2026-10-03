@@ -15,19 +15,19 @@ public sealed class DrawingInventorySourceTests
 {
     /// <summary>Preselection remains detached after CAD selection changes or clears.</summary>
     [Fact]
-    public void CaptureSelectionIsDetachedFromLaterEditorChanges()
+    public async Task PreselectionIsDetachedFromLaterEditorChanges()
     {
         var document = CreateDocument();
         var entity = AddEntity(document.Database);
         document.Editor.Selection = [entity];
-        var actions = new ObjectExplorerActions(null!, null!, null!, null!);
-        var selected = Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Success>(actions.CaptureSelectedObjects());
+        var actions = new ObjectExplorerActions(null!, null!, null!, null!, null!);
+        var selected = Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Success>(await actions.RequestObjectsAsync(CancellationToken.None));
         document.Editor.Selection = [];
 
         Assert.Equal(entity, Assert.IsType<EntityId>(Assert.Single(selected.Value)).NativeId);
-        Assert.Empty(Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Success>(actions.CaptureSelectedObjects()).Value);
+        Assert.Equal(0, document.Editor.PromptCount);
         Application.DocumentManager.MdiActiveDocument = null;
-        Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable>(actions.CaptureSelectedObjects());
+        Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable>(await actions.RequestObjectsAsync(CancellationToken.None));
     }
 
     /// <summary>Selected scope skips erased, invalid, foreign, nested, and non-entity IDs and removes duplicates.</summary>

@@ -397,8 +397,8 @@ public sealed partial class LanguageTests : IDisposable
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
-            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {

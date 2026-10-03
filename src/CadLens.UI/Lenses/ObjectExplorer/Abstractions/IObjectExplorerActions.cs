@@ -7,8 +7,9 @@ namespace CadLens.UI;
 /// <summary>Host operations for the modeless drawing explorer.</summary>
 public interface IObjectExplorerActions
 {
-    /// <summary>Captures CAD preselection before cleanup or queued host work can replace it.</summary>
-    HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects();
+    /// <summary>Returns CAD preselection, or asks the user to select objects when none are selected.</summary>
+    /// <param name="cancellationToken">Panel lifetime cancellation.</param>
+    Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken);
 
     /// <summary>Clears selection and graphics synchronously at context and lifetime boundaries.</summary>
     /// <param name="hostTerminating">Whether shutdown forbids editor access and regeneration.</param>

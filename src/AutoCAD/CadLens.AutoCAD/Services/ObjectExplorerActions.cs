@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using CadLens.Lenses;
@@ -13,10 +14,13 @@ internal sealed class ObjectExplorerActions(
     IDrawingLensProvider lens,
     IEntityIsolationActions isolation,
     IEntityIsolationService graphics,
-    IObjectVisualizationService visualization) : IObjectExplorerActions
+    IObjectVisualizationService visualization,
+    IHostTaskService hostTasks) : IObjectExplorerActions
 {
-    public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects()
+    public async Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         try
         {
             var document = Application.DocumentManager.MdiActiveDocument;
@@ -24,18 +28,93 @@ internal sealed class ObjectExplorerActions(
             if (document is null)
                 return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing is no longer available.");
 
-            var selection = document.Editor.SelectImplied();
-            ImmutableArray<IPlacedObjectId> objects = selection.Status == PromptStatus.OK
-                ? [.. selection.Value.GetObjectIds().Select<ObjectId, IPlacedObjectId>(id => new EntityId(id))]
-                : [];
+            var space = document.Database.CurrentSpaceId;
+            var selected = ReadPreselection(document);
 
-            return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(objects);
+            if (!selected.IsEmpty)
+                return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(selected);
+
+            var result = await hostTasks.RunAsync(() => RequestObjects(document, space, cancellationToken), cancellationToken);
+            return result.Bind(value => value);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(exception.Message);
         }
     }
+
+    private HostResult<ImmutableArray<IPlacedObjectId>> RequestObjects(
+        Document document,
+        ObjectId space,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!HasContext(document, space))
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+
+        var selected = ReadPreselection(document);
+
+        if (!selected.IsEmpty)
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(selected);
+
+        if (!document.Window.Focus())
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("Unable to activate the drawing for selection.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!HasContext(document, space))
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+
+        var restoreIsolation = graphics.Suspend();
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!HasContext(document, space))
+                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+
+            var options = new PromptSelectionOptions
+            {
+                MessageForAdding = "\n" + UiText.Current.Get("Select objects to explore:"),
+                MessageForRemoval = "\n" + UiText.Current.Get("Remove objects from selection:")
+            };
+            var result = document.Editor.GetSelection(options);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!HasContext(document, space))
+                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+
+            return result.Status == PromptStatus.OK
+                ? new HostResult<ImmutableArray<IPlacedObjectId>>.Success(ToObjects(result))
+                : new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("Object selection canceled. Previous view kept.");
+        }
+        finally
+        {
+            try
+            {
+                restoreIsolation();
+            }
+            finally
+            {
+                if (!cancellationToken.IsCancellationRequested && HasContext(document, space))
+                    document.Editor.SelectObjects([]);
+            }
+        }
+    }
+
+    private static bool HasContext(Document document, ObjectId space) =>
+        document == Application.DocumentManager.MdiActiveDocument && document.Database.CurrentSpaceId == space;
+
+    private static ImmutableArray<IPlacedObjectId> ReadPreselection(Document document)
+    {
+        var selected = document.Editor.SelectImplied();
+        return selected.Status == PromptStatus.OK ? ToObjects(selected) : [];
+    }
+
+    private static ImmutableArray<IPlacedObjectId> ToObjects(PromptSelectionResult selected) =>
+        [.. selected.Value.GetObjectIds().Select<ObjectId, IPlacedObjectId>(id => new EntityId(id))];
 
     public void ClearImmediately(bool hostTerminating)
     {

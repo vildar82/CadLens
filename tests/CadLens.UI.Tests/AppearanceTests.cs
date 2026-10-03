@@ -339,8 +339,8 @@ public sealed class AppearanceTests
         internal int ReadCount { get; private set; }
         internal int DrawingActionCount { get; private set; }
 
-        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
-            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {

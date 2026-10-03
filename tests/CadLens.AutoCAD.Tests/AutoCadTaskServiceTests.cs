@@ -166,7 +166,7 @@ public sealed class AutoCadTaskServiceTests
         await service.StopAsync();
     });
 
-    private static Task OnUiThread(Func<Task> test)
+    internal static Task OnUiThread(Func<Task> test)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>

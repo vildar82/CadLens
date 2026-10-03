@@ -6,16 +6,29 @@ using CadLens.Lenses;
 
 namespace Autodesk.AutoCAD.EditorInput
 {
-    internal enum PromptStatus { OK, Error }
+    internal enum PromptStatus { OK, Error, Cancel }
+    internal sealed class PromptSelectionOptions
+    {
+        internal string MessageForAdding { get; init; } = "";
+        internal string MessageForRemoval { get; init; } = "";
+    }
     internal sealed class SelectionSet(ObjectId[] objects)
     {
         internal ObjectId[] GetObjectIds() => [.. objects];
     }
 
-    internal sealed class PromptSelectionResult(ObjectId[] objects)
+    internal sealed class PromptSelectionResult
     {
-        internal PromptStatus Status => objects.Length == 0 ? PromptStatus.Error : PromptStatus.OK;
-        internal SelectionSet Value { get; } = new(objects);
+        internal PromptSelectionResult(ObjectId[] objects) : this(objects.Length == 0 ? PromptStatus.Error : PromptStatus.OK, objects) { }
+
+        internal PromptSelectionResult(PromptStatus status, params ObjectId[] objects)
+        {
+            Status = status;
+            Value = new SelectionSet(objects);
+        }
+
+        internal PromptStatus Status { get; }
+        internal SelectionSet Value { get; }
     }
 }
 

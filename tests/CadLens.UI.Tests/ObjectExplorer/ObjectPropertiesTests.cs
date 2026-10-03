@@ -358,8 +358,8 @@ public sealed class ObjectPropertiesTests
             return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
         }
 
-        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
-            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {

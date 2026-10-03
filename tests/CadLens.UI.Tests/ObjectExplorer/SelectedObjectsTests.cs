@@ -1,13 +1,14 @@
 using System.Collections.Immutable;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using CadLens.Lenses;
 using Common;
 using Xunit;
 
 namespace CadLens.UI.Tests;
 
-/// <summary>Selection scope remains detached from CAD effects until explicit refresh.</summary>
+/// <summary>Selection requests load immediately while retained scope stays detached from later CAD effects.</summary>
 [Collection("Language changes")]
 public sealed class SelectedObjectsTests
 {
@@ -36,9 +37,19 @@ public sealed class SelectedObjectsTests
             Assert.False(all.IsChecked);
             Assert.Equal("Выбранные объекты", selected.Content);
             Assert.Equal("Обновить выбранные объекты", refresh.ToolTip);
+            Assert.Equal(
+                "Использовать выбранные объекты CAD или выбрать объекты в CAD. Обновление заменяет набор объектов.",
+                selected.ToolTip);
             var status = model.Status;
             model.ShowSelectedObjectsCommand.ExecuteAsync(null).GetAwaiter().GetResult();
             Assert.Equal(status, model.Status);
+            model.ShowAllObjectsCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+            actions.RequestFailure = "Object selection canceled. Previous view kept.";
+            selected.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+            model.ShowSelectedObjectsCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+            Assert.False(selected.IsChecked);
+            Assert.True(all.IsChecked);
+            Assert.Equal("Выбор объектов отменён. Предыдущий вид сохранён.", model.Status);
         }
         finally
         {
@@ -46,11 +57,11 @@ public sealed class SelectedObjectsTests
         }
     });
 
-    /// <summary>Both lenses capture before cleanup and keep selection scope during navigation and filter changes.</summary>
+    /// <summary>Both lenses request objects before cleanup and keep scope during navigation and filter changes.</summary>
     [Theory]
     [InlineData(DrawingGrouping.Layers)]
     [InlineData(DrawingGrouping.ObjectTypes)]
-    public async Task CapturesBeforeCleanupAndKeepsSnapshotUntilRefresh(DrawingGrouping grouping)
+    public async Task RequestsBeforeCleanupAndKeepsSnapshotUntilRefresh(DrawingGrouping grouping)
     {
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, grouping);
@@ -59,12 +70,12 @@ public sealed class SelectedObjectsTests
         actions.Calls.Clear();
         await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
 
-        Assert.Equal(["capture", "clear", "read"], actions.Calls);
+        Assert.Equal(["request", "clear", "read"], actions.Calls);
         Assert.True(model.IsSelectedObjectsOnly);
         Assert.Equal("Refresh selected objects", model.RefreshLabel);
         Assert.Equal(1, model.ObjectCount);
         var reads = actions.ReadCount;
-        var captures = actions.CaptureCount;
+        var requests = actions.RequestCount;
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         await model.ToggleAutoSelectCommand.ExecuteAsync(null);
         actions.NativeSelection = [new TestEntityId(2)];
@@ -73,13 +84,13 @@ public sealed class SelectedObjectsTests
 
         Assert.Equal(2, model.ObjectCount);
         Assert.Equal(reads, actions.ReadCount);
-        Assert.Equal(captures, actions.CaptureCount);
+        Assert.Equal(requests, actions.RequestCount);
         Assert.Equal(["1", "3"], model.Groups.SelectMany(group => group.Objects).Select(id => id.DisplayId).Order());
 
         actions.NativeSelection = [new TestEntityId(2)];
         await model.ReadCommand.ExecuteAsync(null);
         Assert.Equal("2", Assert.Single(model.Groups.SelectMany(group => group.Objects)).DisplayId);
-        Assert.Equal(captures + 1, actions.CaptureCount);
+        Assert.Equal(requests + 1, actions.RequestCount);
         await model.ShowAllObjectsCommand.ExecuteAsync(null);
         Assert.True(model.IsAllObjects);
         Assert.Equal("Refresh active space", model.RefreshLabel);
@@ -96,17 +107,20 @@ public sealed class SelectedObjectsTests
         await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
 
         Assert.Empty(model.Groups);
-        Assert.Contains("Select objects in CAD and refresh", model.EmptyMessage);
+        Assert.Contains("Refresh to select objects", model.EmptyMessage);
         Assert.True(model.ReadCommand.CanExecute(null));
         Assert.False(model.SelectCommand.CanExecute(null));
     }
 
-    /// <summary>A failed scope switch keeps the previous presentation and its owned drawing effects.</summary>
+    /// <summary>A failed request or cleanup keeps the previous scope, navigation, and owned drawing effects.</summary>
     [Theory]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    public async Task FailedScopeSwitchKeepsPreviousScopeAndTargets(bool startsSelected, bool captureFails)
+    [InlineData(false, "selection fixture failure")]
+    [InlineData(true, "selection fixture failure")]
+    [InlineData(false, "Object selection canceled. Previous view kept.")]
+    [InlineData(true, "Object selection canceled. Previous view kept.")]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    public async Task FailedSelectionOrScopeSwitchKeepsPreviousTargets(bool startsSelected, string? requestFailure)
     {
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
@@ -126,9 +140,13 @@ public sealed class SelectedObjectsTests
         var selected = actions.NativeSelection;
         var isolated = actions.Isolated;
         var reads = actions.ReadCount;
-        actions.CaptureFails = captureFails;
-        actions.CleanupFails = !captureFails;
-        await (startsSelected ? model.ShowAllObjectsCommand : model.ShowSelectedObjectsCommand).ExecuteAsync(null);
+        actions.RequestFailure = requestFailure;
+        actions.CleanupFails = requestFailure is null;
+        actions.Calls.Clear();
+        var command = startsSelected
+            ? requestFailure is null ? model.ShowAllObjectsCommand : model.ReadCommand
+            : model.ShowSelectedObjectsCommand;
+        await command.ExecuteAsync(null);
 
         Assert.Equal(startsSelected, model.IsSelectedObjectsOnly);
         Assert.Same(current, model.Current);
@@ -136,7 +154,10 @@ public sealed class SelectedObjectsTests
         Assert.Equal(selected, actions.NativeSelection);
         Assert.Equal(isolated, actions.Isolated);
         Assert.Equal(reads, actions.ReadCount);
-        Assert.Contains(captureFails ? "selection fixture failure" : "Cleanup did not complete", model.Status);
+        Assert.Contains(requestFailure ?? "Cleanup did not complete", model.Status);
+
+        if (requestFailure is not null)
+            Assert.Equal(["request"], actions.Calls);
     }
 
     /// <summary>Collapsing, switching lenses, and reactivation keep the captured set despite native cleanup.</summary>
@@ -156,11 +177,11 @@ public sealed class SelectedObjectsTests
         await other.ActivateAsync(CancellationToken.None);
         await other.DeactivateAsync(CancellationToken.None);
         var reads = actions.ReadCount;
-        var captures = actions.CaptureCount;
+        var requests = actions.RequestCount;
         await model.ActivateAsync(CancellationToken.None);
 
         Assert.Equal(reads, actions.ReadCount);
-        Assert.Equal(captures, actions.CaptureCount);
+        Assert.Equal(requests, actions.RequestCount);
         Assert.Equal(current, model.Current!.Id);
         Assert.Equal("1", Assert.Single(model.Current.Objects).DisplayId);
         Assert.True(model.IsSelectedObjectsOnly);
@@ -185,7 +206,7 @@ public sealed class SelectedObjectsTests
         Assert.Single(actions.NativeSelection);
         Assert.Single(actions.Isolated);
         var reads = actions.ReadCount;
-        var captures = actions.CaptureCount;
+        var requests = actions.RequestCount;
         actions.CleanupFails = cleanupFails;
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeOff));
 
@@ -206,7 +227,118 @@ public sealed class SelectedObjectsTests
         }
 
         Assert.Equal(reads, actions.ReadCount);
-        Assert.Equal(captures, actions.CaptureCount);
+        Assert.Equal(requests, actions.RequestCount);
+    }
+
+    /// <summary>Both selection entry paths wait for CAD selection and load it without a second refresh.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PendingSelectionDisablesCommandsAndLoadsImmediately(bool refresh)
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        await model.ActivateAsync(CancellationToken.None);
+
+        if (refresh)
+        {
+            actions.NativeSelection = [new TestEntityId(1)];
+            await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
+        }
+
+        var groups = model.Groups;
+        actions.PendingSelection = new TaskCompletionSource<HostResult<ImmutableArray<IPlacedObjectId>>>();
+        actions.Calls.Clear();
+        var request = (refresh ? model.ReadCommand : model.ShowSelectedObjectsCommand).ExecuteAsync(null);
+
+        Assert.False(request.IsCompleted);
+        Assert.True(model.IsBusy);
+        Assert.False(model.ReadCommand.CanExecute(null));
+        Assert.False(model.ShowSelectedObjectsCommand.CanExecute(null));
+        Assert.False(model.ShowAllObjectsCommand.CanExecute(null));
+        Assert.False(model.SelectCommand.CanExecute(null));
+        Assert.False(model.ResetCommand.CanExecute(null));
+        Assert.Equal(groups, model.Groups);
+        Assert.Equal(refresh, model.IsSelectedObjectsOnly);
+        Assert.Equal(["request"], actions.Calls);
+
+        actions.PendingSelection.SetResult(
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([new TestEntityId(2)]));
+        await request;
+
+        Assert.Equal(["request", "clear", "read"], actions.Calls);
+        Assert.Equal("2", Assert.Single(model.Groups.SelectMany(group => group.Objects)).DisplayId);
+        Assert.True(model.IsSelectedObjectsOnly);
+        Assert.False(model.IsBusy);
+        Assert.True(model.ReadCommand.CanExecute(null));
+    }
+
+    /// <summary>A context reset or close rejects a selection result returned after request cancellation.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ContextResetOrCloseRejectsLateSelection(bool close)
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        await model.ActivateAsync(CancellationToken.None);
+        actions.NativeSelection = [new TestEntityId(1)];
+        await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
+        var groups = model.Groups;
+        var reads = actions.ReadCount;
+        actions.PendingSelection = new TaskCompletionSource<HostResult<ImmutableArray<IPlacedObjectId>>>();
+        actions.Calls.Clear();
+        var refresh = model.ReadCommand.ExecuteAsync(null);
+
+        if (close)
+            model.Close(false);
+        else
+            await model.ResetContextAsync(false);
+
+        actions.PendingSelection.SetResult(
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([new TestEntityId(2)]));
+        await refresh;
+
+        Assert.True(actions.LastRequestToken.IsCancellationRequested);
+        Assert.Equal(reads, actions.ReadCount);
+        Assert.Equal(["request"], actions.Calls);
+        Assert.False(model.ReadCommand.CanExecute(null));
+
+        if (close)
+            Assert.Equal(groups, model.Groups);
+        else
+        {
+            Assert.Empty(model.Groups);
+            Assert.True(model.IsAllObjects);
+            Assert.Equal("No active drawing", model.SpaceLabel);
+        }
+    }
+
+    /// <summary>Drawing or space changes discard selected scope and reload all objects without requesting selection.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ContextChangeResetsScopeWithoutRequestingSelection(bool collapsed)
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.ObjectTypes);
+        await model.ActivateAsync(CancellationToken.None);
+        actions.NativeSelection = [new TestEntityId(1)];
+        await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
+
+        if (collapsed)
+            await model.DeactivateAsync(CancellationToken.None);
+
+        var requests = actions.RequestCount;
+        await model.ResetContextAsync();
+
+        if (collapsed)
+            await model.ActivateAsync(CancellationToken.None);
+
+        Assert.True(model.IsAllObjects);
+        Assert.Equal(requests, actions.RequestCount);
+        Assert.Equal(2, model.ObjectCount);
+        Assert.Null(model.Current);
     }
 
     /// <summary>A context reset cancels selected refresh and rejects even a non-cooperative late provider result.</summary>
@@ -231,6 +363,7 @@ public sealed class SelectedObjectsTests
         Assert.Equal("No active drawing", model.SpaceLabel);
         Assert.True(actions.LastReadToken.IsCancellationRequested);
         Assert.False(model.ReadCommand.CanExecute(null));
+        Assert.True(model.IsAllObjects);
     }
 
     private sealed class Actions : IObjectExplorerActions
@@ -248,19 +381,23 @@ public sealed class SelectedObjectsTests
         internal ImmutableArray<IPlacedObjectId> Isolated { get; private set; } = [];
         internal List<string> Calls { get; } = [];
         internal int ReadCount { get; private set; }
-        internal int CaptureCount { get; private set; }
+        internal int RequestCount { get; private set; }
         internal CancellationToken LastReadToken { get; private set; }
+        internal CancellationToken LastRequestToken { get; private set; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
+        internal TaskCompletionSource<HostResult<ImmutableArray<IPlacedObjectId>>>? PendingSelection { get; set; }
         internal bool CleanupFails { get; set; }
-        internal bool CaptureFails { get; set; }
+        internal string? RequestFailure { get; set; }
 
-        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects()
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken)
         {
-            Calls.Add("capture");
-            CaptureCount++;
-            return CaptureFails
-                ? new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("selection fixture failure")
-                : new HostResult<ImmutableArray<IPlacedObjectId>>.Success(NativeSelection);
+            Calls.Add("request");
+            RequestCount++;
+            LastRequestToken = cancellationToken;
+            return PendingSelection?.Task ?? Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(
+                RequestFailure is { } reason
+                    ? new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(reason)
+                    : new HostResult<ImmutableArray<IPlacedObjectId>>.Success(NativeSelection));
         }
 
         public Task<HostResult<LensPresentation>> ReadAsync(

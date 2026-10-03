@@ -9,6 +9,9 @@ namespace Autodesk.AutoCAD.ApplicationServices
         internal Editor Editor { get; } = new();
         internal DatabaseServices.Database Database { get; } = new();
         internal bool IsLocked { get; private set; }
+        internal DrawingWindow Window { get; } = new();
+        internal NativeDrawing Drawing { get; } = new();
+        internal object GetAcadDocument() => Drawing;
 
         internal IDisposable LockDocument()
         {
@@ -27,7 +30,15 @@ namespace Autodesk.AutoCAD.ApplicationServices
         internal bool IsQuiescent { get; set; } = true;
         internal DatabaseServices.ObjectId CurrentViewportObjectId { get; set; }
         internal DatabaseServices.ObjectId[] Selection { get; set; } = [];
+        internal Func<EditorInput.PromptSelectionOptions, EditorInput.PromptSelectionResult>? Pick { get; set; }
+        internal int PromptCount { get; private set; }
         internal EditorInput.PromptSelectionResult SelectImplied() => new(Selection);
+
+        internal EditorInput.PromptSelectionResult GetSelection(EditorInput.PromptSelectionOptions options)
+        {
+            PromptCount++;
+            return Pick!(options);
+        }
     }
 
     internal sealed class DocumentCollection
@@ -102,10 +113,11 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     // ReSharper disable once InconsistentNaming -- Matches the native AutoCAD API type.
     /// <summary>Test double for the native DBObject type.</summary>
-    public class DBObject
+    public class DBObject : Runtime.RXObject
     {
         internal bool IsErased { get; init; }
         internal ObjectId ObjectId { get; set; }
+        internal Database Database => ObjectId.Database;
     }
 
     /// <summary>Test double for the native Database type.</summary>

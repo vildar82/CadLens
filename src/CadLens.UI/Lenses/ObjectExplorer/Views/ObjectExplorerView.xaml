@@ -62,7 +62,7 @@
                         Content="{ui:Localize 'Selected objects'}"
                         IsChecked="{Binding IsSelectedObjectsOnly, Mode=OneWay}"
                         Style="{StaticResource ModeScope}"
-                        ToolTip="{ui:Localize 'Capture the current CAD selection. Refresh captures it again.'}" />
+                        ToolTip="{ui:Localize 'Use selected CAD objects, or select objects in CAD. Refresh updates the selection scope.'}" />
                 </UniformGrid>
                 <DockPanel>
                     <Button

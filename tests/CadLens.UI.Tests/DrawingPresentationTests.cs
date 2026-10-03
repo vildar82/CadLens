@@ -529,8 +529,8 @@ public sealed class DrawingPresentationTests
         public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult("");
 
-        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
-            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {
