@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Immutable;
 using Autodesk.AutoCAD.DatabaseServices;
 using CadLens.Lenses;
@@ -21,22 +22,24 @@ namespace Autodesk.AutoCAD.EditorInput
 namespace Autodesk.AutoCAD.DatabaseServices
 {
     internal sealed class LayerTable(params ObjectId[] ids) : SymbolTable(ids);
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class LayerTableRecord : DBObject
     {
-        internal string Name { get; } = "Layer";
-        internal bool IsOff { get; } = false;
-        internal bool IsFrozen { get; } = false;
-        internal bool IsLocked { get; } = false;
+        internal string Name => "Layer";
+        internal bool IsOff => false;
+        internal bool IsFrozen => false;
+        internal bool IsLocked => false;
     }
 
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Layout : DBObject
     {
-        internal string LayoutName { get; } = "Model";
+        internal string LayoutName => "Model";
     }
 
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Viewport : Entity
     {
-        // ReSharper disable once MemberCanBeMadeStatic.Local -- Mirrors the native viewport instance API.
         internal IEnumerable GetFrozenLayers() => Array.Empty<ObjectId>();
     }
 }

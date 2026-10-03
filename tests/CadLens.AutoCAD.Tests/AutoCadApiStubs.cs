@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
 // Test doubles for native API boundaries; these do not certify behavior inside AutoCAD.
 namespace Autodesk.AutoCAD.ApplicationServices
@@ -108,14 +109,15 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 
     /// <summary>Test double for the native Database type.</summary>
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     public sealed class Database
     {
         internal Dictionary<int, DBObject> Objects { get; } = [];
         internal ObjectId CurrentSpaceId { get; set; }
         internal ObjectId LayerTableId { get; set; }
-        internal bool TileMode { get; } = true;
-        internal int Luprec { get; } = 4;
-        internal int Auprec { get; } = 2;
+        internal bool TileMode => true;
+        internal int Luprec => 4;
+        internal int Auprec => 2;
         internal TransactionManager TransactionManager { get; } = new();
 
         internal ObjectId Add(DBObject value)
@@ -133,9 +135,9 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal Transaction StartTransaction() => TopTransaction;
     }
 
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Transaction : IDisposable
     {
-        // ReSharper disable once MemberCanBeMadeStatic.Local -- Mirrors the native transaction instance API.
         internal void Commit() { }
         public void Dispose() { }
         internal List<(OpenMode Mode, bool OpenErased, bool ForceOpenOnLockedLayer)> OpenRequests { get; } = [];
@@ -168,11 +170,12 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     /// <summary>Test double for the native BlockTableRecord type.</summary>
     /// <param name="ids">Contained test identifiers.</param>
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
         internal ObjectId LayoutId { get; init; }
-        internal bool IsLayout { get; } = false;
-        internal string Name { get; } = "Model";
+        internal bool IsLayout => false;
+        internal string Name => "Model";
         /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
     }
