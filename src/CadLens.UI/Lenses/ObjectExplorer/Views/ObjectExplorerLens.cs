@@ -20,8 +20,8 @@ public sealed class ObjectExplorerLens : ILens, IDisposable
     {
         ViewModel = new ObjectExplorerViewModel(actions, grouping, settings);
         Descriptor = grouping == DrawingGrouping.Layers
-            ? new LensDescriptor("layers", "Layers")
-            : new LensDescriptor("object-types", "Objects");
+            ? new LensDescriptor("layers", "Layers", "Browse active-space objects by layer, then by type and object.")
+            : new LensDescriptor("object-types", "Objects", "Browse active-space objects by type across layers, then by object.");
     }
 
     /// <summary>State owned by this lens instance.</summary>

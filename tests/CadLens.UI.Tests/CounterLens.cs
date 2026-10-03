@@ -32,7 +32,7 @@ internal sealed class CounterViewModel : ObservableObject
 internal sealed class CounterLens(CounterViewModel viewModel, string id = "counter", string label = "Counter") : ILens
 {
     private CounterLensView? _view;
-    public LensDescriptor Descriptor { get; } = new(id, label);
+    public LensDescriptor Descriptor { get; } = new(id, label, "Increment a test counter.");
     public FrameworkElement View => _view ??= new CounterLensView(viewModel);
     internal int ActivationCount { get; private set; }
 

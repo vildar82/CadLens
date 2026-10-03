@@ -87,7 +87,8 @@ public sealed class ExplorerViewModelTests
                 Assert.Equal(24, viewModel.GroupCount);
                 if (details)
                     viewModel.EnterCommand.Execute(viewModel.Items[0]);
-                var window = new ExplorerWindow(shell);
+                using var windowSettings = new SettingsFile();
+                var window = new ExplorerWindow(shell, settings: windowSettings.Service);
                 var content = (FrameworkElement) window.Content;
                 content.Measure(new Size(width, height));
                 content.Arrange(new Rect(0, 0, width, height));
@@ -122,7 +123,8 @@ public sealed class ExplorerViewModelTests
         WpfTest.Run(() =>
         {
             using var model = new ExplorerViewModel([new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers)]);
-            var window = new ExplorerWindow(model) {Left = 20, Top = 20};
+            using var windowSettings = new SettingsFile();
+            var window = new ExplorerWindow(model, settings: windowSettings.Service) {Left = 20, Top = 20};
             Assert.Equal(52, window.Height);
             Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
             model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
@@ -180,7 +182,9 @@ public sealed class ExplorerViewModelTests
                     break;
             }
 
-            var window = new ExplorerWindow(model);
+            using var windowSettings = new SettingsFile();
+
+            var window = new ExplorerWindow(model, settings: windowSettings.Service);
             var content = (FrameworkElement) window.Content;
             var size = new Size(window.Width, window.Height);
             content.Measure(size);
@@ -210,7 +214,8 @@ public sealed class ExplorerViewModelTests
                 new CounterLens(counter),
                 new CounterLens(new CounterViewModel(new CounterService()), "extra", "Extra module")
             ]);
-            var window = new ExplorerWindow(model);
+            using var windowSettings = new SettingsFile();
+            var window = new ExplorerWindow(model, settings: windowSettings.Service);
             var content = (FrameworkElement) window.Content;
             var size = new Size(window.Width, window.Height);
             content.Measure(size);

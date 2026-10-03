@@ -128,7 +128,7 @@ public sealed class MultipleLensTests
 
     private sealed class Lens(string id) : ILens
     {
-        public LensDescriptor Descriptor { get; } = new(id, id);
+        public LensDescriptor Descriptor { get; } = new(id, id, "Edit test content.");
         public FrameworkElement View => new TextBox { Text = "Unrelated editable content" };
         internal int CustomValue { get; set; }
         internal int ActivationCount { get; private set; }

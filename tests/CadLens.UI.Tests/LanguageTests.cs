@@ -141,7 +141,7 @@ public sealed partial class LanguageTests : IDisposable
             using var layers = new ObjectExplorerLens(actions, DrawingGrouping.Layers);
             using var objects = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
             using var shell = new ExplorerViewModel([layers, objects]);
-            var window = new ExplorerWindow(shell);
+            var window = new ExplorerWindow(shell, settings: _file.Service);
             shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
             var model = layers.ViewModel;
             model.ToggleFilterCommand
@@ -217,7 +217,7 @@ public sealed partial class LanguageTests : IDisposable
             UiText.Current.Select(LanguagePreference.Russian, persist: false);
             using var lens = new ObjectExplorerLens(new Actions("No active drawing"), DrawingGrouping.Layers);
             using var shell = new ExplorerViewModel([lens]);
-            var window = new ExplorerWindow(shell);
+            var window = new ExplorerWindow(shell, settings: _file.Service);
             shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
             var content = (FrameworkElement) window.Content;
             Layout(content, 370, 660);
@@ -247,7 +247,7 @@ public sealed partial class LanguageTests : IDisposable
             using var layers = new ObjectExplorerLens(actions, DrawingGrouping.Layers);
             using var objects = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
             using var shell = new ExplorerViewModel([layers, objects]);
-            var window = new ExplorerWindow(shell);
+            var window = new ExplorerWindow(shell, settings: _file.Service);
             var content = (FrameworkElement) window.Content;
             Layout(content, 340, 52);
             var toggleLensCommand = shell.ToggleLensCommand;

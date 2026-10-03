@@ -234,14 +234,18 @@
                         BorderBrush="{TemplateBinding BorderBrush}"
                         BorderThickness="{TemplateBinding BorderThickness}"
                         CornerRadius="5">
-                        <ContentPresenter RecognizesAccessKey="True" />
+                        <ContentPresenter />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
         <Style.Resources>
+            <DataTemplate DataType="{x:Type system:String}">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+            </DataTemplate>
             <Style TargetType="TextBlock">
                 <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="TextTrimming" Value="None" />
             </Style>
         </Style.Resources>
     </Style>

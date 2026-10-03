@@ -22,6 +22,18 @@
   <data name="Amber" xml:space="preserve">
     <value>Янтарный</value>
   </data>
+  <data name="About CAD Lens" xml:space="preserve">
+    <value>О CAD Lens</value>
+  </data>
+  <data name="Explore drawing objects by layer or type in AutoCAD and Civil 3D." xml:space="preserve">
+    <value>Просматривайте объекты чертежа по слоям или типам в AutoCAD и Civil 3D.</value>
+  </data>
+  <data name="Questions and suggestions" xml:space="preserve">
+    <value>Вопросы и предложения</value>
+  </data>
+  <data name="Unable to open the browser. Open the project link manually." xml:space="preserve">
+    <value>Не удалось открыть браузер. Откройте ссылку на проект вручную.</value>
+  </data>
   <data name="Appearance" xml:space="preserve">
     <value>Оформление</value>
   </data>
@@ -212,6 +224,9 @@
   <data name="Layers" xml:space="preserve">
     <value>Слои</value>
   </data>
+  <data name="Browse active-space objects by layer, then by type and object." xml:space="preserve">
+    <value>Просматривайте объекты текущего пространства по слоям, затем по типам и отдельным объектам.</value>
+  </data>
   <data name="Lens effects cleared." xml:space="preserve">
     <value>Эффекты линзы сброшены.</value>
   </data>
@@ -267,6 +282,9 @@
   </data>
   <data name="Objects" xml:space="preserve">
     <value>Объекты</value>
+  </data>
+  <data name="Browse active-space objects by type across layers, then by object." xml:space="preserve">
+    <value>Просматривайте объекты текущего пространства по типам из всех слоёв, затем по отдельным объектам.</value>
   </data>
   <data name="Open a drawing to explore its objects." xml:space="preserve">
     <value>Откройте чертёж для просмотра его объектов.</value>

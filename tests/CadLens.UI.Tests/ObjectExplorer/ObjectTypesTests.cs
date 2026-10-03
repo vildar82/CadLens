@@ -258,7 +258,9 @@ public sealed class ObjectTypesTests
             if (level == "object")
                 model.EnterCommand.ExecuteAsync(model.Items[0]).GetAwaiter().GetResult();
 
-            var window = new ExplorerWindow(shell);
+            using var windowSettings = new SettingsFile();
+
+            var window = new ExplorerWindow(shell, settings: windowSettings.Service);
             var content = (FrameworkElement) window.Content;
             const int height = 660;
             content.Measure(new Size(width, height));
@@ -318,7 +320,8 @@ public sealed class ObjectTypesTests
             using var layers = new ObjectExplorerLens(actions, DrawingGrouping.Layers);
             using var types = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
             using var shell = new ExplorerViewModel([layers, types]);
-            var window = new ExplorerWindow(shell);
+            using var windowSettings = new SettingsFile();
+            var window = new ExplorerWindow(shell, settings: windowSettings.Service);
             var content = (FrameworkElement) window.Content;
             var size = new Size(window.Width, window.Height);
             content.Measure(size);

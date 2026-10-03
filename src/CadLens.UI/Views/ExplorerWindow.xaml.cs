@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using JetBrains.Annotations;
 
 namespace CadLens.UI;
@@ -18,6 +20,7 @@ public partial class ExplorerWindow
     private const double MinimumPanelWidth = 300;
     private const uint NearestMonitor = 2;
     private readonly ExplorerViewModel _viewModel;
+    private readonly SettingsService _settings;
     private bool _hostIsLight;
     private Size _expandedSize = new(370, 660);
 
@@ -27,9 +30,15 @@ public partial class ExplorerWindow
     /// <summary>Creates the panel without changing application-wide WPF resources.</summary>
     /// <param name="viewModel">Constructor-injected explorer commands.</param>
     /// <param name="appearance">Optional isolated preferences for managed tests.</param>
-    public ExplorerWindow(ExplorerViewModel viewModel, AppearancePreferences? appearance = null)
+    /// <param name="settings">Optional isolated settings service for managed tests.</param>
+    public ExplorerWindow(
+        ExplorerViewModel viewModel,
+        AppearancePreferences? appearance = null,
+        SettingsService? settings = null)
     {
-        Appearance = appearance ?? new AppearancePreferences();
+        _settings = settings ?? appearance?.SettingsStore ?? SettingsService.Current;
+        LoadExpandedSize();
+        Appearance = appearance ?? new AppearancePreferences(_settings);
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
@@ -85,12 +94,30 @@ public partial class ExplorerWindow
 
     private void RestoreAppearanceClicked(object sender, RoutedEventArgs args) => Appearance.Reset();
 
+    private void ProjectLinkRequested(object sender, RequestNavigateEventArgs args)
+    {
+        args.Handled = true;
+        AboutLinkStatus.Visibility = Visibility.Collapsed;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) {UseShellExecute = true});
+        }
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
+        {
+            Trace.TraceError("Unable to open the project link: {0}", exception);
+            AboutLinkStatus.Visibility = Visibility.Visible;
+        }
+    }
+
     private void OnPreviewKeyDown(object sender, KeyEventArgs args)
     {
-        if (args.Key == Key.Escape && AppearancePopup.IsOpen)
+        if (args.Key == Key.Escape && (AboutPopup.IsOpen || AppearancePopup.IsOpen))
         {
+            var focusTarget = AboutPopup.IsOpen ? AboutButton : AppearanceButton;
+            AboutPopup.IsOpen = false;
             AppearancePopup.IsOpen = false;
-            AppearanceButton.Focus();
+            focusTarget.Focus();
             args.Handled = true;
             return;
         }
@@ -119,7 +146,9 @@ public partial class ExplorerWindow
 
     private void OnClosed(object? sender, EventArgs args)
     {
+        SaveExpandedSize();
         AppearancePopup.IsOpen = false;
+        AboutPopup.IsOpen = false;
         Appearance.PropertyChanged -= OnAppearanceChanged;
         _viewModel.PropertyChanged -= OnViewModelChanged;
     }
@@ -220,8 +249,7 @@ public partial class ExplorerWindow
         }
         else
         {
-            if (ResizeMode != ResizeMode.NoResize)
-                _expandedSize = new Size(Width, Height);
+            SaveExpandedSize();
 
             MinHeight = CompactHeight;
             Height = CompactHeight;
@@ -229,6 +257,26 @@ public partial class ExplorerWindow
             ResizeMode = ResizeMode.NoResize;
         }
     }
+
+    private void LoadExpandedSize()
+    {
+        var dimensions = _settings.Load<WindowDimensions>("window-size.json");
+
+        if (dimensions is not null && double.IsFinite(dimensions.Width) && dimensions.Width > 0 &&
+            double.IsFinite(dimensions.Height) && dimensions.Height > 0)
+            _expandedSize = new Size(dimensions.Width, dimensions.Height);
+    }
+
+    private void SaveExpandedSize()
+    {
+        if (ResizeMode == ResizeMode.NoResize)
+            return;
+
+        _expandedSize = new Size(Width, Height);
+        _settings.Save("window-size.json", new WindowDimensions(Width, Height));
+    }
+
+    private sealed record WindowDimensions(double Width, double Height);
 
     private Rect GetMonitorWorkArea()
     {
