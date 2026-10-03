@@ -359,7 +359,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
                     <Border
-                        Margin="3"
+                        Margin="2"
                         Background="{TemplateBinding Background}"
                         CornerRadius="3" />
                     <ControlTemplate.Triggers>
@@ -387,6 +387,15 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ScrollBar">
                     <Grid Background="{TemplateBinding Background}">
+                        <Grid.Resources>
+                            <!-- Track uses half these dimensions as its minimum thumb length. -->
+                            <system:Double x:Key="{x:Static SystemParameters.VerticalScrollBarButtonHeightKey}">
+                                48
+                            </system:Double>
+                            <system:Double x:Key="{x:Static SystemParameters.HorizontalScrollBarButtonWidthKey}">
+                                48
+                            </system:Double>
+                        </Grid.Resources>
                         <Track
                             x:Name="PART_Track"
                             IsDirectionReversed="True"

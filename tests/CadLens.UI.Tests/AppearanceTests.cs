@@ -244,6 +244,56 @@ public sealed class AppearanceTests
         });
     }
 
+    /// <summary>Large lists keep a usable thumb and matching drag travel in both drawing lenses.</summary>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers, "Dark")]
+    [InlineData(DrawingGrouping.Layers, "Light")]
+    [InlineData(DrawingGrouping.ObjectTypes, "Dark")]
+    [InlineData(DrawingGrouping.ObjectTypes, "Light")]
+    public void LargeListsKeepUsableScrollThumbs(DrawingGrouping grouping, string theme)
+    {
+        WpfTest.Run(() =>
+        {
+            using var file = new SettingsFile();
+            var actions = new Actions(114);
+            using var lens = new ObjectExplorerLens(actions, grouping);
+            using var model = new ExplorerViewModel([lens]);
+            var preferences = new AppearancePreferences(file.Path) {Theme = theme};
+            var window = new ExplorerWindow(model, preferences);
+
+            try
+            {
+                model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
+                var content = (FrameworkElement) window.Content;
+                RenderSized(content, 370, 660, $"appearance-scroll-{grouping}-{theme}.png");
+                var list = WpfTest.Descendants(content).OfType<ListBox>().Single();
+                var scroller = WpfTest.Descendants(list).OfType<ScrollViewer>().Single();
+                var scrollbar = Assert.IsType<ScrollBar>(
+                    scroller.Template.FindName("PART_VerticalScrollBar", scroller));
+                var track = Assert.IsType<Track>(scrollbar.Template.FindName("PART_Track", scrollbar));
+                var thumb = track.Thumb;
+                Assert.True(scroller.ScrollableHeight > 0);
+                Assert.True(thumb.ActualHeight >= 24, $"Scrollbar thumb is only {thumb.ActualHeight} px high.");
+                Assert.Equal(
+                    scrollbar.Maximum - scrollbar.Minimum,
+                    Math.Abs(track.ValueFromDistance(0, track.ActualHeight - thumb.ActualHeight)),
+                    precision: 6);
+                var start = thumb.TranslatePoint(new Point(), scrollbar).Y;
+                scroller.ScrollToBottom();
+                content.UpdateLayout();
+                Pump(content);
+                Assert.Equal(scroller.ScrollableHeight, scroller.VerticalOffset);
+                Assert.True(thumb.TranslatePoint(new Point(), scrollbar).Y > start);
+                Assert.Equal(1, actions.ReadCount);
+                Assert.Equal(0, actions.DrawingActionCount);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
     private static SolidColorBrush Brush(FrameworkElement scope, string key) =>
         (SolidColorBrush) scope.FindResource(key);
 
@@ -296,7 +346,7 @@ public sealed class AppearanceTests
         public void Dispose() => System.IO.Directory.Delete(Directory, true);
     }
 
-    internal sealed class Actions : IObjectExplorerActions
+    internal sealed class Actions(int groupCount = 12) : IObjectExplorerActions
     {
         internal int ReadCount { get; private set; }
         internal int DrawingActionCount { get; private set; }
@@ -313,7 +363,7 @@ public sealed class AppearanceTests
             ReadCount++;
             ImmutableArray<LensNode> nodes =
             [
-                .. Enumerable.Range(1, 12).Select(index => new LensNode(
+                .. Enumerable.Range(1, groupCount).Select(index => new LensNode(
                     index.ToString(),
                     $"Drawing group {index}",
                     [new TestEntityId(index)],

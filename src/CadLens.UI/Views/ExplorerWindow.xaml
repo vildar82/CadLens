@@ -52,6 +52,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel
                         Margin="0,0,5,0"
@@ -68,20 +69,6 @@
                             FontSize="12"
                             FontWeight="SemiBold"
                             Text="CAD Lens" />
-                        <ToggleButton
-                            x:Name="AppearanceButton"
-                            Width="26"
-                            Height="28"
-                            MinHeight="28"
-                            Margin="5,0,0,0"
-                            Padding="0"
-                            AutomationProperties.Name="{DynamicResource AppearanceLabel}"
-                            Content="⚙"
-                            FontSize="15"
-                            IsChecked="{Binding IsOpen, ElementName=AppearancePopup, Mode=TwoWay}"
-                            Style="{StaticResource QuietToggle}"
-                            ToolTip="{DynamicResource AppearanceHelp}"
-                            WindowChrome.IsHitTestVisibleInChrome="True" />
                         <Popup
                             x:Name="AppearancePopup"
                             AllowsTransparency="True"
@@ -209,9 +196,25 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
+                    <ToggleButton
+                        x:Name="AppearanceButton"
+                        Grid.Column="2"
+                        Width="26"
+                        Height="28"
+                        MinHeight="28"
+                        Margin="5,0,0,0"
+                        Padding="0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{DynamicResource AppearanceLabel}"
+                        Content="⚙"
+                        FontSize="15"
+                        IsChecked="{Binding IsOpen, ElementName=AppearancePopup, Mode=TwoWay}"
+                        Style="{StaticResource QuietToggle}"
+                        ToolTip="{DynamicResource AppearanceHelp}"
+                        WindowChrome.IsHitTestVisibleInChrome="True" />
                     <Button
                         x:Name="LanguageButton"
-                        Grid.Column="2"
+                        Grid.Column="3"
                         Width="32"
                         Height="30"
                         Margin="4,0,4,0"
@@ -269,7 +272,7 @@
                         </Button.ContextMenu>
                     </Button>
                     <Button
-                        Grid.Column="3"
+                        Grid.Column="4"
                         Width="30"
                         Height="30"
                         Padding="0"
