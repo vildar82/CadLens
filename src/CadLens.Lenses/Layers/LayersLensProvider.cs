@@ -74,9 +74,8 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
             .OrderBy(layer => layer.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(layer => layer.Id.DisplayId, StringComparer.Ordinal);
 
-        return includedLayers
-            .Select(layer => CreateLayerNode(layer, entitiesByLayer[layer.Id], cancellationToken))
-            .ToImmutableArray();
+        return
+            [.. includedLayers.Select(layer => CreateLayerNode(layer, entitiesByLayer[layer.Id], cancellationToken))];
     }
 
     private static bool IsIncluded(LayerSnapshot layer, bool includeFrozen, bool includeOff)
@@ -167,9 +166,8 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
         if (layer.IsViewportFrozen)
             hiddenReasons.Add("frozen in active viewport");
 
-        if (hiddenReasons.Count == 0)
-            return "Layer is on and thawed";
-
-        return $"Hidden: {string.Join(", ", hiddenReasons)}. Inclusion and Focus do not reveal it.";
+        return hiddenReasons.Count == 0
+            ? "Layer is on and thawed"
+            : $"Hidden: {string.Join(", ", hiddenReasons)}. Inclusion and Focus do not reveal it.";
     }
 }

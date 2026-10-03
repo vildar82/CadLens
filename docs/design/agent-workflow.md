@@ -2,22 +2,17 @@
 
 ## WPF comparison workflow
 
-Use `src/CadLens.Preview` for runnable design variants, without AutoCAD. Keep all variants selectable
-in one application by default. Separate executables require a concrete reason and user agreement.
-Figma is optional and used only if explicitly requested again; old files remain historical references.
+When a design cycle is requested, use temporary isolated WPF prototypes without AutoCAD. Reuse
+production view models and commands with matching sample data and scenarios. Do not add a permanent
+preview project or duplicate host logic. Figma is optional and used only if explicitly requested again;
+old files remain historical references.
 
-The existing preview launches the production window. A variant selector and alternative views are
-the next implementation task, not functionality already delivered by these instruction changes.
-
-Keep experimental views/resources in CadLens.Preview and reuse production view models, commands,
-and the same sample data and scenarios. A small launcher can select one candidate window at a time;
-keep comparison controls outside it so compact sizing, dragging, and resizing remain realistic.
-Switching closes/disposes the previous session and cancels pending work before opening a fresh variant
-at the same scenario baseline. Do not build a generic plugin framework or duplicate host logic.
-
-The designer owns assigned experimental views; the developer owns assigned shared preview support.
-Never give both agents the same writable files. Keep shared CadLens.UI styling unchanged until a
-variant is selected for production integration. Comparison controls never enter the AutoCAD plugin.
+Keep experimental views/resources separate from CadLens.UI until a variant is selected for production
+integration. The designer owns assigned experimental views; the developer owns assigned prototype
+support. Never give both agents the same writable files. If variants share a launcher, keep comparison
+controls outside the candidate window so sizing, dragging, and resizing remain realistic. Switching
+must close/dispose the previous session and cancel pending work before starting at the same scenario
+baseline. Comparison controls never enter the AutoCAD plugin.
 
 ## Scope and context
 
@@ -44,7 +39,7 @@ agreement; visual alternatives may vary hierarchy, spacing, typography, and plac
 | --- | --- | --- |
 | ux_reviewer | Current UI, scenarios, specs | Prioritized problems with evidence and acceptance criteria |
 | visual_designer | Brief, UX findings, current UI | Runnable WPF variants, screenshots, and interaction details |
-| wpf_developer | Preview support task or selected variant | Shared comparison host or production integration |
+| wpf_developer | Prototype task or selected variant | Temporary WPF prototype or production integration |
 | ui_reviewer | Brief or selected variant, implementation, criteria | Independent findings and verification gaps |
 
 ## Coordinator workflow
@@ -55,7 +50,8 @@ agreement; visual alternatives may vary hierarchy, spacing, typography, and plac
    Pass relevant files and findings, not the entire conversation by default. Do not create a document
    hierarchy for a small task; the brief may stay in the task until an artifact is useful.
 3. Assign two comparable WPF variants with matching scenarios and explicit file ownership. A requested
-   WPF concept experiment includes preview code; do not wait for a winner before making variants runnable.
+   WPF concept experiment includes temporary prototype code; do not wait for a winner before making
+   variants runnable.
    For the current experiment, preserve A's preferred narrow structure and explore richer restrained treatments.
 4. Build, launch, inspect, and independently review the variants. Show launch/switch instructions,
    variant names, screenshots, and specific interaction tasks. Let the user try them in one app.
@@ -83,7 +79,7 @@ The previous concept file is historical; there is no dependency on its completio
 
 Example request:
 
-> Compare two visual treatments of A in the standalone WPF preview. Keep both selectable in one app.
+> Compare two visual treatments of A in a temporary WPF prototype. Keep both selectable in one app.
 > Show compact, list, and object states with real hover/press feedback before production integration.
 
 For production integration, name the selected variant. For review, provide the brief or chosen variant and

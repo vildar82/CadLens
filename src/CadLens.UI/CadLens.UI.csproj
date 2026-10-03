@@ -2,6 +2,7 @@
     <PropertyGroup>
         <UseWPF>true</UseWPF>
         <UseUi>true</UseUi>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

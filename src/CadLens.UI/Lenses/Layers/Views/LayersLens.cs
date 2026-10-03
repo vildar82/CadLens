@@ -19,7 +19,8 @@ public sealed class LayersLens(LayersViewModel viewModel) : ILens
     public Task ActivateAsync(CancellationToken cancellationToken) => viewModel.ActivateAsync(cancellationToken);
 
     /// <inheritdoc />
-    public Task<HostResult<bool>> DeactivateAsync(CancellationToken cancellationToken) => viewModel.DeactivateAsync(cancellationToken);
+    public Task<HostResult<bool>> DeactivateAsync(CancellationToken cancellationToken) =>
+        viewModel.DeactivateAsync(cancellationToken);
 
     /// <inheritdoc />
     public void OnContextChanged(bool hasDrawing) => _ = viewModel.ResetContextAsync(hasDrawing);

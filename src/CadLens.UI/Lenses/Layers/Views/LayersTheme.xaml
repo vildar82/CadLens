@@ -1,6 +1,7 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:ui="clr-namespace:CadLens.UI">
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="clr-namespace:CadLens.UI">
     <ResourceDictionary.MergedDictionaries>
         <ui:QuietTheme />
     </ResourceDictionary.MergedDictionaries>
@@ -21,13 +22,26 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ButtonBase">
                     <Grid>
-                        <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+                        <Border
+                            x:Name="Surface"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4">
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                RecognizesAccessKey="True" />
                         </Border>
-                        <Border x:Name="FocusRing" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="2"
-                                Margin="3" Visibility="Collapsed" IsHitTestVisible="False" />
+                        <Border
+                            x:Name="FocusRing"
+                            Margin="3"
+                            BorderBrush="#FFFFFF"
+                            BorderThickness="1"
+                            CornerRadius="2"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -52,8 +66,14 @@
             </Setter.Value>
         </Setter>
     </Style>
-    <Style x:Key="ModeButton" TargetType="Button" BasedOn="{StaticResource ModeControl}" />
-    <Style x:Key="ModeToggle" TargetType="ToggleButton" BasedOn="{StaticResource ModeControl}">
+    <Style
+        x:Key="ModeButton"
+        BasedOn="{StaticResource ModeControl}"
+        TargetType="Button" />
+    <Style
+        x:Key="ModeToggle"
+        BasedOn="{StaticResource ModeControl}"
+        TargetType="ToggleButton">
         <Style.Triggers>
             <Trigger Property="IsChecked" Value="True">
                 <Setter Property="Background" Value="#24463F" />
@@ -62,7 +82,10 @@
             </Trigger>
         </Style.Triggers>
     </Style>
-    <Style x:Key="ModeAuto" TargetType="ToggleButton" BasedOn="{StaticResource ModeToggle}">
+    <Style
+        x:Key="ModeAuto"
+        BasedOn="{StaticResource ModeToggle}"
+        TargetType="ToggleButton">
         <Setter Property="Content" Value="Auto off" />
         <Setter Property="FontSize" Value="11" />
         <Setter Property="Padding" Value="6,3" />
@@ -72,14 +95,19 @@
             </Trigger>
         </Style.Triggers>
     </Style>
-    <Style x:Key="ModeRow" TargetType="Button" BasedOn="{StaticResource ModeButton}">
+    <Style
+        x:Key="ModeRow"
+        BasedOn="{StaticResource ModeButton}"
+        TargetType="Button">
         <Setter Property="MinHeight" Value="33" />
         <Setter Property="Padding" Value="9,6" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="FontWeight" Value="Normal" />
-        <Setter Property="FontSize" Value="12" />
     </Style>
-    <Style x:Key="ModeSortHeader" TargetType="ToggleButton" BasedOn="{StaticResource ModeControl}">
+    <Style
+        x:Key="ModeSortHeader"
+        BasedOn="{StaticResource ModeControl}"
+        TargetType="ToggleButton">
         <Setter Property="MinHeight" Value="24" />
         <Setter Property="Padding" Value="5,2" />
         <Setter Property="FontSize" Value="11" />

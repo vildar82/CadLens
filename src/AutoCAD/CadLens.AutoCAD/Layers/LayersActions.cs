@@ -26,10 +26,14 @@ internal sealed class LayersActions(
         }
     }
 
-    public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+    public Task<HostResult<bool>> SelectAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken) =>
         visualization.SelectAsync(objects, cancellationToken);
 
-    public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
+    public Task<HostResult<LayersPresentation>> ReadAsync(
+        IReadOnlySet<string> enabledFilters,
+        CancellationToken cancellationToken) =>
         lens.LoadAsync(enabledFilters, cancellationToken);
 
     public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
@@ -47,12 +51,16 @@ internal sealed class LayersActions(
         return selection is HostResult<bool>.Success { Value: true } ? isolated : new HostResult<bool>.Success(false);
     }
 
-    public async Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<string> IsolateObjectsAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken)
     {
         var result = await visualization.IsolateAsync(objects, cancellationToken);
 
         return result.Match(
-            _ => objects.IsEmpty ? "Temporary isolation cleared." : "Other objects hidden temporarily. Originally hidden objects remain hidden.",
+            _ => objects.IsEmpty
+                ? "Temporary isolation cleared."
+                : "Other objects hidden temporarily. Originally hidden objects remain hidden.",
             reason => reason);
     }
 

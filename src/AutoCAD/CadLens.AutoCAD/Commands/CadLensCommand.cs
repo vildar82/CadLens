@@ -16,7 +16,7 @@ public sealed class CadLensCommand
     /// </summary>
     [UsedImplicitly]
     [CommandMethod(CommandName, CommandFlags.NoUndoMarker | CommandFlags.UsePickSet)]
-    public void Execute()
+    public static void Execute()
     {
         CadLensApplication.OpenPanel();
     }

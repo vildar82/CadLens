@@ -10,7 +10,7 @@ emphasis, AutoCAD preselection highlighting, and explicit Focus. Do not infer be
 Treat source inspection, screenshots, and host observations as different evidence. Check screenshot
 currency; do not call an old README image the current UI. Mark hypotheses and missing evidence.
 Return at most five prioritized findings: affected scenario, evidence, user impact, and a concrete
-improvement or question. Define comparable tasks and acceptance criteria for variants in CadLens.Preview,
+improvement or question. Define comparable tasks and acceptance criteria for temporary WPF prototypes,
 using the same sample data, scenario, and starting state. Assess mouse feedback, stable controls,
 compact/expanded use, and restrained visual character alongside clarity.
 Separate observed WPF interaction from static screenshots and simulated host behavior from AutoCAD.

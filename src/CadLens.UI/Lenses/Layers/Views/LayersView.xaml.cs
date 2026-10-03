@@ -1,9 +1,7 @@
-﻿using System.Windows.Controls;
-
-namespace CadLens.UI;
+﻿namespace CadLens.UI;
 
 /// <summary>The Layers lens owns its exploration layout and bindings.</summary>
-public partial class LayersView : UserControl
+public partial class LayersView
 {
     /// <summary>Creates the Layers content with its own view model.</summary>
     /// <param name="viewModel">Layers-specific commands and presentation.</param>

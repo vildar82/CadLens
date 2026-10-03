@@ -43,14 +43,14 @@ public sealed class LayersLensTests
             index < 180 ? "AcDbPolyline" : index < 228 ? "AcDbLine" : "AcDbArc")).ToImmutableArray();
         var layers = ImmutableArray.Create(new LayerSnapshot(new TestLayerId("roads"), "Roads", false, false, false, false));
         var first = await Load(layers, entities, new HashSet<string>());
-        var shuffled = await Load(layers, entities.Reverse().ToImmutableArray(), new HashSet<string>());
+        var shuffled = await Load(layers, [.. entities.Reverse()], new HashSet<string>());
         var group = Assert.Single(first.Groups);
         Assert.Equal(248, group.Count);
         Assert.Equal(248, group.Children.Sum(type => type.Count));
         Assert.Equal(180, group.Children.Single(type => type.Label == "Polyline").Count);
         Assert.Equal(48, group.Children.Single(type => type.Label == "Line").Count);
         Assert.Equal(20, group.Children.Single(type => type.Label == "Arc").Count);
-        Assert.Equal(group.Objects.ToArray(), shuffled.Groups[0].Objects.ToArray());
+        Assert.Equal<IPlacedObjectId>(group.Objects, shuffled.Groups[0].Objects);
         Assert.Equal(248, group.Objects.Distinct().Count());
     }
 
@@ -60,20 +60,20 @@ public sealed class LayersLensTests
     {
         var result = await Load(
             [
-                new(new TestLayerId("empty"), "Empty", false, false, false, false),
-                new(new TestLayerId("a"), "alpha", false, false, false, true),
-                new(new TestLayerId("b"), "Alpha", false, false, false, false)
+                new LayerSnapshot(new TestLayerId("empty"), "Empty", false, false, false, false),
+                new LayerSnapshot(new TestLayerId("a"), "alpha", false, false, false, true),
+                new LayerSnapshot(new TestLayerId("b"), "Alpha", false, false, false, false)
             ],
             [
                 Entity("2", "a", "AcDbBlockReference"), Entity("1", "a", "AcDbBlockReference"),
                 Entity("3", "b", "Custom.One"), Entity("4", "b", "Custom.Two")
             ],
             new HashSet<string>());
-        Assert.Equal(new[] { "a", "b" }, result.Groups.Select(group => group.Id));
+        Assert.Equal(["a", "b"], result.Groups.Select(group => group.Id));
         var blocks = Assert.Single(result.Groups[0].Children);
         Assert.Equal(2, blocks.Count);
-        Assert.Equal(new[] { "1", "2" }, blocks.Objects.Select(reference => reference.DisplayId));
-        Assert.Equal(new[] { "Custom.One", "Custom.Two" }, result.Groups[1].Children.Select(type => type.Label));
+        Assert.Equal(["1", "2"], blocks.Objects.Select(reference => reference.DisplayId));
+        Assert.Equal(["Custom.One", "Custom.Two"], result.Groups[1].Children.Select(type => type.Label));
     }
 
     /// <summary>Included hidden objects explain their status without promising visible isolation.</summary>
@@ -81,7 +81,7 @@ public sealed class LayersLensTests
     public async Task HiddenObjectPreviewExplainsItsLayerAndType()
     {
         var result = await Load(
-            [new(new TestLayerId("a"), "Roads", true, false, true, false)],
+            [new LayerSnapshot(new TestLayerId("a"), "Roads", true, false, true, false)],
             [Entity("1", "a", "AcDbPolyline")],
             new HashSet<string> { LayersLensProvider.IncludeFrozen, LayersLensProvider.IncludeOff });
         var item = result.Groups[0].Children[0].Children[0];
@@ -97,7 +97,7 @@ public sealed class LayersLensTests
     public async Task ReportsUnavailableDrawing()
     {
         var provider = new LayersLensProvider(new UnavailableSource());
-        var result = await provider.LoadAsync(new HashSet<string>(), default);
+        var result = await provider.LoadAsync(new HashSet<string>(), CancellationToken.None);
 
         Assert.Equal("No drawing.", Assert.IsType<HostResult<LayersPresentation>.Unavailable>(result).Reason);
     }
@@ -111,7 +111,7 @@ public sealed class LayersLensTests
         IReadOnlySet<string> filters)
     {
         var provider = new LayersLensProvider(new Source(new LayersSnapshot("Model", layers, entities)));
-        var result = await provider.LoadAsync(filters, default);
+        var result = await provider.LoadAsync(filters, CancellationToken.None);
         return Assert.IsType<HostResult<LayersPresentation>.Success>(result).Value;
     }
 

@@ -13,25 +13,14 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private readonly NavigationState _navigation = new();
     private ImmutableHashSet<string> _enabledFilters = [];
     private CancellationToken _activationToken;
-    private bool _isLensActive;
-    private ImmutableArray<FilterOption> _filters = [];
     private string _emptyMessage = "Refresh to explore the active space.";
     private CancellationTokenSource? _pendingRequest;
     private Task _operation = Task.CompletedTask;
-    private string _status = "Activate a lens to explore the drawing.";
-    private string _spaceLabel = "Active drawing";
-    private string _lensLabel = "Overview";
-    private ImmutableArray<LensNode> _groups = [];
     private ImmutableArray<LensNode> _visibleGroups = [];
-    private string _layerSearch = "";
-    private bool _sortByCount;
     private bool _sortDescending;
     private bool _disposed;
     private bool _needsCleanup;
     private bool _hasDrawing = true;
-    private bool _isAutoFocus;
-    private bool _isAutoSelect;
-    private bool _isAutoIsolation;
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
@@ -74,10 +63,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
     public bool IsLensActive
     {
-        get => _isLensActive;
+        get;
         private set
         {
-            if (SetProperty(ref _isLensActive, value))
+            if (SetProperty(ref field, value))
                 NotifyCommands();
         }
     }
@@ -85,37 +74,37 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Current operation result or explanation.</summary>
     public string Status
     {
-        get => _status;
-        private set => SetProperty(ref _status, value);
-    }
+        get;
+        private set => SetProperty(ref field, value);
+    } = "Activate a lens to explore the drawing.";
 
     /// <summary>Active space supplied by the lens.</summary>
     public string SpaceLabel
     {
-        get => _spaceLabel;
-        private set => SetProperty(ref _spaceLabel, value);
-    }
+        get;
+        private set => SetProperty(ref field, value);
+    } = "Active drawing";
 
     /// <summary>Title supplied by the active lens.</summary>
     public string LensLabel
     {
-        get => _lensLabel;
-        private set => SetProperty(ref _lensLabel, value);
-    }
+        get;
+        private set => SetProperty(ref field, value);
+    } = "Overview";
 
     /// <summary>Groups from the most recent inventory.</summary>
     public ImmutableArray<LensNode> Groups
     {
-        get => _groups;
+        get;
         private set
         {
-            SetProperty(ref _groups, value);
+            SetProperty(ref field, value);
             UpdateVisibleGroups();
             OnPropertyChanged(nameof(GroupCount));
             OnPropertyChanged(nameof(ObjectCount));
             OnPropertyChanged(nameof(HasGroups));
         }
-    }
+    } = [];
 
     /// <summary>Children at the current exploration level.</summary>
     public ImmutableArray<LensNode> Items => Current is null ? _visibleGroups : _navigation.Items;
@@ -123,25 +112,25 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Finds layers by name in the root list.</summary>
     public string LayerSearch
     {
-        get => _layerSearch;
+        get;
         set
         {
-            if (SetProperty(ref _layerSearch, value))
+            if (SetProperty(ref field, value))
                 UpdateVisibleGroups();
         }
-    }
+    } = "";
 
     /// <summary>Whether the name column controls root ordering.</summary>
-    public bool IsNameSortActive => !_sortByCount;
+    public bool IsNameSortActive => !IsCountSortActive;
 
     /// <summary>Whether the object count column controls root ordering.</summary>
-    public bool IsCountSortActive => _sortByCount;
+    public bool IsCountSortActive { get; private set; }
 
     /// <summary>Current direction indicator for the name column.</summary>
-    public string NameSortArrow => !_sortByCount ? (_sortDescending ? "↓" : "↑") : "";
+    public string NameSortArrow => !IsCountSortActive ? _sortDescending ? "↓" : "↑" : "";
 
     /// <summary>Current direction indicator for the object count column.</summary>
-    public string CountSortArrow => _sortByCount ? (_sortDescending ? "↓" : "↑") : "";
+    public string CountSortArrow => IsCountSortActive ? _sortDescending ? "↓" : "↑" : "";
 
     /// <summary>Current group or object details.</summary>
     public LensNode? Current => _navigation.Current;
@@ -161,22 +150,22 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Fits the camera to the current target during navigation.</summary>
     public bool IsAutoFocus
     {
-        get => _isAutoFocus;
-        private set => SetProperty(ref _isAutoFocus, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     /// <summary>Selects the current target during navigation without moving the camera.</summary>
     public bool IsAutoSelect
     {
-        get => _isAutoSelect;
-        private set => SetProperty(ref _isAutoSelect, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     /// <summary>Isolates the current target during navigation.</summary>
     public bool IsAutoIsolation
     {
-        get => _isAutoIsolation;
-        private set => SetProperty(ref _isAutoIsolation, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     /// <summary>Whether the current result has no root groups.</summary>
@@ -197,7 +186,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     public IRelayCommand ClearSearchCommand { get; }
 
     /// <summary>Lens options and their current inclusion state.</summary>
-    public ImmutableArray<FilterOption> Filters => _filters;
+    public ImmutableArray<FilterOption> Filters { get; private set; } = [];
 
     /// <summary>Enters a displayed child and updates temporary isolation.</summary>
     public IAsyncRelayCommand<LensNode> EnterCommand { get; }
@@ -272,12 +261,14 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         SpaceLabel = hasDrawing ? "Active drawing" : "No active drawing";
         Status = !hasDrawing
             ? "Open a drawing to explore its objects."
-            : IsLensActive ? "Drawing context changed. Updating the current space." : "Drawing context changed. Activate a lens to explore.";
-        if (_needsCleanup)
-        {
-            _actions.ClearImmediately(false);
-            _needsCleanup = IsLensActive;
-        }
+            : IsLensActive
+                ? "Drawing context changed. Updating the current space."
+                : "Drawing context changed. Activate a lens to explore.";
+        if (!_needsCleanup)
+            return IsLensActive && hasDrawing ? RefreshContextAsync() : Task.CompletedTask;
+
+        _actions.ClearImmediately(false);
+        _needsCleanup = IsLensActive;
 
         return IsLensActive && hasDrawing ? RefreshContextAsync() : Task.CompletedTask;
     }
@@ -307,8 +298,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
     private void ChangeSort(bool byCount)
     {
-        _sortDescending = _sortByCount == byCount ? !_sortDescending : byCount;
-        _sortByCount = byCount;
+        _sortDescending = IsCountSortActive == byCount ? !_sortDescending : byCount;
+        IsCountSortActive = byCount;
         OnPropertyChanged(nameof(IsNameSortActive));
         OnPropertyChanged(nameof(IsCountSortActive));
         OnPropertyChanged(nameof(NameSortArrow));
@@ -318,15 +309,19 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
     private void UpdateVisibleGroups()
     {
-        var groups = Groups.Where(group => group.Label.Contains(LayerSearch.Trim(), StringComparison.OrdinalIgnoreCase));
-        _visibleGroups = (_sortByCount
+        var groups = Groups.Where(group => group.Label.Contains(
+            LayerSearch.Trim(),
+            StringComparison.OrdinalIgnoreCase));
+        _visibleGroups =
+        [
+            .. IsCountSortActive
                 ? _sortDescending
                     ? groups.OrderByDescending(group => group.Count).ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
                     : groups.OrderBy(group => group.Count).ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
                 : _sortDescending
                     ? groups.OrderByDescending(group => group.Label, StringComparer.OrdinalIgnoreCase)
-                    : groups.OrderBy(group => group.Label, StringComparer.OrdinalIgnoreCase))
-            .ToImmutableArray();
+                    : groups.OrderBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
+        ];
         OnPropertyChanged(nameof(Items));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(EmptyMessage));
@@ -354,6 +349,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             return new HostResult<bool>.Unavailable("The Layers session has closed.");
 
         IsLensActive = false;
+        // ReSharper disable once MethodHasAsyncOverload -- Cancellation must finish before replacing request ownership.
         _pendingRequest?.Cancel();
         using var cleanup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _pendingRequest = cleanup;
@@ -457,7 +453,10 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         LensLabel = success.Value.Label;
         Groups = success.Value.Groups;
         _emptyMessage = success.Value.EmptyMessage;
-        _filters = success.Value.Filters.Select(filter => new FilterOption(filter, _enabledFilters.Contains(filter.Id))).ToImmutableArray();
+        Filters =
+        [
+            .. success.Value.Filters.Select(filter => new FilterOption(filter, _enabledFilters.Contains(filter.Id)))
+        ];
         _navigation.Reset(Groups, true);
         OnPropertyChanged(nameof(Filters));
         OnPropertyChanged(nameof(EmptyMessage));
@@ -571,8 +570,13 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
     private async Task<string> ToggleFilterAsync(FilterOption filter, CancellationToken cancellationToken)
     {
-        _enabledFilters = filter.IsEnabled ? _enabledFilters.Remove(filter.Descriptor.Id) : _enabledFilters.Add(filter.Descriptor.Id);
-        _filters = Filters.Select(option => option with { IsEnabled = _enabledFilters.Contains(option.Descriptor.Id) }).ToImmutableArray();
+        _enabledFilters = filter.IsEnabled
+            ? _enabledFilters.Remove(filter.Descriptor.Id)
+            : _enabledFilters.Add(filter.Descriptor.Id);
+        Filters =
+        [
+            .. Filters.Select(option => option with {IsEnabled = _enabledFilters.Contains(option.Descriptor.Id)})
+        ];
         OnPropertyChanged(nameof(Filters));
 
         try
@@ -581,12 +585,12 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         }
         catch
         {
-            if (!cancellationToken.IsCancellationRequested)
-            {
-                Groups = [];
-                _navigation.Reset([], false);
-                NotifyNavigation();
-            }
+            if (cancellationToken.IsCancellationRequested)
+                throw;
+
+            Groups = [];
+            _navigation.Reset([], false);
+            NotifyNavigation();
 
             throw;
         }

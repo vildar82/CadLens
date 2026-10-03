@@ -81,6 +81,7 @@ internal sealed class ExplorerOwner
 
     private void OnClosed(object? sender, EventArgs args) => _ = CloseSessionAsync();
 
+    // ReSharper disable once AsyncVoidEventHandlerMethod -- EventHandler requires void; diagnostics failures are caught below.
     private async void OnDiagnosticsRequested(object? sender, EventArgs args)
     {
         if (_requests is null || _window is null || _diagnosticsRunning)
@@ -97,7 +98,10 @@ internal sealed class ExplorerOwner
 
             if (result is not HostResult<DrawingSnapshot>.Success success)
             {
-                MessageBox.Show(window, ((HostResult<DrawingSnapshot>.Unavailable)result).Reason, "CAD Lens diagnostics");
+                MessageBox.Show(
+                    window,
+                    ((HostResult<DrawingSnapshot>.Unavailable) result).Reason,
+                    "CAD Lens diagnostics");
                 return;
             }
 
@@ -126,7 +130,8 @@ internal sealed class ExplorerOwner
         ResetContext(false);
     }
 
-    private void OnDocumentActivated(object sender, DocumentCollectionEventArgs args) => ObserveDocument(args.Document);
+    private void OnDocumentActivated(object sender, DocumentCollectionEventArgs args) =>
+        ObserveDocument(args.Document);
 
     private void ObserveDocument(Document? document)
     {
