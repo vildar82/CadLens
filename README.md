@@ -73,8 +73,8 @@ A new `CADLENS` session opens as a compact bar with both lenses inactive. Press 
 ### Object scope
 
 Both lenses start with **All objects**, which reads direct objects in the active model or paper space.
-Choose **Selected objects** to browse a subset. The lens uses the current CAD selection or asks you to
-select objects when nothing is selected, then reads them immediately. Press Escape to cancel selection
+Every click on **Selected objects**, including when already checked, uses the current CAD selection
+or asks you to select objects when nothing is selected, then reads them immediately. Press Escape to cancel selection
 and keep the previous view. Only live direct objects in the active space are included. The existing
 off/frozen inclusion filters still apply.
 

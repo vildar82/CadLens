@@ -73,6 +73,63 @@ public sealed class SelectedObjectsTests
         }
     });
 
+    /// <summary>Clicking the checked scope requests a new selection; cancellation retains its current snapshot.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Object selection canceled. Previous view kept.")]
+    public void CheckedScopeButtonRequestsObjectsAgain(string? failure) => WpfTest.Run(() =>
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        model.ActivateAsync(CancellationToken.None).GetAwaiter().GetResult();
+        actions.NativeSelection = [new TestEntityId(1)];
+        var view = new ObjectExplorerView(model);
+        view.Measure(new Size(300, 450));
+        view.Arrange(new Rect(0, 0, 300, 450));
+        view.UpdateLayout();
+        var selected = Assert.IsType<RadioButton>(view.FindName("SelectedObjectsScope"));
+        var all = Assert.IsType<RadioButton>(view.FindName("AllObjectsScope"));
+        var onClick = typeof(ToggleButton).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        onClick.Invoke(selected, null);
+        model.ShowSelectedObjectsCommand.ExecutionTask!.GetAwaiter().GetResult();
+        Assert.True(selected.IsChecked);
+        Assert.Equal("1", Assert.Single(model.Groups.SelectMany(group => group.Objects)).DisplayId);
+        var groups = model.Groups;
+        actions.NativeSelection = [new TestEntityId(2)];
+        actions.PendingSelection = new TaskCompletionSource<HostResult<ImmutableArray<IPlacedObjectId>>>();
+        actions.Calls.Clear();
+
+        onClick.Invoke(selected, null);
+
+        Assert.Equal(2, actions.RequestCount);
+        Assert.Equal(["request"], actions.Calls);
+        Assert.True(model.IsBusy);
+        Assert.False(selected.IsEnabled);
+        Assert.Equal(groups, model.Groups);
+        actions.PendingSelection.SetResult(failure is null
+            ? new HostResult<ImmutableArray<IPlacedObjectId>>.Success(actions.NativeSelection)
+            : new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(failure));
+        model.ShowSelectedObjectsCommand.ExecutionTask!.GetAwaiter().GetResult();
+        view.UpdateLayout();
+        Assert.False(model.IsBusy);
+        Assert.True(selected.IsEnabled);
+        Assert.True(model.IsSelectedObjectsOnly);
+        Assert.True(selected.IsChecked);
+        Assert.False(all.IsChecked);
+
+        if (failure is null)
+        {
+            Assert.Equal(["request", "clear", "read"], actions.Calls);
+            Assert.Equal("2", Assert.Single(model.Groups.SelectMany(group => group.Objects)).DisplayId);
+        }
+        else
+        {
+            Assert.Equal(["request"], actions.Calls);
+            Assert.Equal(groups, model.Groups);
+            Assert.Equal(UiText.Current.Get(failure), model.Status);
+        }
+    });
+
     /// <summary>Real controls reflect selected scope and update their refresh text when language changes.</summary>
     [Fact]
     public void ScopeControlsShowLocalizedSelectionAndRefresh() => WpfTest.Run(() =>
@@ -101,9 +158,9 @@ public sealed class SelectedObjectsTests
             Assert.Equal(
                 "Использовать выбранные объекты CAD или выбрать объекты в CAD. Обновление заменяет набор объектов.",
                 selected.ToolTip);
-            var status = model.Status;
+            var requests = actions.RequestCount;
             model.ShowSelectedObjectsCommand.ExecuteAsync(null).GetAwaiter().GetResult();
-            Assert.Equal(status, model.Status);
+            Assert.Equal(requests + 1, actions.RequestCount);
             model.ShowAllObjectsCommand.ExecuteAsync(null).GetAwaiter().GetResult();
             actions.RequestFailure = "Object selection canceled. Previous view kept.";
             selected.SetCurrentValue(ToggleButton.IsCheckedProperty, true);

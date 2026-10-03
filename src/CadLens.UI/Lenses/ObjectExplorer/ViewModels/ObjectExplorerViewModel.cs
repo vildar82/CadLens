@@ -61,7 +61,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             () => IsAllObjects ? Task.CompletedTask : ExecuteActionAsync(token => ChangeScopeAsync(false, token)),
             CanRun);
         ShowSelectedObjectsCommand = new AsyncRelayCommand(
-            () => IsSelectedObjectsOnly ? Task.CompletedTask : ExecuteActionAsync(token => ChangeScopeAsync(true, token)),
+            () => ExecuteActionAsync(token => ChangeScopeAsync(true, token)),
             CanRun);
         IsolateCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(async token => await _actions.IsolateObjectsAsync(Current!.Objects, token)),
