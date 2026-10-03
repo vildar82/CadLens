@@ -147,7 +147,8 @@ public sealed class DrawingPresentationTests
             shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
             var model = lens.ViewModel;
             model.EnterCommand.ExecuteAsync(Assert.Single(model.Items)).GetAwaiter().GetResult();
-            var window = new ExplorerWindow(shell) {ShowActivated = false, Left = -10000, Top = -10000};
+            using var windowSettings = new SettingsFile();
+            var window = new ExplorerWindow(shell, settings: windowSettings.Service) {ShowActivated = false, Left = -10000, Top = -10000};
 
             try
             {
@@ -267,7 +268,8 @@ public sealed class DrawingPresentationTests
             shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
             var model = lens.ViewModel;
             model.EnterCommand.ExecuteAsync(Assert.Single(model.Items)).GetAwaiter().GetResult();
-            var window = new ExplorerWindow(shell) {ShowActivated = false, Left = -10000, Top = -10000};
+            using var windowSettings = new SettingsFile();
+            var window = new ExplorerWindow(shell, settings: windowSettings.Service) {ShowActivated = false, Left = -10000, Top = -10000};
 
             try
             {
