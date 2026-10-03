@@ -11,7 +11,7 @@
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' and '$(MSBuildProjectName)' == 'CadLens.AutoCAD' ">
         <OutputPath>$(AppData)\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\</OutputPath>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>

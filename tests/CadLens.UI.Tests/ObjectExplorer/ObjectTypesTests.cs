@@ -303,7 +303,7 @@ public sealed class ObjectTypesTests
             content.Arrange(new Rect(size));
             content.UpdateLayout();
             var buttons = WpfTest.Descendants(content).OfType<ToggleButton>().ToArray();
-            Assert.Equal(["Layers", "Object Types"], buttons.Select(button => button.Content));
+            Assert.Equal(["Layers", "Objects"], buttons.Select(button => button.Content));
             Assert.All(buttons, button => Assert.True(button.ActualWidth > 0));
             var scroller = WpfTest.Descendants(content).OfType<ScrollViewer>().Single();
             Assert.True(scroller.ExtentWidth <= scroller.ViewportWidth, "Both lens choices must fit without scrolling.");

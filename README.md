@@ -44,7 +44,7 @@ Build the solution:
 dotnet build CadLens.slnx -c Debug
 ```
 
-The entry assembly is `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadLens.AutoCAD.dll`. If the build directory is not in `TRUSTEDPATHS`, copy all DLLs from that output directory into an existing trusted directory without disabling `SECURELOAD`. In AutoCAD, run `NETLOAD`, select `CadLens.AutoCAD.dll`, and enter `CADLENS`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
+Debug builds copy the plugin and its dependencies to `%APPDATA%\Autodesk\ApplicationPlugins\CadLens.bundle\Contents`. The entry assembly is `CadLens.AutoCAD.dll` in that directory. Library and test project outputs stay in their local build directories. If the build directory is not in `TRUSTEDPATHS`, copy all DLLs from that output directory into an existing trusted directory without disabling `SECURELOAD`. In AutoCAD, run `NETLOAD`, select `CadLens.AutoCAD.dll`, and enter `CADLENS`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
 
 ## Use the Layers lens
 
@@ -74,7 +74,7 @@ CAD Lens uses one exploration session for the active drawing. Focus moves only t
 
 ## Use the Object Types lens
 
-Press Object Types to count and browse types across all included layers in the current model or paper space. Search the type names or sort by name/count, then browse Type → Object; each object shows its own layer and visibility details. A block insertion counts as one object. Nested block and external-reference contents are not traversed.
+Press Objects to browse object types across all included layers in the current model or paper space and see their counts. Search the type names or sort by name/count, then browse Type → Object; each object shows its own layer and visibility details. A block insertion counts as one object. Nested block and external-reference contents are not traversed.
 
 Object Types shares the drawing controls and inclusion filters described above. Switching lenses clears the previous lens's selection/isolation and restores the destination lens's valid navigation and settings. Counts include off-screen objects and stay unchanged when panning or zooming. Use Refresh after drawing edits.
 
