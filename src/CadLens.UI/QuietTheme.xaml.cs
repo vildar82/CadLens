@@ -1,18 +1,15 @@
 ﻿using JetBrains.Annotations;
-using Wpf.Ui.Appearance;
-using Wpf.Ui.Markup;
 
 namespace CadLens.UI;
 
-/// <summary>Loads window-scoped theme dependencies before the custom XAML styles.</summary>
+/// <summary>Loads local control styles and a standalone dark palette.</summary>
 [UsedImplicitly]
 public partial class QuietTheme
 {
-    /// <summary>Creates the theme with direct references that the plugin host can resolve.</summary>
+    /// <summary>Creates the local theme without application-wide resource or theme changes.</summary>
     public QuietTheme()
     {
-        MergedDictionaries.Add(new ThemesDictionary { Theme = ApplicationTheme.Dark });
-        MergedDictionaries.Add(new ControlsDictionary());
         InitializeComponent();
+        AppearancePalette.Apply(this, "Dark", "Quiet", "Mint", false);
     }
 }

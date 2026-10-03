@@ -88,7 +88,7 @@ public sealed class ObjectTypesTests
         Assert.Equal(clears, actions.ClearCount);
     }
 
-    /// <summary>Shared visibility options affect types across all layers without changing the selected valid object.</summary>
+    /// <summary>Visibility options affect types across layers and retain the selected valid object.</summary>
     [Fact]
     public async Task FiltersReconcileObjectTypesAndPreserveValidObjects()
     {
@@ -99,18 +99,20 @@ public sealed class ObjectTypesTests
         await model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Label == "Line"));
         await model.EnterCommand.ExecuteAsync(model.Items[0]);
         var id = model.Current!.Id;
-        await model.ToggleFilterCommand.ExecuteAsync(model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeFrozen));
+        await model.ToggleFilterCommand.ExecuteAsync(
+            model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeFrozen));
         Assert.Equal(id, model.Current!.Id);
         Assert.Equal(4, model.GroupCount);
         await model.RootCommand.ExecuteAsync(null);
         await model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Label == "Polyline"));
-        await model.ToggleFilterCommand.ExecuteAsync(model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeFrozen));
+        await model.ToggleFilterCommand.ExecuteAsync(
+            model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeFrozen));
         Assert.Null(model.Current);
         Assert.Equal(3, model.GroupCount);
         Assert.Empty(actions.Isolated);
     }
 
-    /// <summary>Switching preserves each lens's search, options, sorting, and path while cleaning old effects.</summary>
+    /// <summary>Lens switching preserves search, options, sorting, and navigation while clearing effects.</summary>
     [Fact]
     public async Task DrawingLensesKeepIndependentStateDuringSwitches()
     {
@@ -121,7 +123,8 @@ public sealed class ObjectTypesTests
         await shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]);
         layers.ViewModel.SearchText = "road";
         layers.ViewModel.SortByCountCommand.Execute(null);
-        await layers.ViewModel.ToggleFilterCommand.ExecuteAsync(layers.ViewModel.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeOff));
+        await layers.ViewModel.ToggleFilterCommand.ExecuteAsync(
+            layers.ViewModel.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeOff));
         await layers.ViewModel.EnterCommand.ExecuteAsync(Assert.Single(layers.ViewModel.Items));
         var layerId = layers.ViewModel.Current!.Id;
         await layers.ViewModel.ToggleAutoSelectCommand.ExecuteAsync(null);
@@ -143,7 +146,9 @@ public sealed class ObjectTypesTests
         Assert.Equal("road", layers.ViewModel.SearchText);
         Assert.Equal(layerId, layers.ViewModel.Current!.Id);
         Assert.True(layers.ViewModel.IsCountSortActive);
-        Assert.True(layers.ViewModel.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeOff).IsEnabled);
+        Assert.True(
+            layers.ViewModel.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.IncludeOff)
+                .IsEnabled);
         Assert.True(layers.ViewModel.IsAutoSelect);
         await shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[1]);
         Assert.Equal("line", types.ViewModel.SearchText);
@@ -157,7 +162,7 @@ public sealed class ObjectTypesTests
     [Fact]
     public async Task SwitchingCancelsOldReadAndWaitsForCleanup()
     {
-        var source = new Source { Pending = new TaskCompletionSource<HostResult<DrawingInventory>>() };
+        var source = new Source {Pending = new TaskCompletionSource<HostResult<DrawingInventory>>()};
         var actions = new Actions(source);
         using var types = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
         using var layers = new ObjectExplorerLens(actions, DrawingGrouping.Layers);
@@ -184,7 +189,7 @@ public sealed class ObjectTypesTests
         Assert.False(types.ViewModel.IsBusy);
     }
 
-    /// <summary>Unavailable inventory clears stale targets and a later refresh recovers with the right grouping.</summary>
+    /// <summary>Failed inventory clears stale targets; a later refresh restores the right grouping.</summary>
     [Fact]
     public async Task ReadFailureClearsOldTypesAndRefreshRecovers()
     {
@@ -210,7 +215,7 @@ public sealed class ObjectTypesTests
     [Fact]
     public async Task CloseAndDisposeAreIdempotentDuringLoading()
     {
-        var source = new Source { Pending = new TaskCompletionSource<HostResult<DrawingInventory>>() };
+        var source = new Source {Pending = new TaskCompletionSource<HostResult<DrawingInventory>>()};
         var actions = new Actions(source);
         var lens = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
         var pending = lens.ActivateAsync(CancellationToken.None);
@@ -247,19 +252,25 @@ public sealed class ObjectTypesTests
             var model = lens.ViewModel;
 
             if (level != "root")
-                model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Label == "Line")).GetAwaiter().GetResult();
+                model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Label == "Line")).GetAwaiter()
+                    .GetResult();
 
             if (level == "object")
                 model.EnterCommand.ExecuteAsync(model.Items[0]).GetAwaiter().GetResult();
 
             var window = new ExplorerWindow(shell);
-            var content = (FrameworkElement)window.Content;
+            var content = (FrameworkElement) window.Content;
             const int height = 660;
             content.Measure(new Size(width, height));
             content.Arrange(new Rect(0, 0, width, height));
             content.UpdateLayout();
             Assert.Same(model, shell.ActiveView!.DataContext);
-            var text = WpfTest.Descendants(content).OfType<TextBlock>().Where(block => block.Visibility == Visibility.Visible).Select(block => block.Text).ToArray();
+            string[] text =
+            [
+                .. WpfTest.Descendants(content).OfType<TextBlock>()
+                    .Where(block => block.Visibility == Visibility.Visible)
+                    .Select(block => block.Text)
+            ];
             Assert.Contains("Object Types", text);
             Assert.DoesNotContain("All layers", text);
             Assert.DoesNotContain("Search layers", text);
@@ -271,14 +282,25 @@ public sealed class ObjectTypesTests
             }
             else
             {
-                Assert.Contains("All types", WpfTest.Descendants(content).OfType<Button>().Select(button => button.Content));
+                Assert.Contains(
+                    "All types",
+                    WpfTest.Descendants(content).OfType<Button>().Select(button => button.Content));
             }
 
             var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(content);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
-            var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "modes-object-types"));
+            var directory = Path.GetFullPath(
+                Path.Combine(
+                    AppContext.BaseDirectory,
+                    "..",
+                    "..",
+                    "..",
+                    "..",
+                    "..",
+                    "artifacts",
+                    "modes-object-types"));
             Directory.CreateDirectory(directory);
             using var output = File.Create(Path.Combine(directory, $"object-types-{width}-{level}.png"));
             encoder.Save(output);
@@ -297,16 +319,23 @@ public sealed class ObjectTypesTests
             using var types = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
             using var shell = new ExplorerViewModel([layers, types]);
             var window = new ExplorerWindow(shell);
-            var content = (FrameworkElement)window.Content;
+            var content = (FrameworkElement) window.Content;
             var size = new Size(window.Width, window.Height);
             content.Measure(size);
             content.Arrange(new Rect(size));
             content.UpdateLayout();
-            var buttons = WpfTest.Descendants(content).OfType<ToggleButton>().ToArray();
+            var toggleLensCommand = shell.ToggleLensCommand;
+            ToggleButton[] buttons =
+            [
+                .. WpfTest.Descendants(content).OfType<ToggleButton>()
+                    .Where(button => ReferenceEquals(button.Command, toggleLensCommand))
+            ];
             Assert.Equal(["Layers", "Objects"], buttons.Select(button => button.Content));
             Assert.All(buttons, button => Assert.True(button.ActualWidth > 0));
             var scroller = WpfTest.Descendants(content).OfType<ScrollViewer>().Single();
-            Assert.True(scroller.ExtentWidth <= scroller.ViewportWidth, "Both lens choices must fit without scrolling.");
+            Assert.True(
+                scroller.ExtentWidth <= scroller.ViewportWidth,
+                "Both lens choices must fit without scrolling.");
             Assert.All(buttons, button => Assert.True(button.Command.CanExecute(button.CommandParameter)));
             buttons[1].Command.Execute(buttons[1].CommandParameter);
             Assert.True(types.ViewModel.IsLensActive);
@@ -323,16 +352,20 @@ public sealed class ObjectTypesTests
         var off = new LayerId("Off");
         return new DrawingInventory(
             "Model space",
-            [new LayerSnapshot(architecture, architecture.DisplayId, false, false, false, false),
-             new LayerSnapshot(roads, roads.DisplayId, false, false, false, true),
-             new LayerSnapshot(frozen, frozen.DisplayId, false, true, false, false),
-             new LayerSnapshot(off, off.DisplayId, true, false, false, false)],
-            [new EntitySnapshot(new TestEntityId(1), architecture, "AcDbLine"),
-             new EntitySnapshot(new TestEntityId(2), roads, "AcDbLine"),
-             new EntitySnapshot(new TestEntityId(3), roads, "AcDbCircle"),
-             new EntitySnapshot(new TestEntityId(4), architecture, "AcDbText"),
-             new EntitySnapshot(new TestEntityId(5), frozen, "AcDbPolyline"),
-             new EntitySnapshot(new TestEntityId(6), off, "AcDbArc")]);
+            [
+                new LayerSnapshot(architecture, architecture.DisplayId, false, false, false, false),
+                new LayerSnapshot(roads, roads.DisplayId, false, false, false, true),
+                new LayerSnapshot(frozen, frozen.DisplayId, false, true, false, false),
+                new LayerSnapshot(off, off.DisplayId, true, false, false, false)
+            ],
+            [
+                new EntitySnapshot(new TestEntityId(1), architecture, "AcDbLine"),
+                new EntitySnapshot(new TestEntityId(2), roads, "AcDbLine"),
+                new EntitySnapshot(new TestEntityId(3), roads, "AcDbCircle"),
+                new EntitySnapshot(new TestEntityId(4), architecture, "AcDbText"),
+                new EntitySnapshot(new TestEntityId(5), frozen, "AcDbPolyline"),
+                new EntitySnapshot(new TestEntityId(6), off, "AcDbArc")
+            ]);
     }
 
     private sealed record LayerId(string DisplayId) : ILayerId;
@@ -340,7 +373,10 @@ public sealed class ObjectTypesTests
     private sealed class Source : IDrawingInventorySource
     {
         internal TaskCompletionSource<HostResult<DrawingInventory>>? Pending { get; set; }
-        internal HostResult<DrawingInventory> Result { get; set; } = new HostResult<DrawingInventory>.Success(Inventory());
+
+        internal HostResult<DrawingInventory> Result { get; set; } =
+            new HostResult<DrawingInventory>.Success(Inventory());
+
         internal CancellationToken Token { get; private set; }
 
         public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken)
@@ -365,19 +401,26 @@ public sealed class ObjectTypesTests
         internal ImmutableArray<IPlacedObjectId> Isolated { get; private set; } = [];
         internal ImmutableArray<IPlacedObjectId> Focused { get; private set; } = [];
 
-        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken)
+        public Task<HostResult<LensPresentation>> ReadAsync(
+            DrawingGrouping grouping,
+            IReadOnlySet<string> enabledFilters,
+            CancellationToken cancellationToken)
         {
             ReadCount++;
             return _provider.LoadAsync(grouping, enabledFilters, cancellationToken);
         }
 
-        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<HostResult<bool>> SelectAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken)
         {
             Selected = objects;
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken)
         {
             Isolated = objects;
             return Task.FromResult("Isolated.");

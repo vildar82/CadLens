@@ -6,9 +6,9 @@
         <ui:QuietTheme />
     </ResourceDictionary.MergedDictionaries>
     <Style x:Key="ModeControl" TargetType="ButtonBase">
-        <Setter Property="Foreground" Value="{StaticResource QuietText}" />
-        <Setter Property="Background" Value="#1B2932" />
-        <Setter Property="BorderBrush" Value="#42545E" />
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="Background" Value="{DynamicResource QuietSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="MinHeight" Value="28" />
@@ -37,7 +37,7 @@
                         <Border
                             x:Name="FocusRing"
                             Margin="3"
-                            BorderBrush="#FFFFFF"
+                            BorderBrush="{DynamicResource QuietFocus}"
                             BorderThickness="1"
                             CornerRadius="2"
                             IsHitTestVisible="False"
@@ -45,20 +45,23 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Surface" Property="Background" Value="#2A3C46" />
-                            <Setter TargetName="Surface" Property="BorderBrush" Value="#78E3CE" />
+                            <Setter TargetName="Surface" Property="Background" Value="{DynamicResource QuietHover}" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Surface" Property="Background" Value="#0A151B" />
-                            <Setter TargetName="Surface" Property="BorderBrush" Value="#A0F0E0" />
+                            <Setter TargetName="Surface" Property="Background" Value="{DynamicResource QuietPressed}" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="#8A9EA7" />
-                            <Setter TargetName="Surface" Property="Background" Value="#141F27" />
-                            <Setter TargetName="Surface" Property="BorderBrush" Value="#2B3A43" />
+                            <Setter Property="Foreground" Value="{DynamicResource QuietDisabledText}" />
+                            <Setter
+                                TargetName="Surface"
+                                Property="Background"
+                                Value="{DynamicResource QuietDisabledSurface}" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
                             <Setter TargetName="FocusRing" Property="Visibility" Value="Collapsed" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -76,9 +79,9 @@
         TargetType="ToggleButton">
         <Style.Triggers>
             <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Background" Value="#24463F" />
-                <Setter Property="BorderBrush" Value="#78E3CE" />
-                <Setter Property="Foreground" Value="#A0F0E0" />
+                <Setter Property="Background" Value="{DynamicResource QuietSelected}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
+                <Setter Property="Foreground" Value="{DynamicResource QuietAccent}" />
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -117,7 +120,7 @@
         <Setter Property="BorderBrush" Value="Transparent" />
         <Style.Triggers>
             <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource QuietAccent}" />
+                <Setter Property="Foreground" Value="{DynamicResource QuietAccent}" />
             </Trigger>
         </Style.Triggers>
     </Style>
