@@ -60,6 +60,7 @@ internal sealed class ExplorerOwner
             Application.SystemVariableChanged += OnSystemVariableChanged;
             _viewModel.ResetContext(false);
             ObserveDocument(Application.DocumentManager.MdiActiveDocument);
+            UpdateHostTheme();
             Application.ShowModelessWindow(_window);
         }
         catch
@@ -147,8 +148,24 @@ internal sealed class ExplorerOwner
 
     private void OnSystemVariableChanged(object sender, SystemVariableChangedEventArgs args)
     {
+        if (args.Changed && string.Equals(args.Name, "COLORTHEME", StringComparison.OrdinalIgnoreCase))
+            UpdateHostTheme();
+
         if (args.Name is "CVPORT" or "CTAB" or "TILEMODE")
             ResetContext(_observedDocument is not null);
+    }
+
+    private void UpdateHostTheme()
+    {
+        try
+        {
+            _window?.SetHostTheme(Convert.ToInt32(Application.GetSystemVariable("COLORTHEME")) == 1);
+        }
+        catch (Exception exception)
+        {
+            Trace.TraceWarning("CAD Lens could not read the AutoCAD theme; using Dark: {0}", exception.Message);
+            _window?.SetHostTheme(false);
+        }
     }
 
     private void ResetContext(bool hasDrawing) => _viewModel?.ResetContext(hasDrawing);

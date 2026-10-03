@@ -18,6 +18,7 @@ public partial class ExplorerWindow
     private const double MinimumPanelWidth = 300;
     private const uint NearestMonitor = 2;
     private readonly ExplorerViewModel _viewModel;
+    private bool _hostIsLight;
     private Size _expandedSize = new(370, 660);
 
     /// <summary>Raised by the hidden drawing diagnostics shortcut.</summary>
@@ -25,8 +26,10 @@ public partial class ExplorerWindow
 
     /// <summary>Creates the panel without changing application-wide WPF resources.</summary>
     /// <param name="viewModel">Constructor-injected explorer commands.</param>
-    public ExplorerWindow(ExplorerViewModel viewModel)
+    /// <param name="appearance">Optional isolated preferences for managed tests.</param>
+    public ExplorerWindow(ExplorerViewModel viewModel, AppearancePreferences? appearance = null)
     {
+        Appearance = appearance ?? new AppearancePreferences();
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
@@ -38,11 +41,60 @@ public partial class ExplorerWindow
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
         PreviewKeyDown += OnPreviewKeyDown;
+        Appearance.PropertyChanged += OnAppearanceChanged;
         UpdateMode();
+        ApplyAppearance();
     }
+
+    /// <summary>Appearance preferences for this panel.</summary>
+    public AppearancePreferences Appearance { get; }
+
+    /// <summary>Updates the host theme without changing explicit Light or Dark preferences.</summary>
+    /// <param name="isLight">Whether AutoCAD currently uses its light interface.</param>
+    public void SetHostTheme(bool isLight)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(() => SetHostTheme(isLight));
+            return;
+        }
+
+        _hostIsLight = isLight;
+        ApplyAppearance();
+    }
+
+    private void OnAppearanceChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(AppearancePreferences.Theme) or nameof(AppearancePreferences.Palette)
+            or nameof(AppearancePreferences.Accent))
+            ApplyAppearance();
+    }
+
+    private void ApplyAppearance()
+    {
+        AppearancePalette.Apply(Resources, Appearance.Theme, Appearance.Palette, Appearance.Accent, _hostIsLight);
+
+        if (_viewModel.ActiveView is { } view)
+            AppearancePalette.Apply(
+                view.Resources,
+                Appearance.Theme,
+                Appearance.Palette,
+                Appearance.Accent,
+                _hostIsLight);
+    }
+
+    private void RestoreAppearanceClicked(object sender, RoutedEventArgs args) => Appearance.Reset();
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs args)
     {
+        if (args.Key == Key.Escape && AppearancePopup.IsOpen)
+        {
+            AppearancePopup.IsOpen = false;
+            AppearanceButton.Focus();
+            args.Handled = true;
+            return;
+        }
+
         if (args.Key != Key.F12 || Keyboard.Modifiers != (ModifierKeys.Control | ModifierKeys.Shift))
             return;
 
@@ -52,13 +104,25 @@ public partial class ExplorerWindow
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(ExplorerViewModel.IsLensActive))
-            UpdateMode();
+        switch (args.PropertyName)
+        {
+            case nameof(ExplorerViewModel.IsLensActive):
+                UpdateMode();
+                break;
+            case nameof(ExplorerViewModel.ActiveView):
+                ApplyAppearance();
+                break;
+        }
     }
 
     private void OnSourceInitialized(object? sender, EventArgs args) => UpdateMode();
 
-    private void OnClosed(object? sender, EventArgs args) => _viewModel.PropertyChanged -= OnViewModelChanged;
+    private void OnClosed(object? sender, EventArgs args)
+    {
+        AppearancePopup.IsOpen = false;
+        Appearance.PropertyChanged -= OnAppearanceChanged;
+        _viewModel.PropertyChanged -= OnViewModelChanged;
+    }
 
     private void OnLanguageWindowClosed(object? sender, EventArgs args)
     {
