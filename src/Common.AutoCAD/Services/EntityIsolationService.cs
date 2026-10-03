@@ -29,7 +29,9 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
                 Overruling = true;
             }
 
-            RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument ?? throw new InvalidOperationException("The active drawing is no longer available."));
+            RegenerateAllViewports(
+                Application.DocumentManager.MdiActiveDocument ??
+                throw new InvalidOperationException("The active drawing is no longer available."));
         }
         catch
         {
@@ -80,7 +82,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
 
     /// <inheritdoc />
     public override int SetAttributes(Drawable drawable, DrawableTraits traits) =>
-        base.SetAttributes(drawable, traits) | (int)DrawableAttributes.IsInvisible;
+        base.SetAttributes(drawable, traits) | (int) DrawableAttributes.IsInvisible;
 
     /// <inheritdoc />
     public void Clear(bool redraw = true)
