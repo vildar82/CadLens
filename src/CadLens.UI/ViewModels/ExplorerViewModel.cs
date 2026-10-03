@@ -13,8 +13,6 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     private CancellationTokenSource? _activationRequest;
     private Task _activation = Task.CompletedTask;
     private LensOption? _selectedLens;
-    private string _status = "Activate a lens to explore the drawing.";
-    private bool _isCleanupPending;
     private bool _hasDrawing = true;
     private bool _disposed;
     private int _contextVersion;
@@ -49,10 +47,10 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Whether previous work and module cleanup are still settling.</summary>
     public bool IsCleanupPending
     {
-        get => _isCleanupPending;
+        get;
         private set
         {
-            if (SetProperty(ref _isCleanupPending, value))
+            if (SetProperty(ref field, value))
                 ToggleLensCommand.NotifyCanExecuteChanged();
         }
     }
@@ -60,9 +58,9 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Activation or cleanup status shown by the shared chrome.</summary>
     public string Status
     {
-        get => _status;
-        private set => SetProperty(ref _status, value);
-    }
+        get;
+        private set => SetProperty(ref field, value);
+    } = "Activate a lens to explore the drawing.";
 
     /// <summary>Forwards context invalidation to all modules, including inactive ones.</summary>
     /// <param name="hasDrawing">Whether drawing-dependent activation is available.</param>
@@ -173,6 +171,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         var cancellationToken = _lifetime.Token;
         IsCleanupPending = true;
         option.IsActive = false;
+        // ReSharper disable once MethodHasAsyncOverload -- Cancel on the UI thread before publishing deactivation state.
         _activationRequest?.Cancel();
         Status = "Clearing lens effects… Waiting for AutoCAD.";
         NotifyLensState();

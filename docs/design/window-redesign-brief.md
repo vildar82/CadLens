@@ -1,7 +1,8 @@
 ﻿# CAD Lens window redesign: first concept trial
 
-Status: WPF concept exploration. The user prefers A's narrow structure but wants more visual character
-and satisfying feedback. Compare preview-only variants in one CadLens.Preview app before production integration.
+Status: historical WPF concept brief. The user preferred A's narrow structure and wanted more visual
+character and satisfying feedback. Any future requested comparison should use temporary isolated WPF
+prototypes before production integration.
 
 ## User goal
 
@@ -62,9 +63,9 @@ Any interaction that changes the existing behavioral contract must be labeled as
 ## Agent assignments and deliverables
 
 UX reviewer: inspect current source, identify up to five specific interaction problems, and provide evidence.
-Visual designer: own assigned preview-only WPF views with matched compact/list/group/object states,
+Visual designer: own assigned temporary WPF views with matched compact/list/group/object states,
 real mouse/keyboard feedback, and loading/empty/error examples. Inspect running views before handoff.
-WPF developer: own shared variant selection and scenario/session support, with separate file ownership.
+WPF developer: own temporary prototype support, with separate file ownership.
 Coordinator: reconcile constraints and findings, present tradeoffs, and help the user compare tasks.
 UI reviewer: check concept coverage and clarity before presentation; report visual evidence limits.
 Production integration starts after the user chooses a variant and the project's planning steps are agreed.
@@ -102,7 +103,7 @@ Do not treat this file as a complete or accepted design. No application code cha
   contain headers only. Compact pending/error examples remain missing. Screen navigation is unwired.
 
 Do not resume Figma work by default. Retain these links and limits as historical evidence.
-Continue with interactive WPF variants in the standalone preview application.
+Any future requested WPF comparison should use temporary isolated prototypes.
 
 Independent concept review recommends A as the initial drawing-first direction: its list is more readable
 and its window occupies less area. B's persistent context benefit remains unverified in deeper states.

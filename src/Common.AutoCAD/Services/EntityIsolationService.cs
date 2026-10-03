@@ -17,7 +17,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
     public void Apply(Database database, ObjectId[] targets, ObjectId[] inventory)
     {
         _database = database;
-        _hidden = inventory.Except(targets).ToHashSet();
+        _hidden = [.. inventory.Except(targets)];
 
         try
         {

@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes a limited experiment, not a repository-wide architecture. The selected host-identity slice keeps `IHostId`, `IPlacedObjectId`, and `ILayerId` in `Common`. `Common.AutoCAD` implements these with native `ObjectId` values; preview and tests provide their own identifiers. Do not retrofit unrelated values throughout the solution.
+This document describes a limited experiment, not a repository-wide architecture. The selected host-identity slice keeps `IHostId`, `IPlacedObjectId`, and `ILayerId` in `Common`. `Common.AutoCAD` implements these with native `ObjectId` values; tests provide their own identifiers. Do not retrofit unrelated values throughout the solution.
 
 ## Hypothesis
 

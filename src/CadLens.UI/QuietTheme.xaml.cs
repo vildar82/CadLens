@@ -1,5 +1,4 @@
-﻿using System.Windows;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Markup;
 
@@ -7,7 +6,7 @@ namespace CadLens.UI;
 
 /// <summary>Loads window-scoped theme dependencies before the custom XAML styles.</summary>
 [UsedImplicitly]
-public partial class QuietTheme : ResourceDictionary
+public partial class QuietTheme
 {
     /// <summary>Creates the theme with direct references that the plugin host can resolve.</summary>
     public QuietTheme()

@@ -6,7 +6,7 @@ acceptance criteria, changed files, and current verification evidence. Use code-
 and applicable WPF guidance. Follow repository instructions. Do not edit files.
 For concept comparison, assess variants against the shared brief without requiring a winner. For
 production review, judge against the selected variant and agreed behavior, not your preferred aesthetic.
-Compare equivalent scenarios, sample data, scale, and starting states in CadLens.Preview.
+Compare equivalent scenarios, sample data, scale, and starting states in temporary WPF prototypes.
 Check actual hover/press feedback, keyboard use, stable controls, and reduced motion when possible.
 Check switching and closing while busy when affected: old sessions must be disposed and late work
 must not update the new variant. Keep experimental styling separate from production.

@@ -11,6 +11,8 @@ namespace CadLens.AutoCAD;
 
 internal static class DrawingDiagnostics
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() {WriteIndented = true};
+
     internal static DrawingSnapshot Capture(Document document)
     {
         var database = document.Database;
@@ -31,7 +33,7 @@ internal static class DrawingDiagnostics
 
             foreach (var owner in blockTable.GetObjects<BlockTableRecord>())
             {
-                foreach (ObjectId id in owner)
+                foreach (var id in owner)
                 {
                     try
                     {
@@ -87,11 +89,11 @@ internal static class DrawingDiagnostics
                 {
                     try
                     {
-                        if (id.GetObject<Entity>() is { } entity)
-                        {
-                            var owner = entity.OwnerId.GetObject<BlockTableRecord>()?.Name ?? "Unknown";
-                            selected.Add(DescribeEntity(entity, owner, errors));
-                        }
+                        if (id.GetObject<Entity>() is not { } entity)
+                            continue;
+
+                        var owner = entity.OwnerId.GetObject<BlockTableRecord>()?.Name ?? "Unknown";
+                        selected.Add(DescribeEntity(entity, owner, errors));
                     }
                     catch (Exception exception)
                     {
@@ -135,7 +137,7 @@ internal static class DrawingDiagnostics
         var path = Path.Combine(desktop, $"cadlens-diagnostics-{DateTime.Now:yyyyMMdd-HHmmss-fff}.json");
 
         await using var stream = File.Create(path);
-        await JsonSerializer.SerializeAsync(stream, snapshot, new JsonSerializerOptions { WriteIndented = true });
+        await JsonSerializer.SerializeAsync(stream, snapshot, JsonOptions);
 
         return path;
     }

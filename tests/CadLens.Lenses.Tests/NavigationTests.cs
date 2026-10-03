@@ -12,7 +12,7 @@ public sealed class NavigationTests
     public async Task NonLayerLensSuppliesGroupsFieldsFiltersAndActions()
     {
         ILayersProvider provider = new FakeLens();
-        var result = await provider.LoadAsync(new HashSet<string>(), default);
+        var result = await provider.LoadAsync(new HashSet<string>(), CancellationToken.None);
         var presentation = Assert.IsType<HostResult<LayersPresentation>.Success>(result).Value;
         Assert.Equal("Issues", presentation.Label);
         Assert.Equal("Severity", presentation.Groups[0].Fields[0].Label);

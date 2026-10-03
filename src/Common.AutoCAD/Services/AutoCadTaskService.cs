@@ -32,7 +32,7 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
             }
 
             var document = Application.DocumentManager.MdiActiveDocument;
-            _requests.Enqueue(() => ExecuteRequest(document, action, cancellationToken, completion));
+            _requests.Enqueue(() => ExecuteRequest(document, action, completion, cancellationToken));
             ProcessNextRequest();
         });
 
@@ -76,19 +76,19 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
     private void ExecuteRequest<T>(
         Document? document,
         Func<T> action,
-        CancellationToken cancellationToken,
-        TaskCompletionSource<HostResult<T>> completion)
+        TaskCompletionSource<HostResult<T>> completion,
+        CancellationToken cancellationToken)
     {
         if (_stopping || cancellationToken.IsCancellationRequested)
         {
-            CompleteRequest(document, action, cancellationToken, completion);
+            CompleteRequest(document, action, completion, cancellationToken);
             return;
         }
 
         try
         {
             Application.DocumentManager.ExecuteInApplicationContext(
-                _ => CompleteRequest(document, action, cancellationToken, completion),
+                _ => CompleteRequest(document, action, completion, cancellationToken),
                 null!);
         }
         catch (Exception exception)
@@ -101,8 +101,8 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
     private void CompleteRequest<T>(
         Document? document,
         Func<T> action,
-        CancellationToken cancellationToken,
-        TaskCompletionSource<HostResult<T>> completion)
+        TaskCompletionSource<HostResult<T>> completion,
+        CancellationToken cancellationToken)
     {
         // Keep managed exceptions inside the native callback.
         try

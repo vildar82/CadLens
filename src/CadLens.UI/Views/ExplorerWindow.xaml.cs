@@ -101,12 +101,12 @@ public partial class ExplorerWindow
 
     private void CloseClicked(object sender, RoutedEventArgs e) => Close();
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+    [LibraryImport("user32.dll")]
+    private static partial IntPtr MonitorFromWindow(IntPtr window, uint flags);
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+    private static partial bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     [StructLayout(LayoutKind.Sequential)]

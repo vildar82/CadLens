@@ -25,7 +25,7 @@ public sealed class AutoCadTaskServiceTests
                 calls.Add(index);
                 return index;
             },
-            default)).ToArray();
+            CancellationToken.None)).ToArray();
 
         for (var index = 0; index < requests.Length; index++)
         {
@@ -36,7 +36,7 @@ public sealed class AutoCadTaskServiceTests
             Assert.False(documents.MdiActiveDocument!.IsLocked);
         }
 
-        Assert.Equal(new[] { 1, 2, 3 }, calls);
+        Assert.Equal([1, 2, 3], calls);
         await service.StopAsync();
     });
 
@@ -47,7 +47,7 @@ public sealed class AutoCadTaskServiceTests
         using var service = new AutoCadTaskService();
         var documents = Application.DocumentManager;
         documents.ActiveCommand = 1;
-        var request = service.RunAsync(() => true, default);
+        var request = service.RunAsync(() => true, CancellationToken.None);
 
         await Dispatcher.Yield();
         Assert.Equal(0, documents.PendingCount);
@@ -67,7 +67,7 @@ public sealed class AutoCadTaskServiceTests
         using var service = new AutoCadTaskService();
         var documents = Application.DocumentManager;
         documents.MdiActiveDocument!.Editor.IsQuiescent = false;
-        var request = service.RunAsync(() => true, default);
+        var request = service.RunAsync(() => true, CancellationToken.None);
 
         await Dispatcher.Yield();
         Assert.Equal(1, documents.PendingCount);
@@ -83,7 +83,7 @@ public sealed class AutoCadTaskServiceTests
     {
         using var service = new AutoCadTaskService();
         var called = false;
-        var request = service.RunAsync(() => called = true, default);
+        var request = service.RunAsync(() => called = true, CancellationToken.None);
 
         await Dispatcher.Yield();
         Application.DocumentManager.MdiActiveDocument = new Document();
@@ -119,8 +119,8 @@ public sealed class AutoCadTaskServiceTests
     {
         using var service = new AutoCadTaskService();
         var called = false;
-        var first = service.RunAsync(() => called = true, default);
-        var second = service.RunAsync(() => called = true, default);
+        var first = service.RunAsync(() => called = true, CancellationToken.None);
+        var second = service.RunAsync(() => called = true, CancellationToken.None);
 
         await Dispatcher.Yield();
         var stopped = service.StopAsync();
@@ -130,7 +130,7 @@ public sealed class AutoCadTaskServiceTests
 
         Assert.IsType<HostResult<bool>.Unavailable>(await first);
         Assert.IsType<HostResult<bool>.Unavailable>(await second);
-        Assert.IsType<HostResult<bool>.Unavailable>(await service.RunAsync(() => true, default));
+        Assert.IsType<HostResult<bool>.Unavailable>(await service.RunAsync(() => true, CancellationToken.None));
         Assert.False(called);
     });
 
@@ -139,8 +139,8 @@ public sealed class AutoCadTaskServiceTests
     public Task ContainsCallbackFailureAndContinues() => OnUiThread(async () =>
     {
         using var service = new AutoCadTaskService();
-        var failed = service.RunAsync<bool>(() => throw new InvalidOperationException("fixture"), default);
-        var next = service.RunAsync(() => true, default);
+        var failed = service.RunAsync<bool>(() => throw new InvalidOperationException("fixture"), CancellationToken.None);
+        var next = service.RunAsync(() => true, CancellationToken.None);
 
         await Dispatcher.Yield();
         Application.DocumentManager.ExecuteNext();
@@ -159,7 +159,7 @@ public sealed class AutoCadTaskServiceTests
         using var service = new AutoCadTaskService();
         Application.DocumentManager.SchedulingError = new InvalidOperationException("native failure");
 
-        var result = await service.RunAsync(() => true, default);
+        var result = await service.RunAsync(() => true, CancellationToken.None);
 
         Assert.Equal("native failure", Assert.IsType<HostResult<bool>.Unavailable>(result).Reason);
         await service.StopAsync();

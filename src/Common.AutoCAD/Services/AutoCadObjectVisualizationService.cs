@@ -10,7 +10,9 @@ public sealed class AutoCadObjectVisualizationService(
     IEntityIsolationActions isolation) : IObjectVisualizationService
 {
     /// <inheritdoc />
-    public async Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<HostResult<bool>> SelectAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken)
     {
         var document = Application.DocumentManager.MdiActiveDocument;
 
@@ -23,7 +25,7 @@ public sealed class AutoCadObjectVisualizationService(
         var space = document.Database.CurrentSpaceId;
         var viewport = document.Editor.CurrentViewportObjectId;
         var viewportNumber = Convert.ToInt32(Application.GetSystemVariable("CVPORT"));
-        var result = await hostTasks.RunAsync(
+        var result = await hostTasks.RunAsync<HostResult<bool>>(
             () =>
             {
                 if (document != Application.DocumentManager.MdiActiveDocument ||
@@ -34,9 +36,10 @@ public sealed class AutoCadObjectVisualizationService(
                 var count = document.Editor.SelectObjects(targets);
 
                 if (count == 0 && targets.Length > 0)
-                    return new HostResult<bool>.Unavailable("No valid current-space targets remain. Selection cleared; refresh the list.");
+                    return new HostResult<bool>.Unavailable(
+                        "No valid current-space targets remain. Selection cleared; refresh the list.");
 
-                return (HostResult<bool>)new HostResult<bool>.Success(true);
+                return new HostResult<bool>.Success(true);
             },
             cancellationToken);
 
@@ -44,7 +47,9 @@ public sealed class AutoCadObjectVisualizationService(
     }
 
     /// <inheritdoc />
-    public async Task<HostResult<bool>> IsolateAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<HostResult<bool>> IsolateAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken)
     {
         if (!TryGetNativeIds(objects, out var targets))
             return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
@@ -55,7 +60,9 @@ public sealed class AutoCadObjectVisualizationService(
     }
 
     /// <inheritdoc />
-    public async Task<HostResult<bool>> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<HostResult<bool>> FocusAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken)
     {
         var document = Application.DocumentManager.MdiActiveDocument;
 
@@ -95,7 +102,8 @@ public sealed class AutoCadObjectVisualizationService(
                 var viewport = editor.CurrentViewportObjectId.GetObject<Viewport>();
 
                 if (viewport is null || viewport.Locked)
-                    return new HostResult<bool>.Unavailable("Focus is unavailable in a locked or unavailable layout viewport.");
+                    return new HostResult<bool>.Unavailable(
+                        "Focus is unavailable in a locked or unavailable layout viewport.");
             }
 
             bounds = database.ReadBounds(objects);
@@ -103,7 +111,8 @@ public sealed class AutoCadObjectVisualizationService(
         }
 
         if (bounds is null)
-            return new HostResult<bool>.Unavailable("No current-space targets have usable bounds. Refresh if objects were erased or moved.");
+            return new HostResult<bool>.Unavailable(
+                "No current-space targets have usable bounds. Refresh if objects were erased or moved.");
 
         using (var view = editor.GetCurrentView())
         {

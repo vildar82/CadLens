@@ -104,14 +104,14 @@ public sealed class ExplorerNavigationTests
         await ToggleAsync(model);
         Assert.All(model.Filters, filter => Assert.False(filter.IsEnabled));
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
-        Assert.Equal(new[] { "archived" }, actions.Enabled.Order());
+        Assert.Equal("archived", Assert.Single(actions.Enabled));
         model.EnterCommand.Execute(model.Items.Single(node => node.Id == "hidden"));
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[1]);
         Assert.Equal("hidden", model.Current!.Id);
         Assert.Equal(2, actions.Enabled.Count);
         await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
         Assert.Null(model.Current);
-        Assert.Equal(new[] { "extra" }, actions.Enabled.Order());
+        Assert.Equal("extra", Assert.Single(actions.Enabled));
         Assert.Empty(actions.IsolationTargets);
         Assert.False(model.Filters[0].IsEnabled);
         Assert.True(model.Filters[1].IsEnabled);
@@ -791,7 +791,7 @@ public sealed class ExplorerNavigationTests
         Assert.Equal(model.Current.Objects, actions.IsolationTargets);
         Assert.Equal(camera, actions.FocusTargets);
         Assert.Equal(focuses, actions.FocusCount);
-        Assert.True(model.IsAutoFocus && model.IsAutoSelect && model.IsAutoIsolation);
+        Assert.True(model is { IsAutoFocus: true, IsAutoSelect: true, IsAutoIsolation: true });
     }
 
     /// <summary>Cancellation prevents pending selection from triggering further drawing actions.</summary>
@@ -812,7 +812,7 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.ResetCommand.CanExecute(null));
         Assert.False(model.ToggleAutoSelectCommand.CanExecute(null));
 
-        Task cleanup = Task.CompletedTask;
+        var cleanup = Task.CompletedTask;
         switch (boundary)
         {
             case "collapse": cleanup = model.DeactivateAsync(CancellationToken.None); break;
@@ -847,7 +847,7 @@ public sealed class ExplorerNavigationTests
 
         await actions.SelectAsync([new TestEntityId(99)], CancellationToken.None);
         await model.ResetContextAsync(false);
-        await model.ResetContextAsync(true);
+        await model.ResetContextAsync();
         model.Close(false);
         Assert.Equal(new TestEntityId(99), Assert.Single(actions.SelectionTargets));
     }

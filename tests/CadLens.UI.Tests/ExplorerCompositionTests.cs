@@ -30,14 +30,14 @@ public sealed class ExplorerCompositionTests
     {
         using var root = ExplorerComposition.Build(RegisterHost);
 
-        Assert.Throws<InvalidOperationException>(() => root.GetRequiredService<ExplorerViewModel>());
+        Assert.Throws<InvalidOperationException>(root.GetRequiredService<ExplorerViewModel>);
     }
 
     /// <summary>Each panel gets fresh state; disposing its scope disables its commands exactly once.</summary>
     [Fact]
     public async Task ReopeningCreatesFreshScopedGraph()
     {
-        using var root = ExplorerComposition.Build(RegisterHost);
+        await using var root = ExplorerComposition.Build(RegisterHost);
         ExplorerViewModel previous;
         SnapshotSource source;
 
@@ -82,7 +82,7 @@ public sealed class ExplorerCompositionTests
     [Fact]
     public async Task AdditionalRegistrationIsDiscoveredWithoutPanelChanges()
     {
-        using var root = ExplorerComposition.Build(services =>
+        await using var root = ExplorerComposition.Build(services =>
         {
             RegisterHost(services);
             services.AddScoped<CounterService>();
@@ -92,7 +92,7 @@ public sealed class ExplorerCompositionTests
         using var scope = root.CreateScope();
         var model = scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
         var second = scope.ServiceProvider.GetServices<ILens>().OfType<CounterLens>().Single();
-        Assert.Equal(new[] { "layers", "counter" }, model.Lenses.Select(lens => lens.Descriptor.Id));
+        Assert.Equal(["layers", "counter"], model.Lenses.Select(lens => lens.Descriptor.Id));
         Assert.False(model.IsLensActive);
         Assert.Equal(0, second.ActivationCount);
         await model.ToggleLensCommand.ExecuteAsync(model.Lenses[1]);

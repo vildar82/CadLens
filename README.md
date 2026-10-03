@@ -7,7 +7,6 @@ CAD Lens is a personal experiment in exploring AutoCAD drawings through game-ins
 - [Overview](#overview)
 - [Install and run](#install-and-run)
 - [Use the Layers lens](#use-the-layers-lens)
-- [Standalone UI preview](#standalone-ui-preview)
 - [Development](#development)
 - [Verification](#verification)
 - [Future ideas](#future-ideas)
@@ -72,24 +71,6 @@ Reset also clears CAD selection and turns off all Auto modes while keeping the c
 
 CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or spaces reloads the active lens. These actions do not change stored DWG geometry or properties.
 
-## Standalone UI preview
-
-Run the same WPF window with sample data, without AutoCAD:
-
-```powershell
-dotnet run --project src/CadLens.Preview
-```
-
-The preview starts compact and uses the production Layers layout. It includes sample layers and simulated Focus, Select, and Isolate actions. It does not verify native AutoCAD behavior.
-
-For an interactive comparison of Action rows and Action strip, run:
-
-```powershell
-dotnet run --project src/CadLens.Preview -- --modes
-```
-
-Use `--capture-modes <directory>` to render comparison scenarios and run the mode checks. The optional `--slow`, `--empty`, and `--error` flags simulate a delayed inventory, no objects, and an unavailable inventory; they can be combined. Restart the preview to change scenarios.
-
 ## Development
 
 ### Project map
@@ -99,7 +80,6 @@ Use `--capture-modes <directory>` to render comparison scenarios and run the mod
 - `CadLens.Lenses` turns detached drawing snapshots into Layers groups and navigation state.
 - `CadLens.UI` owns the window, lens switching, and Layers WPF module.
 - `CadLens.AutoCAD` connects the UI to AutoCAD and owns plugin and panel lifetime.
-- `CadLens.Preview` runs the shared UI with sample data.
 
 A Layers refresh travels from `LayersViewModel` through `ILayersActions` to the AutoCAD adapter. The adapter reads a detached snapshot through `LayersLensProvider` and sends visualization requests to `IObjectVisualizationService`. Analysis runs over ordinary .NET models after the host snapshot has been read in the proper document context.
 

@@ -62,7 +62,7 @@ public sealed class EntityIsolationActions(
 
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
-            inventory = document.Database.GetActiveSpace().Cast<ObjectId>().ToArray();
+            inventory = [.. document.Database.GetActiveSpace().Cast<ObjectId>()];
             transaction.Commit();
         }
 

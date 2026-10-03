@@ -159,19 +159,22 @@ public sealed class ExplorerViewModelTests
             var actions = new Actions();
             using var model = new ExplorerViewModel([new LayersLens(new LayersViewModel(actions))]);
 
-            if (state is "pending" or "failed")
+            switch (state)
             {
-                model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
-                actions.PendingCleanup = new TaskCompletionSource<HostResult<bool>>();
+                case "pending" or "failed":
+                    model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
+                    actions.PendingCleanup = new TaskCompletionSource<HostResult<bool>>();
 
-                if (state == "failed")
-                    actions.PendingCleanup.SetResult(new HostResult<bool>.Unavailable("Fixture cleanup unavailable."));
+                    if (state == "failed")
+                        actions.PendingCleanup.SetResult(new HostResult<bool>.Unavailable("Fixture cleanup unavailable."));
 
-                _ = model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]);
+                    _ = model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]);
+                    break;
+
+                case "disabled":
+                    model.ResetContext(false);
+                    break;
             }
-
-            if (state == "disabled")
-                model.ResetContext(false);
 
             var window = new ExplorerWindow(model);
             var content = (FrameworkElement)window.Content;

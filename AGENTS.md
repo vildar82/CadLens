@@ -60,6 +60,6 @@
 - For a requested window design cycle, use the focused roles in `.codex/agents/` and follow
   [the design agent workflow](docs/design/agent-workflow.md). Delegate independent work only.
 - Keep ordinary edits local; do not start the full design cycle unless requested.
-- Compare runnable WPF variants in one `CadLens.Preview` application by default; Figma is optional.
-- Keep experimental styling in the preview until a variant is selected for production integration.
+- For a requested design cycle, use temporary isolated WPF prototypes that reuse production view models; Figma is optional.
+- Keep experimental styling separate until a variant is selected for production integration.
 - Role TOML files use UTF-8 without BOM for TOML parser compatibility.
