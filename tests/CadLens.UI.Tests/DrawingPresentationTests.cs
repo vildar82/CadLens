@@ -504,6 +504,7 @@ public sealed class DrawingPresentationTests
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Success(
@@ -527,6 +528,9 @@ public sealed class DrawingPresentationTests
 
         public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult("");
+
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {

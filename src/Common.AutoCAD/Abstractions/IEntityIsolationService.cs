@@ -11,6 +11,9 @@ public interface IEntityIsolationService
     /// <param name="inventory">Entities affected by the effect.</param>
     void Apply(Database database, ObjectId[] targets, ObjectId[] inventory);
 
+    /// <summary>Temporarily removes isolation and returns an action that restores it if its drawing context is still valid.</summary>
+    Action Suspend();
+
     /// <summary>Removes the effect.</summary>
     /// <param name="redraw">Whether to regenerate the affected active document.</param>
     void Clear(bool redraw = true);

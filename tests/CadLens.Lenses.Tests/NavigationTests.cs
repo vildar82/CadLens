@@ -12,7 +12,7 @@ public sealed class NavigationTests
     public async Task NonLayerLensSuppliesGroupsFieldsFiltersAndActions()
     {
         IDrawingLensProvider provider = new FakeLens();
-        var result = await provider.LoadAsync(DrawingGrouping.Layers, new HashSet<string>(), CancellationToken.None);
+        var result = await provider.LoadAsync(DrawingGrouping.Layers, new HashSet<string>(), null, CancellationToken.None);
         var presentation = Assert.IsType<HostResult<LensPresentation>.Success>(result).Value;
         Assert.Equal("Issues", presentation.Label);
         Assert.Equal("Severity", presentation.Groups[0].Fields[0].Label);
@@ -94,6 +94,7 @@ public sealed class NavigationTests
         public Task<HostResult<LensPresentation>> LoadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Success(

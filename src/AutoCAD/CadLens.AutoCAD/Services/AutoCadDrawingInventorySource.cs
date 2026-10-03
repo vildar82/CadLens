@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using CadLens.Lenses;
 using Common;
@@ -9,24 +10,43 @@ namespace CadLens.AutoCAD;
 
 internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) : IDrawingInventorySource
 {
-    public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
-        hostTasks.RunAsync(() => Read(cancellationToken), cancellationToken);
+    public Task<HostResult<DrawingInventory>> ReadAsync(
+        ImmutableArray<IPlacedObjectId>? selectedObjects,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var document = Application.DocumentManager.MdiActiveDocument;
 
-    private static DrawingInventory Read(CancellationToken cancellationToken)
+        if (document is null)
+            return Task.FromResult<HostResult<DrawingInventory>>(
+                new HostResult<DrawingInventory>.Unavailable("The active drawing is no longer available."));
+
+        var spaceId = document.Database.CurrentSpaceId;
+
+        return hostTasks.RunAsync(() => Read(document, spaceId, selectedObjects, cancellationToken), cancellationToken);
+    }
+
+    private static DrawingInventory Read(
+        Document document,
+        ObjectId spaceId,
+        ImmutableArray<IPlacedObjectId>? selectedObjects,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var document = Application.DocumentManager.MdiActiveDocument;
         var database = document.Database;
+
+        if (document != Application.DocumentManager.MdiActiveDocument || database.CurrentSpaceId != spaceId)
+            throw new InvalidOperationException("The active drawing space has changed. Refresh to try again.");
 
         using var transaction = database.TransactionManager.StartTransaction();
 
         var space = database.GetActiveSpace();
-        var frozenLayers = ReadViewportFrozenLayers();
+        var frozenLayers = ReadViewportFrozenLayers(document);
         var layers = ReadLayers(database, frozenLayers, cancellationToken);
         var reader = new AutoCadEntitySnapshotReader(cancellationToken);
 
-        var entities = space.GetObjects<Entity>()
+        var entities = ReadEntities(database, space, selectedObjects, cancellationToken)
             .Select(reader.Read)
             .ToImmutableArray();
 
@@ -37,6 +57,28 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         transaction.Commit();
 
         return new DrawingInventory(spaceLabel, layers, entities, Precision: precision);
+    }
+
+    private static IEnumerable<Entity> ReadEntities(
+        Database database,
+        BlockTableRecord space,
+        ImmutableArray<IPlacedObjectId>? selectedObjects,
+        CancellationToken cancellationToken)
+    {
+        var ids = selectedObjects is { } selected
+            ? selected.OfType<EntityId>().Select(id => id.NativeId).Distinct()
+            : space.Cast<ObjectId>();
+
+        foreach (var id in ids)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!id.IsValid || id.Database != database)
+                continue;
+
+            if (id.GetObject<Entity>() is { } entity && entity.OwnerId == space.ObjectId)
+                yield return entity;
+        }
     }
 
     private static ImmutableArray<LayerSnapshot> ReadLayers(
@@ -55,10 +97,8 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         return [.. layers];
     }
 
-    private static HashSet<ObjectId> ReadViewportFrozenLayers()
+    private static HashSet<ObjectId> ReadViewportFrozenLayers(Document document)
     {
-        var document = Application.DocumentManager.MdiActiveDocument;
-
         if (document.Database.TileMode || Convert.ToInt32(Application.GetSystemVariable("CVPORT")) <= 1)
             return [];
 

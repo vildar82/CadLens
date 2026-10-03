@@ -351,11 +351,15 @@ public sealed class ObjectPropertiesTests
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {
             ReadCount++;
-            return _provider.LoadAsync(grouping, enabledFilters, cancellationToken);
+            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
         }
+
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {
@@ -407,7 +411,7 @@ public sealed class ObjectPropertiesTests
 
     private sealed class Source(DrawingInventory inventory) : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(inventory));
     }
 }

@@ -273,7 +273,10 @@ public sealed class ObjectTypesTests
                     .Where(block => block.Visibility == Visibility.Visible)
                     .Select(block => block.Text)
             ];
-            Assert.Contains("Object Types", text);
+            var activeLens = WpfTest.Descendants(content).OfType<ToggleButton>()
+                .Single(button => ReferenceEquals(button.CommandParameter, shell.Lenses[1]));
+            Assert.Equal("Objects", activeLens.Content);
+            Assert.True(activeLens.IsChecked);
             Assert.DoesNotContain("All layers", text);
             Assert.DoesNotContain("Search layers", text);
 
@@ -382,7 +385,7 @@ public sealed class ObjectTypesTests
 
         internal CancellationToken Token { get; private set; }
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken)
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
         {
             Token = cancellationToken;
             return Pending?.Task ?? Task.FromResult(Result);
@@ -407,10 +410,11 @@ public sealed class ObjectTypesTests
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {
             ReadCount++;
-            return _provider.LoadAsync(grouping, enabledFilters, cancellationToken);
+            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
         }
 
         public Task<HostResult<bool>> SelectAsync(
@@ -448,6 +452,9 @@ public sealed class ObjectTypesTests
             Isolated = [];
             return PendingClear?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
+
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {

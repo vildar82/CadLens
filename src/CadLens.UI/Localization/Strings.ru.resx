@@ -310,6 +310,39 @@
   <data name="Refresh active space" xml:space="preserve">
     <value>Обновить текущее пространство</value>
   </data>
+  <data name="All objects" xml:space="preserve">
+    <value>Все объекты</value>
+  </data>
+  <data name="Selected objects" xml:space="preserve">
+    <value>Выбранные объекты</value>
+  </data>
+  <data name="Browse all direct objects in the active drawing space" xml:space="preserve">
+    <value>Просмотр всех объектов текущего пространства чертежа</value>
+  </data>
+  <data name="Use selected CAD objects, or select objects in CAD. Refresh updates the selection scope." xml:space="preserve">
+    <value>Использовать выбранные объекты CAD или выбрать объекты в CAD. Обновление заменяет набор объектов.</value>
+  </data>
+  <data name="Select objects to explore:" xml:space="preserve">
+    <value>Выберите объекты для просмотра:</value>
+  </data>
+  <data name="Remove objects from selection:" xml:space="preserve">
+    <value>Удалите объекты из выбора:</value>
+  </data>
+  <data name="Object selection canceled. Previous view kept." xml:space="preserve">
+    <value>Выбор объектов отменён. Предыдущий вид сохранён.</value>
+  </data>
+  <data name="No selected objects match the inclusion filters." xml:space="preserve">
+    <value>Нет выбранных объектов, соответствующих фильтрам.</value>
+  </data>
+  <data name="No selected objects in the active space. Refresh to select objects." xml:space="preserve">
+    <value>В текущем пространстве нет выбранных объектов. Нажмите «Обновить», чтобы выбрать объекты.</value>
+  </data>
+  <data name="The active drawing space has changed. Refresh to try again." xml:space="preserve">
+    <value>Текущее пространство чертежа изменилось. Обновите для повторной попытки.</value>
+  </data>
+  <data name="Refresh selected objects" xml:space="preserve">
+    <value>Обновить выбранные объекты</value>
+  </data>
   <data name="Refresh to explore the active space." xml:space="preserve">
     <value>Обновите список для просмотра текущего пространства.</value>
   </data>

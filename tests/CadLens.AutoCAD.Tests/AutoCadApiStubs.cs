@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 
 // Test doubles for native API boundaries; these do not certify behavior inside AutoCAD.
 namespace Autodesk.AutoCAD.ApplicationServices
@@ -6,7 +7,11 @@ namespace Autodesk.AutoCAD.ApplicationServices
     internal sealed class Document
     {
         internal Editor Editor { get; } = new();
+        internal DatabaseServices.Database Database { get; } = new();
         internal bool IsLocked { get; private set; }
+        internal DrawingWindow Window { get; } = new();
+        internal NativeDrawing Drawing { get; } = new();
+        internal object GetAcadDocument() => Drawing;
 
         internal IDisposable LockDocument()
         {
@@ -23,12 +28,24 @@ namespace Autodesk.AutoCAD.ApplicationServices
     internal sealed class Editor
     {
         internal bool IsQuiescent { get; set; } = true;
+        internal DatabaseServices.ObjectId CurrentViewportObjectId { get; set; }
+        internal DatabaseServices.ObjectId[] Selection { get; set; } = [];
+        internal Func<EditorInput.PromptSelectionOptions, EditorInput.PromptSelectionResult>? Pick { get; set; }
+        internal int PromptCount { get; private set; }
+        internal EditorInput.PromptSelectionResult SelectImplied() => new(Selection);
+
+        internal EditorInput.PromptSelectionResult GetSelection(EditorInput.PromptSelectionOptions options)
+        {
+            PromptCount++;
+            return Pick!(options);
+        }
     }
 
     internal sealed class DocumentCollection
     {
         private readonly Queue<Action> _callbacks = new();
         internal Document? MdiActiveDocument { get; set; } = new();
+        internal DrawingWindow MainWindow { get; } = new();
         internal bool IsApplicationContext { get; private set; }
         internal int PendingCount => _callbacks.Count;
         internal Exception? SchedulingError { get; set; }
@@ -66,6 +83,7 @@ namespace Autodesk.AutoCAD.ApplicationServices.Core
     internal static class Application
     {
         internal static DocumentCollection DocumentManager { get; set; } = new();
+        internal static DrawingWindow MainWindow => DocumentManager.MainWindow;
         internal static event EventHandler? Idle;
         internal static void RaiseIdle() => Idle?.Invoke(null, EventArgs.Empty);
         internal static object GetSystemVariable(string name) => name == "CMDACTIVE"
@@ -89,6 +107,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     {
         internal bool IsValid => Database is not null && Database.Objects.ContainsKey(Value);
         internal bool IsErased => Database.Objects[Value].IsErased;
+        internal int Handle => Value;
 
         internal DBObject GetObject(OpenMode mode, bool openErased, bool forceOpenOnLockedLayer) =>
             Database.TransactionManager.TopTransaction!.GetObject(this, mode, openErased, forceOpenOnLockedLayer);
@@ -96,32 +115,45 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     // ReSharper disable once InconsistentNaming -- Matches the native AutoCAD API type.
     /// <summary>Test double for the native DBObject type.</summary>
-    public class DBObject
+    public class DBObject : Runtime.RXObject
     {
         internal bool IsErased { get; init; }
+        internal ObjectId ObjectId { get; set; }
+        internal Database Database => ObjectId.Database;
     }
 
     /// <summary>Test double for the native Database type.</summary>
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     public sealed class Database
     {
         internal Dictionary<int, DBObject> Objects { get; } = [];
+        internal ObjectId CurrentSpaceId { get; set; }
+        internal ObjectId LayerTableId { get; set; }
+        internal bool TileMode => true;
+        internal int Luprec => 4;
+        internal int Auprec => 2;
         internal TransactionManager TransactionManager { get; } = new();
 
         internal ObjectId Add(DBObject value)
         {
             var id = Objects.Count + 1;
             Objects.Add(id, value);
-            return new ObjectId(id, this);
+            value.ObjectId = new ObjectId(id, this);
+            return value.ObjectId;
         }
     }
 
     internal sealed class TransactionManager
     {
         internal Transaction TopTransaction { get; } = new();
+        internal Transaction StartTransaction() => TopTransaction;
     }
 
-    internal sealed class Transaction
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
+    internal sealed class Transaction : IDisposable
     {
+        internal void Commit() { }
+        public void Dispose() { }
         internal List<(OpenMode Mode, bool OpenErased, bool ForceOpenOnLockedLayer)> OpenRequests { get; } = [];
 
         internal DBObject GetObject(
@@ -136,11 +168,15 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 
     /// <summary>Test double for the native Entity type.</summary>
-    public class Entity : DBObject;
+    public class Entity : DBObject
+    {
+        internal ObjectId OwnerId { get; init; }
+        internal ObjectId LayerId { get; init; }
+    }
 
     /// <summary>Test double for the native SymbolTable type.</summary>
     /// <param name="ids">Contained test identifiers.</param>
-    public sealed class SymbolTable(params ObjectId[] ids) : DBObject, IEnumerable
+    public class SymbolTable(params ObjectId[] ids) : DBObject, IEnumerable
     {
         /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
@@ -148,8 +184,12 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     /// <summary>Test double for the native BlockTableRecord type.</summary>
     /// <param name="ids">Contained test identifiers.</param>
+    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
+        internal ObjectId LayoutId { get; init; }
+        internal bool IsLayout => false;
+        internal string Name => "Model";
         /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
     }

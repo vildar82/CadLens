@@ -39,6 +39,13 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    should bring the existing panel forward. Activate Object Types and browse Type → Object across layers;
    check per-object layer details, search, count sorting, inclusion filters, and switching between lenses.
    Each lens should retain its own valid navigation and Auto settings. Drawing edits should require Refresh.
+   In both lenses, choose Selected objects with CAD preselection and confirm the subset loads immediately.
+   While Selected objects remains checked, click it again with a different CAD preselection and confirm
+   the subset changes. Clear CAD selection and click it again: CAD should prompt and load the completed
+   selection immediately. Check the same two paths through Refresh selected objects. Press Escape during the
+   prompt and confirm the previous scope, navigation, and effects stay unchanged. Collapse/switch lenses
+   and reopen to retain the selected inventory; switch drawing/layout to reset scope to All objects.
+   Change drawing/layout or close the panel during selection and confirm no late result returns.
 2. Try Focus, Select, and Isolate independently. With no saved preferences, all Auto modes start off.
    Saved Auto modes should apply only after choosing a target. Auto Select should follow
    navigation without moving the camera; Select should remain usable when a locked viewport blocks Focus.

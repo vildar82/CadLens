@@ -8,8 +8,16 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="../../src/Common/Common.csproj" />
+        <ProjectReference Include="../../src/CadLens.UI/CadLens.UI.csproj" />
+        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Services/AutoCadDrawingInventorySource.cs" Link="AutoCadDrawingInventorySource.cs" />
+        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Services/ObjectExplorerActions.cs" Link="ObjectExplorerActions.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Models/EntityId.cs" Link="EntityId.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Models/LayerId.cs" Link="LayerId.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Abstractions/IEntityIsolationActions.cs" Link="IEntityIsolationActions.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Abstractions/IEntityIsolationService.cs" Link="IEntityIsolationService.cs" />
         <Compile Include="../../src/Common.AutoCAD/Abstractions/IHostTaskService.cs" Link="IHostTaskService.cs" />
         <Compile Include="../../src/Common.AutoCAD/Services/AutoCadTaskService.cs" Link="AutoCadTaskService.cs" />
+        <Compile Include="../../src/Common.AutoCAD/Services/EntityIsolationService.cs" Link="EntityIsolationService.cs" />
         <Compile Include="../../src/Common.AutoCAD/Extensions/DatabaseObjectExtensions.cs" Link="DatabaseObjectExtensions.cs" />
     </ItemGroup>
 </Project>

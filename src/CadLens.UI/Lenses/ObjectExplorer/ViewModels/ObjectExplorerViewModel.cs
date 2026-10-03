@@ -57,6 +57,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         SearchPlaceholder = grouping == DrawingGrouping.Layers ? "Search layers" : "Search types";
         GroupLabel = grouping == DrawingGrouping.Layers ? "layers" : "types";
         ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
+        ShowAllObjectsCommand = new AsyncRelayCommand(
+            () => IsAllObjects ? Task.CompletedTask : ExecuteActionAsync(token => ChangeScopeAsync(false, token)),
+            CanRun);
+        ShowSelectedObjectsCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(token => ChangeScopeAsync(true, token)),
+            CanRun);
         IsolateCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(async token => await _actions.IsolateObjectsAsync(Current!.Objects, token)),
             () => CanRun() && Current is {Objects.IsEmpty: false});
@@ -119,6 +125,32 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
                 NotifyCommands();
         }
     }
+
+    /// <summary>Whether the inventory contains only captured CAD selection targets.</summary>
+    public bool IsSelectedObjectsOnly
+    {
+        get;
+        private set
+        {
+            if (!SetProperty(ref field, value))
+                return;
+
+            OnPropertyChanged(nameof(IsAllObjects));
+            OnPropertyChanged(nameof(RefreshLabel));
+        }
+    }
+
+    /// <summary>Whether all direct active-space objects are included in the read.</summary>
+    public bool IsAllObjects => !IsSelectedObjectsOnly;
+
+    /// <summary>Action label for refreshing the chosen object scope.</summary>
+    public string RefreshLabel => IsSelectedObjectsOnly ? "Refresh selected objects" : "Refresh active space";
+
+    /// <summary>Reads all direct active-space objects.</summary>
+    public IAsyncRelayCommand ShowAllObjectsCommand { get; }
+
+    /// <summary>Captures the current CAD selection and reads those objects.</summary>
+    public IAsyncRelayCommand ShowSelectedObjectsCommand { get; }
 
     /// <summary>Current operation result or explanation.</summary>
     public string Status => _saveFailed
@@ -480,6 +512,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
+        IsSelectedObjectsOnly = false;
         _inventory = null;
         Precision = DrawingPrecision.Default;
         Groups = [];
@@ -651,7 +684,10 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         _activationToken = cancellationToken;
         _needsCleanup = true;
         IsLensActive = true;
-        return ExecuteActionAsync(ReadInventoryAsync);
+
+        return ExecuteActionAsync(token => IsSelectedObjectsOnly && _inventory is { } retained
+            ? RebuildInventoryAsync(retained, token)
+            : ReadInventoryAsync(token));
     }
 
     /// <summary>Cancels drawing work and settles it before clearing lens effects.</summary>
@@ -733,6 +769,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     private void NotifyCommands()
     {
         ReadCommand.NotifyCanExecuteChanged();
+        ShowAllObjectsCommand.NotifyCanExecuteChanged();
+        ShowSelectedObjectsCommand.NotifyCanExecuteChanged();
         IsolateCommand.NotifyCanExecuteChanged();
         ResetCommand.NotifyCanExecuteChanged();
         SelectCommand.NotifyCanExecuteChanged();
@@ -751,7 +789,70 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         ToggleAutoFocusCommand.NotifyCanExecuteChanged();
     }
 
-    private async Task<UiMessage> ReadInventoryAsync(CancellationToken cancellationToken)
+    private async Task<UiMessage> ChangeScopeAsync(bool selectedOnly, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await ReadInventoryAsync(selectedOnly, cancellationToken);
+        }
+        finally
+        {
+            OnPropertyChanged(nameof(IsSelectedObjectsOnly));
+            OnPropertyChanged(nameof(IsAllObjects));
+        }
+    }
+
+    private Task<UiMessage> ReadInventoryAsync(CancellationToken cancellationToken) =>
+        ReadInventoryAsync(IsSelectedObjectsOnly, cancellationToken);
+
+    private async Task<UiMessage> ReadInventoryAsync(bool selectedOnly, CancellationToken cancellationToken)
+    {
+        ImmutableArray<IPlacedObjectId>? selectedObjects = null;
+
+        if (selectedOnly)
+        {
+            var captured = await _actions.RequestObjectsAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (captured is not HostResult<ImmutableArray<IPlacedObjectId>>.Success selection)
+                return ((HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable) captured).Reason;
+
+            selectedObjects = selection.Value;
+        }
+
+        var cleared = await _actions.ClearAsync(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (cleared is not HostResult<bool>.Success {Value: true})
+            return DescribeCleanup(cleared);
+
+        if (IsSelectedObjectsOnly != selectedOnly)
+        {
+            IsSelectedObjectsOnly = selectedOnly;
+            _inventory = null;
+            Groups = [];
+            _navigation.Reset([], false);
+            NotifyNavigation();
+        }
+
+        var result = await _actions.ReadAsync(_grouping, _enabledFilters, selectedObjects, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (result is HostResult<LensPresentation>.Success success)
+            return await ApplyPresentationAsync(success.Value, cancellationToken);
+
+        _inventory = null;
+        Precision = DrawingPrecision.Default;
+        Groups = [];
+        _navigation.Reset([], false);
+        NotifyNavigation();
+        _spaceIsDrawingData = false;
+        SpaceLabel = "Unavailable";
+        OnPropertyChanged(nameof(DisplaySpaceLabel));
+        return ((HostResult<LensPresentation>.Unavailable) result).Reason;
+    }
+
+    private async Task<UiMessage> RebuildInventoryAsync(DrawingInventory inventory, CancellationToken cancellationToken)
     {
         var cleared = await _actions.ClearAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -759,39 +860,35 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         if (cleared is not HostResult<bool>.Success {Value: true})
             return DescribeCleanup(cleared);
 
-        var result = await _actions.ReadAsync(_grouping, _enabledFilters, cancellationToken);
+        return await ApplyPresentationAsync(
+            DrawingLensProvider.Build(inventory, _grouping, _enabledFilters, _propertyGrouping),
+            cancellationToken);
+    }
+
+    private async Task<UiMessage> ApplyPresentationAsync(LensPresentation presentation, CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
-
-        if (result is not HostResult<LensPresentation>.Success success)
-        {
-            _inventory = null;
-            Precision = DrawingPrecision.Default;
-            Groups = [];
-            _navigation.Reset([], false);
-            NotifyNavigation();
-            _spaceIsDrawingData = false;
-            SpaceLabel = "Unavailable";
-            OnPropertyChanged(nameof(DisplaySpaceLabel));
-            return ((HostResult<LensPresentation>.Unavailable) result).Reason;
-        }
-
         _spaceIsDrawingData = true;
-        SpaceLabel = success.Value.SpaceLabel;
+        SpaceLabel = presentation.SpaceLabel;
         OnPropertyChanged(nameof(DisplaySpaceLabel));
-        LensLabel = success.Value.Label;
-        RootLabel = success.Value.RootLabel;
-        SearchPlaceholder = success.Value.SearchPlaceholder;
-        GroupLabel = success.Value.GroupLabel;
-        _inventory = success.Value.Inventory;
-        Precision = success.Value.Precision ?? _inventory?.Precision ?? DrawingPrecision.Default;
+        LensLabel = presentation.Label;
+        RootLabel = presentation.RootLabel;
+        SearchPlaceholder = presentation.SearchPlaceholder;
+        GroupLabel = presentation.GroupLabel;
+        _inventory = presentation.Inventory;
+        Precision = presentation.Precision ?? _inventory?.Precision ?? DrawingPrecision.Default;
         Groups = _inventory is not null && _propertyGrouping.Values.Any(fields => !fields.IsDefaultOrEmpty)
             ? DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping).Groups
-            : success.Value.Groups;
-        _emptyMessage = success.Value.EmptyMessage;
-        _enabledFilters = _enabledFilters.Intersect(success.Value.Filters.Select(filter => filter.Id));
+            : presentation.Groups;
+        _emptyMessage = IsSelectedObjectsOnly
+            ? _inventory is {Entities.IsEmpty: false}
+                ? "No selected objects match the inclusion filters."
+                : "No selected objects in the active space. Refresh to select objects."
+            : presentation.EmptyMessage;
+        _enabledFilters = _enabledFilters.Intersect(presentation.Filters.Select(filter => filter.Id));
         Filters =
         [
-            .. success.Value.Filters.Select(filter => new FilterOption(filter, _enabledFilters.Contains(filter.Id)))
+            .. presentation.Filters.Select(filter => new FilterOption(filter, _enabledFilters.Contains(filter.Id)))
         ];
         _navigation.Reset(Groups, true);
         OnPropertyChanged(nameof(Filters));
@@ -805,7 +902,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             ? _grouping == DrawingGrouping.Layers
                 ? "Choose a layer. Auto modes apply while browsing."
                 : "Choose a type. Auto modes apply while browsing."
-            : success.Value.EmptyMessage;
+            : _emptyMessage;
     }
 
     private async Task<UiMessage> ToggleAutoIsolationAsync(CancellationToken cancellationToken)
@@ -926,7 +1023,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         try
         {
-            return await ReadInventoryAsync(cancellationToken);
+            return IsSelectedObjectsOnly && _inventory is { } retained
+                ? await RebuildInventoryAsync(retained, cancellationToken)
+                : await ReadInventoryAsync(cancellationToken);
         }
         catch
         {

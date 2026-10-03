@@ -29,11 +29,49 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
                 Overruling = true;
             }
 
-            RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument);
+            RegenerateAllViewports(
+                Application.DocumentManager.MdiActiveDocument ??
+                throw new InvalidOperationException("The active drawing is no longer available."));
         }
         catch
         {
             Clear(redraw: false);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public Action Suspend()
+    {
+        var document = Application.DocumentManager.MdiActiveDocument;
+
+        if (document is null || document.Database != _database)
+            return () => { };
+
+        var database = document.Database;
+        var space = database.CurrentSpaceId;
+        var hidden = _hidden;
+        HashSet<ObjectId> suspended = [];
+        _hidden = suspended;
+
+        void Restore()
+        {
+            if (document != Application.DocumentManager.MdiActiveDocument || database.CurrentSpaceId != space ||
+                !ReferenceEquals(_hidden, suspended))
+                return;
+
+            _hidden = hidden;
+            RegenerateAllViewports(document);
+        }
+
+        try
+        {
+            RegenerateAllViewports(document);
+            return Restore;
+        }
+        catch
+        {
+            Restore();
             throw;
         }
     }
@@ -44,7 +82,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
 
     /// <inheritdoc />
     public override int SetAttributes(Drawable drawable, DrawableTraits traits) =>
-        base.SetAttributes(drawable, traits) | (int)DrawableAttributes.IsInvisible;
+        base.SetAttributes(drawable, traits) | (int) DrawableAttributes.IsInvisible;
 
     /// <inheritdoc />
     public void Clear(bool redraw = true)

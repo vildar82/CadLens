@@ -70,6 +70,21 @@ A new `CADLENS` session opens as a compact bar with both lenses inactive. Press 
 
 ![CAD Lens Layers preview showing the drawing inventory and Isolate control](docs/images/layers-preview.png)
 
+### Object scope
+
+Both lenses start with **All objects**, which reads direct objects in the active model or paper space.
+Every click on **Selected objects**, including when already checked, uses the current CAD selection
+or asks you to select objects when nothing is selected, then reads them immediately. Press Escape to cancel selection
+and keep the previous view. Only live direct objects in the active space are included. The existing
+off/frozen inclusion filters still apply.
+
+Navigation, grouping, inclusion-filter changes, Reset, and Select/Auto Select keep the captured inventory.
+Collapsing the panel or switching lenses also keeps each lens's selected inventory and navigation.
+**Refresh selected objects** also uses the current CAD selection or asks you to select objects, then
+updates the list immediately. It can replace the inventory with a selection made by Select/Auto Select.
+Switching drawings or spaces clears the old inventory and returns the scope to All objects. Each new
+panel session starts with All objects.
+
 ### Drawing controls
 
 | Action | Effect | Auto default |
@@ -178,7 +193,7 @@ presentation boundary, keeping raw property values available for grouping and so
 
 ### Host and lens lifetime
 
-`CadLens.AutoCAD` owns plugin and panel lifetime, cleanup, snapshot construction, and panel messages. Create `AutoCadTaskService` on the host UI thread. Capture preselection on that thread before queuing selection work. Clear temporary isolation when leaving the drawing context, then stop and drain the queue before disposing it.
+`CadLens.AutoCAD` owns plugin and panel lifetime, cleanup, snapshot construction, and panel messages. Create `AutoCadTaskService` on the host UI thread. Capture preselection on that thread before queuing interactive selection work. Clear temporary isolation when leaving the drawing context, then stop and drain the queue before disposing it.
 
 A lens implements `ILens` in `CadLens.UI`. It supplies a descriptor and WPF view, handles activation and deactivation, and receives context-change and close notifications. Register its own dependencies and the lens in the composition root:
 

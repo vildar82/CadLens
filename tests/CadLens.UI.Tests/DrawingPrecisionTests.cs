@@ -226,6 +226,7 @@ public sealed class DrawingPrecisionTests
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {
             ReadCount++;
@@ -233,6 +234,9 @@ public sealed class DrawingPrecisionTests
                 new HostResult<LensPresentation>.Success(
                     DrawingLensProvider.Build(Inventory, grouping, enabledFilters)));
         }
+
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
         public void ClearImmediately(bool hostTerminating)
         {

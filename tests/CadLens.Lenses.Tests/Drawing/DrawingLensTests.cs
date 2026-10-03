@@ -226,8 +226,8 @@ public sealed class DrawingLensTests
         var provider = new DrawingLensProvider(source);
         var layersFilters = new HashSet<string>();
         var typesFilters = new HashSet<string> { DrawingLensProvider.IncludeOff };
-        var layersTask = provider.LoadAsync(DrawingGrouping.Layers, layersFilters, CancellationToken.None);
-        var typesTask = provider.LoadAsync(DrawingGrouping.ObjectTypes, typesFilters, CancellationToken.None);
+        var layersTask = provider.LoadAsync(DrawingGrouping.Layers, layersFilters, null, CancellationToken.None);
+        var typesTask = provider.LoadAsync(DrawingGrouping.ObjectTypes, typesFilters, null, CancellationToken.None);
         layersFilters.Add(DrawingLensProvider.IncludeOff);
         typesFilters.Clear();
         source.Completion.SetResult(
@@ -257,7 +257,7 @@ public sealed class DrawingLensTests
     public async Task ReportsUnavailableDrawing()
     {
         var provider = new DrawingLensProvider(new UnavailableSource());
-        var result = await provider.LoadAsync(DrawingGrouping.Layers, new HashSet<string>(), CancellationToken.None);
+        var result = await provider.LoadAsync(DrawingGrouping.Layers, new HashSet<string>(), null, CancellationToken.None);
 
         Assert.Equal("No drawing.", Assert.IsType<HostResult<LensPresentation>.Unavailable>(result).Reason);
     }
@@ -272,13 +272,13 @@ public sealed class DrawingLensTests
         DrawingGrouping grouping = DrawingGrouping.Layers)
     {
         var provider = new DrawingLensProvider(new Source(new DrawingInventory("Model", layers, entities)));
-        var result = await provider.LoadAsync(grouping, filters, CancellationToken.None);
+        var result = await provider.LoadAsync(grouping, filters, null, CancellationToken.None);
         return Assert.IsType<HostResult<LensPresentation>.Success>(result).Value;
     }
 
     private sealed class Source(DrawingInventory snapshot) : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(snapshot));
     }
 
@@ -287,12 +287,12 @@ public sealed class DrawingLensTests
         public TaskCompletionSource<HostResult<DrawingInventory>> Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) => Completion.Task;
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken) => Completion.Task;
     }
 
     private sealed class UnavailableSource : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Unavailable("No drawing."));
     }
 }

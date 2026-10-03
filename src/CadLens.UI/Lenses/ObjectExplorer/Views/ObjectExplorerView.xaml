@@ -29,31 +29,36 @@
                 <DynamicResource ResourceKey="QuietHeader" />
             </Border.Background>
             <StackPanel>
-                <DockPanel Margin="1,0,1,8">
-                    <TextBlock
-                        MaxWidth="170"
-                        VerticalAlignment="Center"
-                        DockPanel.Dock="Right"
-                        FontSize="11"
-                        Foreground="{DynamicResource QuietMuted}"
-                        Text="{Binding DisplaySpaceLabel}"
-                        TextTrimming="CharacterEllipsis"
-                        ToolTip="{Binding DisplaySpaceLabel}" />
-                    <TextBlock
-                        FontSize="17"
-                        FontWeight="SemiBold"
-                        Text="{ui:Localize Binding={Binding LensLabel}}" />
-                </DockPanel>
+                <UniformGrid Margin="0,0,0,8" Columns="2">
+                    <RadioButton
+                        x:Name="AllObjectsScope"
+                        Margin="0,0,3,0"
+                        Padding="8,5"
+                        Command="{Binding ShowAllObjectsCommand}"
+                        Content="{ui:Localize 'All objects'}"
+                        IsChecked="{Binding IsAllObjects, Mode=OneWay}"
+                        Style="{StaticResource ModeScope}"
+                        ToolTip="{ui:Localize 'Browse all direct objects in the active drawing space'}" />
+                    <RadioButton
+                        x:Name="SelectedObjectsScope"
+                        Margin="3,0,0,0"
+                        Padding="8,5"
+                        Command="{Binding ShowSelectedObjectsCommand}"
+                        Content="{ui:Localize 'Selected objects'}"
+                        IsChecked="{Binding IsSelectedObjectsOnly, Mode=OneWay}"
+                        Style="{StaticResource ModeScope}"
+                        ToolTip="{ui:Localize 'Use selected CAD objects, or select objects in CAD. Refresh updates the selection scope.'}" />
+                </UniformGrid>
                 <DockPanel>
                     <Button
                         Width="28"
                         Padding="0"
-                        AutomationProperties.Name="{ui:Localize 'Refresh active space'}"
+                        AutomationProperties.Name="{ui:Localize Binding={Binding RefreshLabel}}"
                         Command="{Binding ReadCommand}"
                         Content="↻"
                         DockPanel.Dock="Right"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="{ui:Localize 'Refresh active space'}" />
+                        ToolTip="{ui:Localize Binding={Binding RefreshLabel}}" />
                     <ItemsControl ItemsSource="{Binding Filters}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>

@@ -8,6 +8,7 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 namespace CadLens.AutoCAD;
 
 /// <summary>Checks the production queue with a real WPF dispatcher and stubbed native AutoCAD callbacks.</summary>
+[Collection("AutoCAD")]
 public sealed class AutoCadTaskServiceTests
 {
     /// <summary>Requests run in submission order, one at a time, with application context and a document lock.</summary>
@@ -165,7 +166,7 @@ public sealed class AutoCadTaskServiceTests
         await service.StopAsync();
     });
 
-    private static Task OnUiThread(Func<Task> test)
+    internal static Task OnUiThread(Func<Task> test)
     {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
