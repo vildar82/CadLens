@@ -99,12 +99,20 @@ public sealed class DrawingValueFormatter : MarkupExtension
         RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(ObjectExplorerView), 1)
     };
 
-    private static string FormatNumber(DrawingNumberValue number, DrawingPrecision precision) => number.Unit switch
+    private static string FormatNumber(DrawingNumberValue number, DrawingPrecision precision)
     {
-        DrawingUnit.Count => number.Value.ToString("N0", UiText.Current.Culture),
-        DrawingUnit.Angle => $"{FormatDecimal(number.Value * 180 / Math.PI, precision.Angular)}°",
-        _ => FormatDecimal(number.Value, precision.Linear)
-    };
+        var value = number.Unit == DrawingUnit.Angle ? number.Value * (180 / Math.PI) : number.Value;
+
+        if (!double.IsFinite(value))
+            return "—";
+
+        return number.Unit switch
+        {
+            DrawingUnit.Count => value.ToString("N0", UiText.Current.Culture),
+            DrawingUnit.Angle => $"{FormatDecimal(value, precision.Angular)}°",
+            _ => FormatDecimal(value, precision.Linear)
+        };
+    }
 
     private static string FormatDecimal(double value, int precision)
     {

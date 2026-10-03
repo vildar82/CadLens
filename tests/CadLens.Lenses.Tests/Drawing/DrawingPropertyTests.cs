@@ -229,10 +229,13 @@ public sealed class DrawingPropertyTests
     }
 
     /// <summary>Nonfinite numbers become unavailable and signed zero cannot split a numeric group.</summary>
-    [Fact]
-    public void NumericValuesAreNormalizedConsistently()
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void NumericValuesAreNormalizedConsistently(double invalidValue)
     {
-        var invalid = Metric("1", "Custom.Curve", DrawingPropertyId.Length, double.NaN);
+        var invalid = Metric("1", "Custom.Curve", DrawingPropertyId.Length, invalidValue);
         var positiveZero = Metric("2", "Custom.Curve", DrawingPropertyId.Length, 0);
         var negativeZero = Metric("3", "Custom.Curve", DrawingPropertyId.Length, -0d);
         var groups = Build([invalid, positiveZero, negativeZero], fields: [DrawingPropertyId.Length]).Groups[0]

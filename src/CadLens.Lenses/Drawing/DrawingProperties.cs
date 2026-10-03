@@ -79,6 +79,13 @@ public static class DrawingProperties
             : Normalize(node.Properties.FirstOrDefault(property => property.Id == id)?.Value);
 
     /// <summary>Compares raw typed values; callers keep unavailable values last before applying sort direction.</summary>
+    /// <remarks>
+    /// Ascending type order is number, text, boolean, layer, color, lineweight, then transparency.
+    /// Numbers compare unit first (count, distance, angle, scale), then raw value. Text uses ordinal
+    /// case-insensitive ordering with case-sensitive ties; booleans put false first; layers compare name then ID.
+    /// Assigned appearance compares assignment mode then raw identity, with explicit transparency increasing
+    /// from opaque (0%) to transparent (100%). Null and nonfinite numbers compare after available values.
+    /// </remarks>
     /// <param name="left">First observed value.</param>
     /// <param name="right">Second observed value.</param>
     public static int CompareValues(DrawingValue? left, DrawingValue? right)
@@ -198,6 +205,7 @@ public static class DrawingProperties
     {
         var comparison = left.Kind.CompareTo(right.Kind);
 
+        // Alpha is opacity; reversing it sorts the displayed transparency percentage in ascending order.
         return comparison == 0 ? right.Alpha.CompareTo(left.Alpha) : comparison;
     }
 }

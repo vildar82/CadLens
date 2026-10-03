@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using CadLens.Lenses;
@@ -60,6 +61,60 @@ public sealed class DrawingPrecisionTests
         {
             UiText.Current.Select(previous, persist: false);
         }
+    }
+
+    /// <summary>Nonfinite input cannot leak into numeric labels even when the formatter is called directly.</summary>
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void NonfiniteValuesDisplayAsUnavailable(double value)
+    {
+        foreach (var unit in Enum.GetValues<DrawingUnit>())
+            Assert.Equal("—", DrawingValueFormatter.FormatValue(new DrawingNumberValue(value, unit)));
+    }
+
+    /// <summary>Unrepresentable degree values use the unavailable marker without changing the stored angle.</summary>
+    [Theory]
+    [InlineData(double.MaxValue)]
+    [InlineData(double.MinValue)]
+    public void AnglesThatOverflowDegreesDisplayAsUnavailable(double radians)
+    {
+        var value = new DrawingNumberValue(radians, DrawingUnit.Angle);
+
+        Assert.Equal("—", DrawingValueFormatter.FormatValue(value));
+        Assert.Equal(radians, value.Value);
+    }
+
+    /// <summary>Large valid degree values remain finite despite an overflowing intermediate multiplication.</summary>
+    [Theory]
+    [InlineData(1e306, 5.729577951308232e307)]
+    [InlineData(-1e306, -5.729577951308232e307)]
+    public void LargeFiniteAnglesRemainRepresentable(double radians, double expectedDegrees)
+    {
+        var value = new DrawingNumberValue(radians, DrawingUnit.Angle);
+        var text = DrawingValueFormatter.FormatValue(value);
+        Assert.EndsWith("°", text);
+        var displayed = double.Parse(text[..^1], NumberStyles.Float, UiText.Current.Culture);
+
+        Assert.True(double.IsFinite(displayed));
+        Assert.InRange(Math.Abs((displayed - expectedDegrees) / expectedDegrees), 0, 1e-14);
+        Assert.Equal(radians, value.Value);
+    }
+
+    /// <summary>Ascending transparency values follow the displayed percentage rather than native opacity.</summary>
+    [Fact]
+    public void TransparencySortingFollowsDisplayedPercentages()
+    {
+        List<DrawingValue> values =
+        [
+            new DrawingTransparencyValue(new AssignedTransparency(AssignedTransparencyKind.Explicit, 0)),
+            new DrawingTransparencyValue(new AssignedTransparency(AssignedTransparencyKind.Explicit, 102)),
+            new DrawingTransparencyValue(new AssignedTransparency(AssignedTransparencyKind.Explicit))
+        ];
+        values.Sort(DrawingProperties.CompareValues);
+
+        Assert.Equal(["0%", "60%", "100%"], values.Select(value => DrawingValueFormatter.FormatValue(value)));
     }
 
     /// <summary>Rows, captions, details, and tooltips use refreshed precision while raw grouping and sorting stay exact.</summary>
