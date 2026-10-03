@@ -1,5 +1,5 @@
 <UserControl
-    x:Class="CadLens.UI.LayersView"
+    x:Class="CadLens.UI.ObjectExplorerView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -10,10 +10,10 @@
     FontSize="12"
     Foreground="#EEF5F8"
     UseLayoutRounding="True"
-    d:DataContext="{d:DesignInstance Type=ui:LayersViewModel}"
+    d:DataContext="{d:DesignInstance Type=ui:ObjectExplorerViewModel}"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <ResourceDictionary Source="LayersTheme.xaml" />
+        <ResourceDictionary Source="ObjectExplorerTheme.xaml" />
     </UserControl.Resources>
     <Grid Background="#10171E">
         <Grid.RowDefinitions>
@@ -121,7 +121,7 @@
                     <TextBlock
                         FontSize="11"
                         FontWeight="SemiBold"
-                        Text="{Binding GroupCount, StringFormat={}{0:N0} layers}" />
+                        Text="{Binding GroupSummary}" />
                 </DockPanel>
                 <DockPanel Visibility="{Binding HasCurrent, Converter={StaticResource BooleanVisibility}}">
                     <Button
@@ -152,7 +152,7 @@
                         Margin="0,0,5,0"
                         Padding="7,4"
                         Command="{Binding RootCommand}"
-                        Content="All layers"
+                        Content="{Binding RootLabel}"
                         DockPanel.Dock="Left"
                         Style="{StaticResource ModeButton}" />
                     <ItemsControl VerticalAlignment="Center" ItemsSource="{Binding Breadcrumbs}">
@@ -265,16 +265,16 @@
                                 Width="23"
                                 Height="23"
                                 Padding="0"
-                                AutomationProperties.Name="Clear layer search"
+                                AutomationProperties.Name="Clear search"
                                 Command="{Binding ClearSearchCommand}"
                                 Content="×"
                                 DockPanel.Dock="Right"
                                 FontSize="14"
-                                ToolTip="Clear layer search">
+                                ToolTip="Clear search">
                                 <Button.Style>
                                     <Style BasedOn="{StaticResource ModeButton}" TargetType="Button">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding LayerSearch}" Value="">
+                                            <DataTrigger Binding="{Binding SearchText}" Value="">
                                                 <Setter Property="Visibility" Value="Collapsed" />
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -285,25 +285,25 @@
                                 <TextBox
                                     Padding="0"
                                     VerticalContentAlignment="Center"
-                                    AutomationProperties.Name="Search layers by name"
+                                    AutomationProperties.Name="{Binding SearchPlaceholder}"
                                     Background="Transparent"
                                     BorderThickness="0"
                                     CaretBrush="{StaticResource QuietText}"
                                     Foreground="{StaticResource QuietText}"
-                                    Text="{Binding LayerSearch, UpdateSourceTrigger=PropertyChanged}" />
+                                    Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     Foreground="{StaticResource QuietMuted}"
                                     IsHitTestVisible="False"
-                                    Text="Search layers">
+                                    Text="{Binding SearchPlaceholder}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding LayerSearch}" Value="">
+                                                <DataTrigger Binding="{Binding SearchText}" Value="">
                                                     <Setter Property="Visibility" Value="Visible" />
                                                 </DataTrigger>
-                                                <DataTrigger Binding="{Binding LayerSearch}" Value="{x:Null}">
+                                                <DataTrigger Binding="{Binding SearchText}" Value="{x:Null}">
                                                     <Setter Property="Visibility" Value="Visible" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -316,24 +316,24 @@
                     <DockPanel Grid.Row="1">
                         <ToggleButton
                             MinWidth="78"
-                            AutomationProperties.Name="Sort layers by object count"
+                            AutomationProperties.Name="{Binding SortByCountLabel}"
                             Command="{Binding SortByCountCommand}"
                             DockPanel.Dock="Right"
                             IsChecked="{Binding IsCountSortActive, Mode=OneWay}"
                             Style="{StaticResource ModeSortHeader}"
-                            ToolTip="Sort layers by object count">
+                            ToolTip="{Binding SortByCountLabel}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Objects" />
                                 <TextBlock Margin="4,0,0,0" Text="{Binding CountSortArrow}" />
                             </StackPanel>
                         </ToggleButton>
                         <ToggleButton
-                            AutomationProperties.Name="Sort layers by name"
+                            AutomationProperties.Name="{Binding SortByNameLabel}"
                             Command="{Binding SortByNameCommand}"
                             DockPanel.Dock="Left"
                             IsChecked="{Binding IsNameSortActive, Mode=OneWay}"
                             Style="{StaticResource ModeSortHeader}"
-                            ToolTip="Sort layers by name">
+                            ToolTip="{Binding SortByNameLabel}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Name" />
                                 <TextBlock Margin="4,0,0,0" Text="{Binding NameSortArrow}" />

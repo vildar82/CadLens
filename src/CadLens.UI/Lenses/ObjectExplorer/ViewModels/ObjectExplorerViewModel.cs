@@ -7,9 +7,10 @@ using CommunityToolkit.Mvvm.Input;
 namespace CadLens.UI;
 
 /// <summary>Drawing overview and asynchronous operations for the modeless panel.</summary>
-public sealed class LayersViewModel : ObservableObject, IDisposable
+public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 {
-    private readonly ILayersActions _actions;
+    private readonly IObjectExplorerActions _actions;
+    private readonly DrawingGrouping _grouping;
     private readonly NavigationState _navigation = new();
     private ImmutableHashSet<string> _enabledFilters = [];
     private CancellationToken _activationToken;
@@ -24,9 +25,15 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
-    public LayersViewModel(ILayersActions actions)
+    /// <param name="grouping">Root organization for this lens.</param>
+    public ObjectExplorerViewModel(IObjectExplorerActions actions, DrawingGrouping grouping)
     {
         _actions = actions;
+        _grouping = grouping;
+        LensLabel = grouping == DrawingGrouping.Layers ? "Layers" : "Object Types";
+        RootLabel = grouping == DrawingGrouping.Layers ? "All layers" : "All types";
+        SearchPlaceholder = grouping == DrawingGrouping.Layers ? "Search layers" : "Search types";
+        GroupLabel = grouping == DrawingGrouping.Layers ? "layers" : "types";
         ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
         IsolateCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => _actions.IsolateObjectsAsync(Current!.Objects, token)),
@@ -57,7 +64,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             () => ExecuteActionAsync(ToggleAutoFocusAsync), CanRun);
         SortByNameCommand = new RelayCommand(() => ChangeSort(false));
         SortByCountCommand = new RelayCommand(() => ChangeSort(true));
-        ClearSearchCommand = new RelayCommand(() => LayerSearch = "");
+        ClearSearchCommand = new RelayCommand(() => SearchText = "");
     }
 
     /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
@@ -90,7 +97,46 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     {
         get;
         private set => SetProperty(ref field, value);
-    } = "Overview";
+    }
+
+    /// <summary>Breadcrumb label for this lens's root list.</summary>
+    public string RootLabel
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    /// <summary>Root search hint supplied by the lens.</summary>
+    public string SearchPlaceholder
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    }
+
+    /// <summary>Plural name of the root groups.</summary>
+    public string GroupLabel
+    {
+        get;
+        private set
+        {
+            if (!SetProperty(ref field, value))
+                return;
+
+            OnPropertyChanged(nameof(GroupSummary));
+            OnPropertyChanged(nameof(EmptyMessage));
+            OnPropertyChanged(nameof(SortByNameLabel));
+            OnPropertyChanged(nameof(SortByCountLabel));
+        }
+    }
+
+    /// <summary>Included root count and the lens-specific group name.</summary>
+    public string GroupSummary => $"{GroupCount:N0} {GroupLabel}";
+
+    /// <summary>Accessible description of name sorting.</summary>
+    public string SortByNameLabel => $"Sort {GroupLabel} by name";
+
+    /// <summary>Accessible description of count sorting.</summary>
+    public string SortByCountLabel => $"Sort {GroupLabel} by object count";
 
     /// <summary>Groups from the most recent inventory.</summary>
     public ImmutableArray<LensNode> Groups
@@ -101,6 +147,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
             SetProperty(ref field, value);
             UpdateVisibleGroups();
             OnPropertyChanged(nameof(GroupCount));
+            OnPropertyChanged(nameof(GroupSummary));
             OnPropertyChanged(nameof(ObjectCount));
             OnPropertyChanged(nameof(HasGroups));
         }
@@ -109,8 +156,8 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <summary>Children at the current exploration level.</summary>
     public ImmutableArray<LensNode> Items => Current is null ? _visibleGroups : _navigation.Items;
 
-    /// <summary>Finds layers by name in the root list.</summary>
-    public string LayerSearch
+    /// <summary>Finds groups by name in the root list.</summary>
+    public string SearchText
     {
         get;
         set
@@ -173,16 +220,16 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
 
     /// <summary>Lens-provided explanation for an empty inventory.</summary>
     public string EmptyMessage => !Groups.IsEmpty && _visibleGroups.IsEmpty
-        ? "No layers match your search."
+        ? $"No {GroupLabel} match your search."
         : _emptyMessage;
 
-    /// <summary>Sorts root layers by name; clicking again reverses direction.</summary>
+    /// <summary>Sorts root groups by name; clicking again reverses direction.</summary>
     public IRelayCommand SortByNameCommand { get; }
 
-    /// <summary>Sorts root layers by object count; clicking again reverses direction.</summary>
+    /// <summary>Sorts root groups by object count; clicking again reverses direction.</summary>
     public IRelayCommand SortByCountCommand { get; }
 
-    /// <summary>Clears the layer-name search.</summary>
+    /// <summary>Clears the root group search.</summary>
     public IRelayCommand ClearSearchCommand { get; }
 
     /// <summary>Lens options and their current inclusion state.</summary>
@@ -276,7 +323,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     /// <inheritdoc />
     public void Dispose() => Close(false);
 
-    /// <summary>Cancels pending Layers work and synchronously removes owned graphics.</summary>
+    /// <summary>Cancels pending lens work and synchronously removes owned graphics.</summary>
     /// <param name="hostTerminating">Whether host shutdown forbids regeneration.</param>
     public void Close(bool hostTerminating)
     {
@@ -310,7 +357,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
     private void UpdateVisibleGroups()
     {
         var groups = Groups.Where(group => group.Label.Contains(
-            LayerSearch.Trim(),
+            SearchText.Trim(),
             StringComparison.OrdinalIgnoreCase));
         _visibleGroups =
         [
@@ -328,7 +375,7 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         EnterCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary>Loads the Layers view for the active session.</summary>
+    /// <summary>Loads the lens view for the active session.</summary>
     /// <param name="cancellationToken">Canceled when the panel deactivates this lens.</param>
     public Task ActivateAsync(CancellationToken cancellationToken)
     {
@@ -341,12 +388,12 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         return ExecuteActionAsync(ReadInventoryAsync);
     }
 
-    /// <summary>Cancels drawing work and settles it before clearing Layers effects.</summary>
+    /// <summary>Cancels drawing work and settles it before clearing lens effects.</summary>
     /// <param name="cancellationToken">Cleanup token independent of the canceled activation.</param>
     public async Task<HostResult<bool>> DeactivateAsync(CancellationToken cancellationToken)
     {
         if (_disposed)
-            return new HostResult<bool>.Unavailable("The Layers session has closed.");
+            return new HostResult<bool>.Unavailable($"The {LensLabel} session has closed.");
 
         IsLensActive = false;
         // ReSharper disable once MethodHasAsyncOverload -- Cancellation must finish before replacing request ownership.
@@ -437,20 +484,23 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         if (cleared is not HostResult<bool>.Success { Value: true })
             return DescribeCleanup(cleared);
 
-        var result = await _actions.ReadAsync(_enabledFilters, cancellationToken);
+        var result = await _actions.ReadAsync(_grouping, _enabledFilters, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (result is not HostResult<LayersPresentation>.Success success)
+        if (result is not HostResult<LensPresentation>.Success success)
         {
             Groups = [];
             _navigation.Reset([], false);
             NotifyNavigation();
             SpaceLabel = "Unavailable";
-            return ((HostResult<LayersPresentation>.Unavailable)result).Reason;
+            return ((HostResult<LensPresentation>.Unavailable)result).Reason;
         }
 
         SpaceLabel = success.Value.SpaceLabel;
         LensLabel = success.Value.Label;
+        RootLabel = success.Value.RootLabel;
+        SearchPlaceholder = success.Value.SearchPlaceholder;
+        GroupLabel = success.Value.GroupLabel;
         Groups = success.Value.Groups;
         _emptyMessage = success.Value.EmptyMessage;
         Filters =
@@ -465,7 +515,9 @@ public sealed class LayersViewModel : ObservableObject, IDisposable
         if (Current is not null)
             return await ApplySelectionAndIsolationAsync(cancellationToken);
 
-        return HasGroups ? "Choose a layer. Auto modes apply while browsing." : success.Value.EmptyMessage;
+        var subject = _grouping == DrawingGrouping.Layers ? "layer" : "type";
+
+        return HasGroups ? $"Choose a {subject}. Auto modes apply while browsing." : success.Value.EmptyMessage;
     }
 
     private async Task<string> ToggleAutoIsolationAsync(CancellationToken cancellationToken)

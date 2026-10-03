@@ -5,7 +5,7 @@ using Common;
 namespace CadLens.UI;
 
 /// <summary>Host operations for the modeless drawing explorer.</summary>
-public interface ILayersActions
+public interface IObjectExplorerActions
 {
     /// <summary>Clears selection and graphics synchronously at context and lifetime boundaries.</summary>
     /// <param name="hostTerminating">Whether shutdown forbids editor access and regeneration.</param>
@@ -18,9 +18,13 @@ public interface ILayersActions
     Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken);
 
     /// <summary>Reads the active-space inventory without changing the drawing.</summary>
+    /// <param name="grouping">Root organization for this lens.</param>
     /// <param name="enabledFilters">Enabled lens option identities.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken);
+    Task<HostResult<LensPresentation>> ReadAsync(
+        DrawingGrouping grouping,
+        IReadOnlySet<string> enabledFilters,
+        CancellationToken cancellationToken);
 
     /// <summary>Isolates the panel selection; empty targets clear it.</summary>
     /// <param name="objects">Current group or object targets.</param>

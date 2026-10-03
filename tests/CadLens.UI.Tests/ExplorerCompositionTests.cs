@@ -15,13 +15,13 @@ public sealed class ExplorerCompositionTests
     public void MissingHostDependenciesFailDuringBuild() =>
         Assert.Throws<AggregateException>(() => ExplorerComposition.Build(_ => { }));
 
-    /// <summary>A singleton cannot capture a scoped lens through the action adapter.</summary>
+    /// <summary>A singleton cannot capture the scoped drawing provider through the action adapter.</summary>
     [Fact]
-    public void SingletonDependingOnScopedLensFailsDuringBuild() =>
+    public void SingletonDependingOnScopedProviderFailsDuringBuild() =>
         Assert.Throws<AggregateException>(() => ExplorerComposition.Build(services =>
         {
             RegisterHost(services);
-            services.AddSingleton<ILens, LayersLens>();
+            services.AddSingleton<IObjectExplorerActions, Actions>();
         }));
 
     /// <summary>Scoped state cannot be resolved from the plugin root.</summary>
@@ -44,10 +44,10 @@ public sealed class ExplorerCompositionTests
         using (var scope = root.CreateScope())
         {
             previous = scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
-            source = (SnapshotSource)scope.ServiceProvider.GetRequiredService<ILayersSnapshotSource>();
+            source = (SnapshotSource)scope.ServiceProvider.GetRequiredService<IDrawingInventorySource>();
             Assert.Same(previous, scope.ServiceProvider.GetRequiredService<ExplorerViewModel>());
             await previous.ToggleLensCommand.ExecuteAsync(previous.Lenses[0]);
-            var layers = scope.ServiceProvider.GetRequiredService<LayersViewModel>();
+            var layers = DrawingViewModel(scope.ServiceProvider, "layers");
             await layers.ToggleFilterCommand.ExecuteAsync(layers.Filters[0]);
         }
 
@@ -57,17 +57,17 @@ public sealed class ExplorerCompositionTests
         using var reopened = root.CreateScope();
         var current = reopened.ServiceProvider.GetRequiredService<ExplorerViewModel>();
         Assert.NotSame(previous, current);
-        Assert.NotSame(source, reopened.ServiceProvider.GetRequiredService<ILayersSnapshotSource>());
+        Assert.NotSame(source, reopened.ServiceProvider.GetRequiredService<IDrawingInventorySource>());
         Assert.False(current.IsLensActive);
         await current.ToggleLensCommand.ExecuteAsync(current.Lenses[0]);
-        Assert.All(reopened.ServiceProvider.GetRequiredService<LayersViewModel>().Filters, filter => Assert.False(filter.IsEnabled));
+        Assert.All(DrawingViewModel(reopened.ServiceProvider, "layers").Filters, filter => Assert.False(filter.IsEnabled));
     }
 
     /// <summary>The production presentation assemblies do not reference the DI container or AutoCAD.</summary>
     [Fact]
     public void PresentationAssembliesRemainIndependent()
     {
-        var assemblies = new[] { typeof(LensNode).Assembly, typeof(LayersLensProvider).Assembly, typeof(ExplorerViewModel).Assembly };
+        var assemblies = new[] { typeof(LensNode).Assembly, typeof(DrawingLensProvider).Assembly, typeof(ExplorerViewModel).Assembly };
 
         foreach (var assembly in assemblies)
         {
@@ -91,34 +91,97 @@ public sealed class ExplorerCompositionTests
         });
         using var scope = root.CreateScope();
         var model = scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
-        var second = scope.ServiceProvider.GetServices<ILens>().OfType<CounterLens>().Single();
-        Assert.Equal(["layers", "counter"], model.Lenses.Select(lens => lens.Descriptor.Id));
+        var counter = scope.ServiceProvider.GetServices<ILens>().OfType<CounterLens>().Single();
+        Assert.Equal(["layers", "object-types", "counter"], model.Lenses.Select(lens => lens.Descriptor.Id));
         Assert.False(model.IsLensActive);
-        Assert.Equal(0, second.ActivationCount);
-        await model.ToggleLensCommand.ExecuteAsync(model.Lenses[1]);
-        Assert.Equal(1, second.ActivationCount);
-        Assert.True(model.Lenses[1].IsActive);
+        Assert.Equal(0, counter.ActivationCount);
+        await model.ToggleLensCommand.ExecuteAsync(model.Lenses[2]);
+        Assert.Equal(1, counter.ActivationCount);
+        Assert.True(model.Lenses[2].IsActive);
         Assert.False(model.Lenses[0].IsActive);
         Assert.Equal(0, scope.ServiceProvider.GetRequiredService<CounterService>().Count);
     }
 
-    private static void RegisterHost(IServiceCollection services)
+    /// <summary>Both production lenses use one drawing inventory while retaining their own exploration settings.</summary>
+    [Fact]
+    public async Task ProductionLensesKeepIndependentNavigationAndSettings()
     {
-        services.AddScoped<ILayersSnapshotSource, SnapshotSource>();
-        services.AddScoped<ILayersActions, Actions>();
+        await using var root = ExplorerComposition.Build(RegisterHost);
+        using var scope = root.CreateScope();
+        var source = (SnapshotSource)scope.ServiceProvider.GetRequiredService<IDrawingInventorySource>();
+        var first = new TestLayerId("A");
+        var second = new TestLayerId("B");
+        var frozen = new TestLayerId("C");
+        source.Inventory = new DrawingInventory(
+            "Model",
+            [new LayerSnapshot(first, "A", false, false, false, false),
+             new LayerSnapshot(second, "B", false, false, false, false),
+             new LayerSnapshot(frozen, "C", false, true, false, false)],
+            [new EntitySnapshot(new TestEntityId(1), first, "AcDbLine"),
+             new EntitySnapshot(new TestEntityId(2), second, "AcDbLine"),
+             new EntitySnapshot(new TestEntityId(3), second, "AcDbCircle"),
+             new EntitySnapshot(new TestEntityId(4), frozen, "AcDbLine")]);
+        var shell = scope.ServiceProvider.GetRequiredService<ExplorerViewModel>();
+        var layers = DrawingViewModel(scope.ServiceProvider, "layers");
+        var types = DrawingViewModel(scope.ServiceProvider, "object-types");
+
+        Assert.Equal(["layers", "object-types"], shell.Lenses.Select(lens => lens.Descriptor.Id));
+        Assert.False(shell.IsLensActive);
+        await shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]);
+        await layers.ToggleFilterCommand.ExecuteAsync(layers.Filters[0]);
+        layers.SearchText = "A";
+        await layers.EnterCommand.ExecuteAsync(Assert.Single(layers.Items));
+        await layers.ToggleAutoSelectCommand.ExecuteAsync(null);
+        await shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[1]);
+
+        Assert.False(layers.IsLensActive);
+        Assert.True(types.IsLensActive);
+        Assert.Equal(3, types.ObjectCount);
+        Assert.Equal(2, types.GroupCount);
+        Assert.Equal(2, types.Groups.Single(group => group.Label == "Line").Count);
+        Assert.All(types.Filters, filter => Assert.False(filter.IsEnabled));
+        Assert.False(types.IsAutoSelect);
+        Assert.Equal("", types.SearchText);
+        Assert.Null(types.Current);
+        await types.EnterCommand.ExecuteAsync(types.Groups.Single(group => group.Label == "Line"));
+        Assert.Equal(2, types.Items.Length);
+        await types.EnterCommand.ExecuteAsync(types.Items[1]);
+        Assert.Equal("B", types.Current!.Fields.Single(field => field.Label == "Layer").Value);
+        await shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]);
+
+        Assert.False(types.IsLensActive);
+        Assert.True(layers.IsLensActive);
+        Assert.Equal("A", layers.SearchText);
+        Assert.True(layers.Filters[0].IsEnabled);
+        Assert.True(layers.IsAutoSelect);
+        Assert.Equal("A", layers.Current!.Label);
+        Assert.Equal(4, layers.ObjectCount);
     }
 
-    private sealed class SnapshotSource : ILayersSnapshotSource, IDisposable
+    private static ObjectExplorerViewModel DrawingViewModel(IServiceProvider services, string id) =>
+        services.GetServices<ILens>().OfType<ObjectExplorerLens>().Single(lens => lens.Descriptor.Id == id).ViewModel;
+
+    private static void RegisterHost(IServiceCollection services)
+    {
+        services.AddScoped<IDrawingInventorySource, SnapshotSource>();
+        services.AddScoped<IObjectExplorerActions, Actions>();
+    }
+
+    private sealed class SnapshotSource : IDrawingInventorySource, IDisposable
     {
         internal int DisposeCount { get; private set; }
 
-        public Task<HostResult<LayersSnapshot>> ReadAsync(CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<LayersSnapshot>>(new HostResult<LayersSnapshot>.Success(new LayersSnapshot("Model", [], [])));
+        internal DrawingInventory Inventory { get; set; } = new("Model", [], []);
+
+        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(Inventory));
 
         public void Dispose() => DisposeCount++;
     }
 
-    private sealed class Actions(ILayersProvider provider) : ILayersActions
+    private sealed record TestLayerId(string DisplayId) : ILayerId;
+
+    private sealed class Actions(IDrawingLensProvider provider) : IObjectExplorerActions
     {
         public void ClearImmediately(bool hostTerminating) { }
 
@@ -127,8 +190,8 @@ public sealed class ExplorerCompositionTests
 
         public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
 
-        public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
-            provider.LoadAsync(enabledFilters, cancellationToken);
+        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) =>
+            provider.LoadAsync(grouping, enabledFilters, cancellationToken);
 
         public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
             Task.FromResult("Selection updated.");

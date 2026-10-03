@@ -11,9 +11,9 @@ public sealed class NavigationTests
     [Fact]
     public async Task NonLayerLensSuppliesGroupsFieldsFiltersAndActions()
     {
-        ILayersProvider provider = new FakeLens();
-        var result = await provider.LoadAsync(new HashSet<string>(), CancellationToken.None);
-        var presentation = Assert.IsType<HostResult<LayersPresentation>.Success>(result).Value;
+        IDrawingLensProvider provider = new FakeLens();
+        var result = await provider.LoadAsync(DrawingGrouping.Layers, new HashSet<string>(), CancellationToken.None);
+        var presentation = Assert.IsType<HostResult<LensPresentation>.Success>(result).Value;
         Assert.Equal("Issues", presentation.Label);
         Assert.Equal("Severity", presentation.Groups[0].Fields[0].Label);
         Assert.Equal(IconRole.Group, presentation.Filters[0].Icon);
@@ -89,18 +89,22 @@ public sealed class NavigationTests
             [LensAction.Focus]);
     }
 
-    private sealed class FakeLens : ILayersProvider
+    private sealed class FakeLens : IDrawingLensProvider
     {
-        public Task<HostResult<LayersPresentation>> LoadAsync(
+        public Task<HostResult<LensPresentation>> LoadAsync(
+            DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
             CancellationToken cancellationToken) =>
-            Task.FromResult<HostResult<LayersPresentation>>(
-                new HostResult<LayersPresentation>.Success(
-                    new LayersPresentation(
+            Task.FromResult<HostResult<LensPresentation>>(
+                new HostResult<LensPresentation>.Success(
+                    new LensPresentation(
                         "Issues",
                         "Example",
                         [Group([Object("1")])],
                         [new BooleanFilter("resolved", "Include resolved", "Include resolved issues", IconRole.Group)],
-                        "No issues.")));
+                        "No issues.",
+                        "All issues",
+                        "Search issues",
+                        "issues")));
     }
 }

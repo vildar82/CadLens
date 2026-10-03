@@ -50,7 +50,7 @@ have not been inspected during this concept trial; source findings must be label
 - Snowflake/lightbulb inclusion controls can be mistaken for actual layer visibility commands.
 - Focus and Previous/Next follow variable object details, so their positions can change.
 
-Evidence: ExplorerWindow.xaml, LayersView.xaml, ExplorerViewModel.cs, and LayersViewModel.cs in
+Evidence: ExplorerWindow.xaml, ObjectExplorerView.xaml, ExplorerViewModel.cs, and ObjectExplorerViewModel.cs in
 src/CadLens.UI. These are source-backed design risks, not observed native usability test results.
 
 ## Boundaries

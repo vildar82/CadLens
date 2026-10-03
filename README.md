@@ -1,19 +1,20 @@
 ﻿# CAD Lens
 
-CAD Lens is a personal experiment in exploring AutoCAD drawings through game-inspired visual layers. Its first lens helps reveal a DWG's structure without changing drawing geometry or properties.
+CAD Lens is a personal experiment in exploring AutoCAD drawings through game-inspired visual layers. Its lenses help reveal a DWG's structure without changing drawing geometry or properties.
 
 ## Contents
 
 - [Overview](#overview)
 - [Install and run](#install-and-run)
 - [Use the Layers lens](#use-the-layers-lens)
+- [Use the Object Types lens](#use-the-object-types-lens)
 - [Development](#development)
 - [Verification](#verification)
 - [Future ideas](#future-ideas)
 
 ## Overview
 
-The current plugin provides one production lens, Layers. It counts objects by layer, lets you browse layer, object type, and individual object, and can focus the camera, select CAD objects, or temporarily isolate the current target. The panel stays over the drawing; closing or collapsing it restores the ordinary display.
+The plugin provides Layers and Object Types. Layers groups objects by layer; Object Types groups the same included active-space objects by type across layers. Both support object details, camera focus, CAD selection, and temporary isolation. The panel stays over the drawing; closing or collapsing it restores the ordinary display.
 
 CAD Lens uses C#, .NET 8, and WPF on Windows. The intended hosts are AutoCAD 2025 and 2026 and their Civil 3D counterparts. The bundle manifest declares AutoCAD release R25.0 as its minimum; compatibility with newer host or .NET runtime updates needs a separate native check. AutoCAD LT is outside the current scope.
 
@@ -47,7 +48,7 @@ The entry assembly is `src/AutoCAD/CadLens.AutoCAD/bin/Debug/net8.0-windows/CadL
 
 ## Use the Layers lens
 
-A new `CADLENS` session opens as a compact bar with Layers inactive. Press Layers to read the active drawing space. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
+A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
 
 ![CAD Lens Layers preview showing the drawing inventory and Isolate control](docs/images/layers-preview.png)
 
@@ -71,17 +72,23 @@ Reset also clears CAD selection and turns off all Auto modes while keeping the c
 
 CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or spaces reloads the active lens. These actions do not change stored DWG geometry or properties.
 
+## Use the Object Types lens
+
+Press Object Types to count and browse types across all included layers in the current model or paper space. Search the type names or sort by name/count, then browse Type → Object; each object shows its own layer and visibility details. A block insertion counts as one object. Nested block and external-reference contents are not traversed.
+
+Object Types shares the drawing controls and inclusion filters described above. Switching lenses clears the previous lens's selection/isolation and restores the destination lens's valid navigation and settings. Counts include off-screen objects and stay unchanged when panning or zooming. Use Refresh after drawing edits.
+
 ## Development
 
 ### Project map
 
 - `Common` contains host results, typed ID contracts, and the object visualization contract without WPF or AutoCAD.
 - `Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary visual isolation, Focus, and bounds reading.
-- `CadLens.Lenses` turns detached drawing snapshots into Layers groups and navigation state.
-- `CadLens.UI` owns the window, lens switching, and Layers WPF module.
+- `CadLens.Lenses` groups detached drawing inventories by layer or object type and owns navigation state.
+- `CadLens.UI` owns the window, lens switching, and the shared object explorer view and view model.
 - `CadLens.AutoCAD` connects the UI to AutoCAD and owns plugin and panel lifetime.
 
-A Layers refresh travels from `LayersViewModel` through `ILayersActions` to the AutoCAD adapter. The adapter reads a detached snapshot through `LayersLensProvider` and sends visualization requests to `IObjectVisualizationService`. Analysis runs over ordinary .NET models after the host snapshot has been read in the proper document context.
+Both lenses use `ObjectExplorerViewModel` and `ObjectExplorerView`. A refresh requests its grouping through `IObjectExplorerActions`; the AutoCAD adapter invokes `DrawingLensProvider`, which reads a detached `DrawingInventory` and builds either Layer → Type → Object or Type → Object groups. Drawing actions use the same `IObjectVisualizationService`. Analysis runs over ordinary .NET models after the inventory is read in the proper document context.
 
 ### Host and lens lifetime
 
@@ -97,7 +104,7 @@ services.AddScoped<ILens, MyLens>();
 
 The shell discovers `ILens` registrations, creates their views lazily on the UI thread, and shows one active module at a time. Descriptor IDs must be unique. Deactivation must settle module work and remove its effects; failed cleanup blocks switching until a retry succeeds. Context changes invalidate saved targets, and Close cancels work and removes effects before the host queue stops. Module services are scoped to the panel session.
 
-Only `LayersLens` is registered in production. Its WPF files and `ILayersActions` live in `src/CadLens.UI/Lenses/Layers`; its provider, models, and navigation live in `CadLens.Lenses`. The AutoCAD adapter provides drawing operations. Tests register an unrelated Counter lens to check that the shell can load another module without Layers-specific changes.
+Production registers two `ObjectExplorerLens` instances with different groupings. Each owns its navigation, filters, search, and Auto settings; both reuse one scoped inventory provider and host-action adapter. Shared WPF files live in `src/CadLens.UI/Lenses/ObjectExplorer`, and drawing models/grouping live in `src/CadLens.Lenses/Drawing`. Tests register an unrelated Counter lens to check that the shell still supports other modules.
 
 ### CI and releases
 

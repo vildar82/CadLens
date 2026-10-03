@@ -2,13 +2,15 @@
 
 namespace CadLens.Lenses;
 
-/// <summary>Supplies the Layers explorer inventory.</summary>
-public interface ILayersProvider
+/// <summary>Builds the drawing explorer inventory for the chosen grouping.</summary>
+public interface IDrawingLensProvider
 {
     /// <summary>Builds the presentation for the current drawing and options.</summary>
+    /// <param name="grouping">Root grouping for this request.</param>
     /// <param name="enabledFilters">Enabled filter identities.</param>
     /// <param name="cancellationToken">Cancellation of managed work.</param>
-    Task<HostResult<LayersPresentation>> LoadAsync(
+    Task<HostResult<LensPresentation>> LoadAsync(
+        DrawingGrouping grouping,
         IReadOnlySet<string> enabledFilters,
         CancellationToken cancellationToken);
 }
