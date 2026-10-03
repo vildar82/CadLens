@@ -150,6 +150,9 @@ Follow AutoCAD, Quiet, and Mint. Preferences are saved per Windows user in
 CAD Lens uses defaults; if it cannot be saved, the choices still work for the current session.
 Appearance changes do not change AutoCAD's theme, the drawing, navigation, or temporary effects.
 
+Click **CAD Lens ⓘ** in the compact bar to read about the program, open the GitHub project,
+or submit questions and suggestions through GitHub Issues. The links open in your default browser.
+
 ## Development
 
 ### Project map

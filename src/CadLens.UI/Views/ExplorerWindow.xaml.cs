@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using JetBrains.Annotations;
 
 namespace CadLens.UI;
@@ -85,12 +87,30 @@ public partial class ExplorerWindow
 
     private void RestoreAppearanceClicked(object sender, RoutedEventArgs args) => Appearance.Reset();
 
+    private void ProjectLinkRequested(object sender, RequestNavigateEventArgs args)
+    {
+        args.Handled = true;
+        AboutLinkStatus.Visibility = Visibility.Collapsed;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) {UseShellExecute = true});
+        }
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException)
+        {
+            Trace.TraceError("Unable to open the project link: {0}", exception);
+            AboutLinkStatus.Visibility = Visibility.Visible;
+        }
+    }
+
     private void OnPreviewKeyDown(object sender, KeyEventArgs args)
     {
-        if (args.Key == Key.Escape && AppearancePopup.IsOpen)
+        if (args.Key == Key.Escape && (AboutPopup.IsOpen || AppearancePopup.IsOpen))
         {
+            var focusTarget = AboutPopup.IsOpen ? AboutButton : AppearanceButton;
+            AboutPopup.IsOpen = false;
             AppearancePopup.IsOpen = false;
-            AppearanceButton.Focus();
+            focusTarget.Focus();
             args.Handled = true;
             return;
         }
@@ -120,6 +140,7 @@ public partial class ExplorerWindow
     private void OnClosed(object? sender, EventArgs args)
     {
         AppearancePopup.IsOpen = false;
+        AboutPopup.IsOpen = false;
         Appearance.PropertyChanged -= OnAppearanceChanged;
         _viewModel.PropertyChanged -= OnViewModelChanged;
     }

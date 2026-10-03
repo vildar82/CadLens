@@ -64,11 +64,80 @@
                             Margin="0,0,6,0"
                             Background="{DynamicResource QuietAccent}"
                             CornerRadius="2" />
-                        <TextBlock
+                        <ToggleButton
+                            x:Name="AboutButton"
+                            MinHeight="28"
+                            Padding="2,0"
                             VerticalAlignment="Center"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Text="CAD Lens" />
+                            AutomationProperties.Name="{local:Localize 'About CAD Lens'}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            IsChecked="{Binding IsOpen, ElementName=AboutPopup, Mode=TwoWay}"
+                            Style="{StaticResource QuietToggle}"
+                            ToolTip="{local:Localize 'About CAD Lens'}"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="CAD Lens" />
+                                <TextBlock
+                                    Margin="4,0,0,0"
+                                    FontWeight="Normal"
+                                    Foreground="{DynamicResource QuietMuted}"
+                                    Text="ⓘ" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <Popup
+                            x:Name="AboutPopup"
+                            AllowsTransparency="True"
+                            Placement="Bottom"
+                            PlacementTarget="{Binding ElementName=AboutButton}"
+                            StaysOpen="False">
+                            <Border
+                                Width="280"
+                                Margin="0,5,0,0"
+                                Padding="12"
+                                Background="{DynamicResource QuietBackground}"
+                                BorderBrush="{DynamicResource QuietBorder}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                TextElement.Foreground="{DynamicResource QuietText}">
+                                <StackPanel>
+                                    <TextBlock
+                                        Margin="0,0,0,8"
+                                        FontSize="14"
+                                        FontWeight="SemiBold"
+                                        Text="{local:Localize 'About CAD Lens'}" />
+                                    <TextBlock
+                                        Margin="0,0,0,10"
+                                        Text="{local:Localize 'Explore drawing objects by layer or type in AutoCAD and Civil 3D.'}"
+                                        TextWrapping="Wrap" />
+                                    <TextBlock Margin="0,0,0,8">
+                                        <Hyperlink
+                                            x:Name="ProjectLink"
+                                            Foreground="{DynamicResource QuietAccent}"
+                                            NavigateUri="https://github.com/vildar82/CadLens"
+                                            RequestNavigate="ProjectLinkRequested">
+                                            <Run Text="github.com/vildar82/CadLens" />
+                                        </Hyperlink>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Hyperlink
+                                            x:Name="IssuesLink"
+                                            Foreground="{DynamicResource QuietAccent}"
+                                            NavigateUri="https://github.com/vildar82/CadLens/issues"
+                                            RequestNavigate="ProjectLinkRequested">
+                                            <Run Text="{local:Localize 'Questions and suggestions'}" />
+                                        </Hyperlink>
+                                    </TextBlock>
+                                    <TextBlock
+                                        x:Name="AboutLinkStatus"
+                                        Margin="0,8,0,0"
+                                        Foreground="{DynamicResource QuietMuted}"
+                                        Text="{local:Localize 'Unable to open the browser. Open the project link manually.'}"
+                                        TextWrapping="Wrap"
+                                        Visibility="Collapsed" />
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                         <Popup
                             x:Name="AppearancePopup"
                             AllowsTransparency="True"
