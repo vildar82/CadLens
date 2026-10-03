@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Windows;
 using Common;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -31,7 +32,10 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             throw new InvalidOperationException("Registered lens identities must be unique.");
 
         UiText.Current.PropertyChanged += OnLanguageChanged;
-        ToggleLensCommand = new AsyncRelayCommand<LensOption>(ToggleLensAsync, CanToggleLens, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+        ToggleLensCommand = new AsyncRelayCommand<LensOption>(
+            ToggleLensAsync,
+            CanToggleLens,
+            AsyncRelayCommandOptions.AllowConcurrentExecutions);
     }
 
     /// <summary>Registered lens modules, without creating their views or reading a drawing.</summary>
@@ -159,7 +163,11 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         catch (Exception exception)
         {
             if (!_disposed && version == _contextVersion)
-                SetStatus(new UiMessage("Unable to activate {0}: {1}", new UiMessage(option.Descriptor.Label), exception.Message));
+                SetStatus(
+                    new UiMessage(
+                        "Unable to activate {0}: {1}",
+                        new UiMessage(option.Descriptor.Label),
+                        exception.Message));
         }
     }
 
@@ -170,7 +178,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         var cancellationToken = _lifetime.Token;
         IsCleanupPending = true;
         option.IsActive = false;
-        // ReSharper disable once MethodHasAsyncOverload -- Cancel on the UI thread before publishing deactivation state.
+        // ReSharper disable once MethodHasAsyncOverload -- Cancel before publishing deactivation.
         _activationRequest?.Cancel();
         SetStatus("Clearing lens effects… Waiting for AutoCAD.");
         NotifyLensState();
@@ -181,13 +189,14 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             var result = await option.Lens.DeactivateAsync(cancellationToken);
 
-            if (result is HostResult<bool>.Success { Value: true })
+            if (result is HostResult<bool>.Success {Value: true})
                 _selectedLens = null;
 
             if (!_disposed && version == _contextVersion)
-                SetStatus(result.Match(
-                    cleared => new UiMessage(cleared ? "Lens effects cleared." : "Cleanup did not complete."),
-                    reason => new UiMessage("Cleanup unavailable: {0}", new UiMessage(reason))));
+                SetStatus(
+                    result.Match(
+                        cleared => new UiMessage(cleared ? "Lens effects cleared." : "Cleanup did not complete."),
+                        reason => new UiMessage("Cleanup unavailable: {0}", new UiMessage(reason))));
 
             return !_disposed && version == _contextVersion && _selectedLens is null;
         }
@@ -206,7 +215,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnLanguageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) => OnPropertyChanged(nameof(Status));
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(nameof(Status));
 
     private void SetStatus(UiMessage message)
     {

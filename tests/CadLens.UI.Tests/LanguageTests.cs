@@ -21,9 +21,13 @@ public sealed class LanguageCollection;
 
 /// <summary>Checks persisted choices, resource fallback, and live localized drawing views.</summary>
 [Collection("Language changes")]
-public sealed class LanguageTests : IDisposable
+public sealed partial class LanguageTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), "CadLens-language-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _directory = Path.Combine(
+        Path.GetTempPath(),
+        "CadLens-language-tests",
+        Guid.NewGuid().ToString("N"));
+
     private readonly LanguagePreference _previous = UiText.Current.Preference;
 
     /// <summary>Display language selection does not depend on regional format or host UI culture.</summary>
@@ -62,18 +66,18 @@ public sealed class LanguageTests : IDisposable
     [Fact]
     public void ChoicePersistsWithoutReplacingWindowsMode()
     {
-        var windowsLanguage = "en-US";
-        var text = new UiText(PreferencePath, () => windowsLanguage);
+        var windowsLanguage = new WindowsLanguage();
+        var text = new UiText(PreferencePath, windowsLanguage.Read);
         text.Select(LanguagePreference.Russian);
         Assert.Equal(LanguagePreference.Russian, new UiText(PreferencePath, () => "en").Preference);
         text.Select(LanguagePreference.English);
         Assert.Equal("en", new UiText(PreferencePath, () => "ru-RU").Culture.Name);
         text.Select(LanguagePreference.Windows);
-        windowsLanguage = "ru-RU";
-        var reopened = new UiText(PreferencePath, () => windowsLanguage);
+        windowsLanguage.Name = "ru-RU";
+        var reopened = new UiText(PreferencePath, windowsLanguage.Read);
         Assert.Equal(LanguagePreference.Windows, reopened.Preference);
         Assert.Equal("ru", reopened.Culture.Name);
-        windowsLanguage = "es-ES";
+        windowsLanguage.Name = "es-ES";
         reopened.Select(LanguagePreference.Windows);
         Assert.Equal("en", reopened.Culture.Name);
         Assert.Empty(reopened.PreferenceError);
@@ -106,7 +110,7 @@ public sealed class LanguageTests : IDisposable
         Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
     }
 
-    /// <summary>Russian is loaded from the satellite assembly and covers every English resource and format argument.</summary>
+    /// <summary>Russian satellite resources cover every English entry and preserve format arguments.</summary>
     [Fact]
     public void RussianSatelliteHasCompleteResourceSet()
     {
@@ -115,22 +119,22 @@ public sealed class LanguageTests : IDisposable
         var resources = new ResourceManager("CadLens.UI.Localization.Strings", typeof(UiText).Assembly);
         var english = resources.GetResourceSet(CultureInfo.InvariantCulture, true, false)!;
         var translated = resources.GetResourceSet(russian, true, false)!;
-        var englishKeys = english.Cast<DictionaryEntry>().Select(entry => (string)entry.Key).Order().ToArray();
-        var russianKeys = translated.Cast<DictionaryEntry>().Select(entry => (string)entry.Key).Order().ToArray();
+        string[] englishKeys = [.. english.Cast<DictionaryEntry>().Select(entry => (string) entry.Key).Order()];
+        string[] russianKeys = [.. translated.Cast<DictionaryEntry>().Select(entry => (string) entry.Key).Order()];
         Assert.Equal(englishKeys, russianKeys);
 
         foreach (var key in englishKeys)
         {
             var value = translated.GetString(key);
             Assert.False(string.IsNullOrWhiteSpace(value), key);
-            Assert.Equal(FormatArguments(key), FormatArguments(value!));
+            Assert.Equal(FormatArguments(key), FormatArguments(value));
         }
 
         var text = new UiText(PreferencePath, () => "ru-RU");
         Assert.Equal("Unknown app phrase", text.Get("Unknown app phrase"));
     }
 
-    /// <summary>Changing language refreshes visible metadata while preserving drawing names, navigation, and effects.</summary>
+    /// <summary>Language changes preserve drawing names, navigation, and effects while refreshing metadata.</summary>
     [Fact]
     public void LiveSwitchPreservesDrawingStateAndTranslatesDetails()
     {
@@ -144,12 +148,18 @@ public sealed class LanguageTests : IDisposable
             var window = new ExplorerWindow(shell);
             shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
             var model = layers.ViewModel;
-            model.ToggleFilterCommand.ExecuteAsync(model.Filters.Single(option => option.Descriptor.Id == DrawingLensProvider.IncludeOff)).GetAwaiter().GetResult();
-            model.ToggleFilterCommand.ExecuteAsync(model.Filters.Single(option => option.Descriptor.Id == DrawingLensProvider.IncludeFrozen)).GetAwaiter().GetResult();
-            var rootContent = (FrameworkElement)window.Content;
+            model.ToggleFilterCommand
+                .ExecuteAsync(model.Filters.Single(option => option.Descriptor.Id == DrawingLensProvider.IncludeOff))
+                .GetAwaiter()
+                .GetResult();
+            model.ToggleFilterCommand
+                .ExecuteAsync(model.Filters.Single(option => option.Descriptor.Id == DrawingLensProvider.IncludeFrozen))
+                .GetAwaiter()
+                .GetResult();
+            var rootContent = (FrameworkElement) window.Content;
             UiText.Current.Select(LanguagePreference.Russian, persist: false);
             Layout(rootContent, 370, 660);
-            var rootTexts = WpfTest.Descendants(rootContent).OfType<TextBlock>().Select(block => block.Text).ToArray();
+            string[] rootTexts = [.. WpfTest.Descendants(rootContent).OfType<TextBlock>().Select(block => block.Text)];
             Assert.Contains("Слоёв: 1", rootTexts);
             Assert.Contains("Объектов: 1", rootTexts);
             SavePreview(rootContent, "russian-layers-root", 370, 660);
@@ -167,16 +177,18 @@ public sealed class LanguageTests : IDisposable
             var calls = actions.Calls;
 
             UiText.Current.Select(LanguagePreference.Russian, persist: false);
-            var content = (FrameworkElement)window.Content;
+            var content = (FrameworkElement) window.Content;
             Layout(content, 370, 660);
-            var texts = WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text).ToArray();
+            string[] texts = [.. WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text)];
             Assert.Contains("Слои", texts);
             Assert.Contains("Тип примитива", texts);
             Assert.Contains("Слой", texts);
             Assert.Contains("Да", texts);
             Assert.Contains("Visibility", texts);
             Assert.Contains("Line", texts);
-            Assert.Contains("Скрыт: отключён, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.", texts);
+            Assert.Contains(
+                "Скрыт: отключён, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.",
+                texts);
             Assert.Equal("Line 10", model.Current!.Label);
             Assert.Equal("Visibility", model.DisplaySpaceLabel);
             Assert.Contains("Другие объекты временно скрыты", model.Status);
@@ -211,13 +223,19 @@ public sealed class LanguageTests : IDisposable
             using var shell = new ExplorerViewModel([lens]);
             var window = new ExplorerWindow(shell);
             shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
-            var content = (FrameworkElement)window.Content;
+            var content = (FrameworkElement) window.Content;
             Layout(content, 370, 660);
-            Assert.Contains("No active drawing", WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
+            Assert.Contains(
+                "No active drawing",
+                WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
             lens.ViewModel.ResetContextAsync(false).GetAwaiter().GetResult();
             Layout(content, 370, 660);
-            Assert.Contains("Нет текущего чертежа", WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
-            Assert.DoesNotContain("No active drawing", WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
+            Assert.Contains(
+                "Нет текущего чертежа",
+                WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
+            Assert.DoesNotContain(
+                "No active drawing",
+                WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text));
             window.Close();
         });
     }
@@ -234,17 +252,24 @@ public sealed class LanguageTests : IDisposable
             using var objects = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
             using var shell = new ExplorerViewModel([layers, objects]);
             var window = new ExplorerWindow(shell);
-            var content = (FrameworkElement)window.Content;
+            var content = (FrameworkElement) window.Content;
             Layout(content, 340, 52);
-            var buttons = WpfTest.Descendants(content).OfType<ToggleButton>().Where(button => ReferenceEquals(button.Command, shell.ToggleLensCommand)).ToArray();
+            var toggleLensCommand = shell.ToggleLensCommand;
+            ToggleButton[] buttons =
+            [
+                .. WpfTest.Descendants(content).OfType<ToggleButton>()
+                    .Where(button => ReferenceEquals(button.Command, toggleLensCommand))
+            ];
             Assert.Equal(["Слои", "Объекты"], buttons.Select(button => button.Content));
             var scroller = WpfTest.Descendants(content).OfType<ScrollViewer>().Single();
-            Assert.True(scroller.ExtentWidth <= scroller.ViewportWidth, "Russian lens choices must fit without scrolling.");
+            Assert.True(
+                scroller.ExtentWidth <= scroller.ViewportWidth,
+                "Russian lens choices must fit without scrolling.");
             var language = WpfTest.Descendants(content).OfType<Button>().Single(button => Equals(button.Content, "RU"));
-            var menu = language.ContextMenu;
+            var menu = Assert.IsType<ContextMenu>(language.ContextMenu);
             menu.Resources = window.Resources;
-            Assert.Equal("Как в Windows", ((MenuItem)menu.Items[0]).Header);
-            Assert.True(((MenuItem)menu.Items[3]).IsChecked);
+            Assert.Equal("Как в Windows", Assert.IsType<MenuItem>(menu.Items[0]).Header);
+            Assert.True(Assert.IsType<MenuItem>(menu.Items[3]).IsChecked);
             Layout(menu, 260, 220);
             SavePreview(content, "russian-compact", 340, 52);
             SavePreview(menu, "russian-language-menu", 260, 220);
@@ -264,7 +289,10 @@ public sealed class LanguageTests : IDisposable
     private string PreferencePath => Path.Combine(_directory, "language.json");
 
     private static string[] FormatArguments(string text) =>
-        Regex.Matches(text, @"\{\d+(?:[^}]*)\}").Select(match => match.Value).Order().ToArray();
+        [.. FormatArgumentPattern().Matches(text).Select(match => match.Value).Order()];
+
+    [GeneratedRegex(@"\{\d+(?:[^}]*)\}")]
+    private static partial Regex FormatArgumentPattern();
 
     private static void Layout(FrameworkElement content, int width, int height)
     {
@@ -279,10 +307,26 @@ public sealed class LanguageTests : IDisposable
         bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        var directory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "artifacts", "modes-language"));
+        var directory = Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "..",
+                "..",
+                "..",
+                "..",
+                "artifacts",
+                "modes-language"));
         Directory.CreateDirectory(directory);
         using var output = File.Create(Path.Combine(directory, name + ".png"));
         encoder.Save(output);
+    }
+
+    private sealed class WindowsLanguage
+    {
+        internal string Name { get; set; } = "en-US";
+
+        internal string Read() => Name;
     }
 
     private sealed record LayerId(string DisplayId) : ILayerId;
@@ -305,12 +349,17 @@ public sealed class LanguageTests : IDisposable
     {
         private readonly DrawingLensProvider _provider;
 
-        internal Actions(string spaceLabel = "Visibility") => _provider = new DrawingLensProvider(new Source(spaceLabel));
+        internal Actions(string spaceLabel = "Visibility") =>
+            _provider = new DrawingLensProvider(new Source(spaceLabel));
+
         internal int Calls { get; private set; }
         internal ImmutableArray<IPlacedObjectId> Selected { get; private set; } = [];
         internal ImmutableArray<IPlacedObjectId> Isolated { get; private set; } = [];
 
-        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken)
+        public Task<HostResult<LensPresentation>> ReadAsync(
+            DrawingGrouping grouping,
+            IReadOnlySet<string> enabledFilters,
+            CancellationToken cancellationToken)
         {
             Calls++;
             return _provider.LoadAsync(grouping, enabledFilters, cancellationToken);
@@ -331,22 +380,29 @@ public sealed class LanguageTests : IDisposable
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken)
         {
             Calls++;
             Isolated = objects;
             return Task.FromResult("Other objects hidden temporarily. Originally hidden objects remain hidden.");
         }
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) => Task.FromResult("View fitted.");
+        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+            Task.FromResult("View fitted.");
 
-        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<HostResult<bool>> SelectAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken)
         {
             Calls++;
             Selected = objects;
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public void ClearImmediately(bool hostTerminating) { }
+        public void ClearImmediately(bool hostTerminating)
+        {
+        }
     }
 }

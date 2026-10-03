@@ -69,7 +69,8 @@
                                     Margin="0,0,5,0"
                                     Padding="6,4"
                                     AutomationProperties.Name="{ui:Localize Binding={Binding Descriptor.Label}}"
-                                    Command="{Binding DataContext.ToggleFilterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Command="{Binding DataContext.ToggleFilterCommand,
+                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}"
                                     FontSize="11"
                                     IsChecked="{Binding IsEnabled, Mode=OneWay}"
@@ -166,7 +167,8 @@
                                 <Button
                                     Margin="0,0,3,0"
                                     Padding="5,4"
-                                    Command="{Binding DataContext.BreadcrumbCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Command="{Binding DataContext.BreadcrumbCommand,
+                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}"
                                     FontSize="11"
                                     Style="{StaticResource ModeButton}"
@@ -216,7 +218,8 @@
                             Margin="0,2,0,0"
                             FontSize="11"
                             Foreground="{DynamicResource QuietAccent}"
-                            Text="{ui:Localize Binding={Binding Current.Count}, Format='{}{0:N0} objects'}" />
+                            Text="{ui:Localize Binding={Binding Current.Count, FallbackValue=0},
+                                Format='{}{0:N0} objects'}" />
                     </StackPanel>
                 </Border>
                 <Grid Grid.Row="1" Margin="0,0,0,5">
@@ -386,7 +389,8 @@
                             <Button
                                 Margin="0,0,0,4"
                                 AutomationProperties.Name="{Binding Label}"
-                                Command="{Binding DataContext.EnterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                Command="{Binding DataContext.EnterCommand,
+                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 Style="{StaticResource ModeRow}"
                                 ToolTip="{Binding Label}">
@@ -461,7 +465,8 @@
             BorderBrush="#34434B"
             BorderThickness="0,1,0,0">
             <StackPanel>
-                <DockPanel Margin="0,0,0,7" Visibility="{Binding IsObject, Converter={StaticResource BooleanVisibility}}">
+                <DockPanel Margin="0,0,0,7"
+                           Visibility="{Binding IsObject, Converter={StaticResource BooleanVisibility}}">
                     <Button
                         Width="28"
                         Padding="0"
@@ -503,8 +508,15 @@
                     <Button
                         AutomationProperties.Name="{ui:Localize 'Focus camera'}"
                         Command="{Binding FocusCommand}"
-                        Style="{StaticResource ModeButton}"
-                        ToolTip="{ui:Localize 'Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden.'}">
+                        Style="{StaticResource ModeButton}">
+                        <Button.ToolTip>
+                            <ui:Localize>
+                                <ui:Localize.Text>
+                                    Fit the current layer, type, or object in the active view. Changes the camera only;
+                                    hidden objects stay hidden.
+                                </ui:Localize.Text>
+                            </ui:Localize>
+                        </Button.ToolTip>
                         <StackPanel>
                             <TextBlock HorizontalAlignment="Center" Text="{ui:Localize 'Focus'}" />
                             <TextBlock
@@ -520,15 +532,29 @@
                         AutomationProperties.Name="{ui:Localize 'Auto Focus'}"
                         Command="{Binding ToggleAutoFocusCommand}"
                         IsChecked="{Binding IsAutoFocus, Mode=OneWay}"
-                        Style="{StaticResource ModeAuto}"
-                        ToolTip="{ui:Localize 'Automatically fit the camera when browsing layers, types, and objects.'}" />
+                        Style="{StaticResource ModeAuto}">
+                        <ToggleButton.ToolTip>
+                            <ui:Localize>
+                                <ui:Localize.Text>
+                                    Automatically fit the camera when browsing layers, types, and objects.
+                                </ui:Localize.Text>
+                            </ui:Localize>
+                        </ToggleButton.ToolTip>
+                    </ToggleButton>
                     <Button
                         Grid.Row="0"
                         Grid.Column="2"
                         AutomationProperties.Name="{ui:Localize 'Select CAD objects'}"
                         Command="{Binding SelectCommand}"
-                        Style="{StaticResource ModeButton}"
-                        ToolTip="{ui:Localize 'Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged.'}">
+                        Style="{StaticResource ModeButton}">
+                        <Button.ToolTip>
+                            <ui:Localize>
+                                <ui:Localize.Text>
+                                    Select the current layer, type, or object in CAD. Keep the camera and temporary
+                                    isolation unchanged.
+                                </ui:Localize.Text>
+                            </ui:Localize>
+                        </Button.ToolTip>
                         <StackPanel>
                             <TextBlock HorizontalAlignment="Center" Text="{ui:Localize 'Select'}" />
                             <TextBlock
@@ -544,15 +570,29 @@
                         AutomationProperties.Name="{ui:Localize 'Auto Select'}"
                         Command="{Binding ToggleAutoSelectCommand}"
                         IsChecked="{Binding IsAutoSelect, Mode=OneWay}"
-                        Style="{StaticResource ModeAuto}"
-                        ToolTip="{ui:Localize 'Automatically select CAD objects while browsing. Works with Auto Focus off.'}" />
+                        Style="{StaticResource ModeAuto}">
+                        <ToggleButton.ToolTip>
+                            <ui:Localize>
+                                <ui:Localize.Text>
+                                    Automatically select CAD objects while browsing. Works with Auto Focus off.
+                                </ui:Localize.Text>
+                            </ui:Localize>
+                        </ToggleButton.ToolTip>
+                    </ToggleButton>
                     <Button
                         Grid.Row="0"
                         Grid.Column="4"
                         AutomationProperties.Name="{ui:Localize 'Isolate temporarily'}"
                         Command="{Binding IsolateCommand}"
-                        Style="{StaticResource ModeButton}"
-                        ToolTip="{ui:Localize 'Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged.'}">
+                        Style="{StaticResource ModeButton}">
+                        <Button.ToolTip>
+                            <ui:Localize>
+                                <ui:Localize.Text>
+                                    Temporarily hide other active-space objects. Keep the camera and CAD selection
+                                    unchanged.
+                                </ui:Localize.Text>
+                            </ui:Localize>
+                        </Button.ToolTip>
                         <StackPanel>
                             <TextBlock HorizontalAlignment="Center" Text="{ui:Localize 'Isolate'}" />
                             <TextBlock
@@ -569,8 +609,16 @@
                         AutomationProperties.Name="{ui:Localize 'Auto Isolate'}"
                         Command="{Binding ToggleAutoIsolationCommand}"
                         IsChecked="{Binding IsAutoIsolation, Mode=OneWay}"
-                        Style="{StaticResource ModeAuto}"
-                        ToolTip="{ui:Localize 'Automatically hide other active-space objects while browsing. Turning this off restores their display.'}" />
+                        Style="{StaticResource ModeAuto}">
+                        <ToggleButton.ToolTip>
+                            <ui:Localize>
+                                <ui:Localize.Text>
+                                    Automatically hide other active-space objects while browsing. Turning this off
+                                    restores their display.
+                                </ui:Localize.Text>
+                            </ui:Localize>
+                        </ToggleButton.ToolTip>
+                    </ToggleButton>
                 </Grid>
                 <DockPanel Margin="0,7,0,0">
                     <Button
@@ -580,8 +628,16 @@
                         Command="{Binding ResetCommand}"
                         Content="{ui:Localize 'Reset'}"
                         DockPanel.Dock="Left"
-                        Style="{StaticResource ModeButton}"
-                        ToolTip="{ui:Localize 'Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera.'}" />
+                        Style="{StaticResource ModeButton}">
+                        <Button.ToolTip>
+                            <ui:Localize>
+                                <ui:Localize.Text>
+                                    Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the
+                                    camera.
+                                </ui:Localize.Text>
+                            </ui:Localize>
+                        </Button.ToolTip>
+                    </Button>
                     <TextBlock
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"

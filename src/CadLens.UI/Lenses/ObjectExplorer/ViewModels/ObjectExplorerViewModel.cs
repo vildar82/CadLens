@@ -1,5 +1,6 @@
-﻿using CadLens.Lenses;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
+using System.ComponentModel;
+using CadLens.Lenses;
 using Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -40,31 +41,44 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
         IsolateCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(async token => await _actions.IsolateObjectsAsync(Current!.Objects, token)),
-            () => CanRun() && Current is { Objects.IsEmpty: false });
+            () => CanRun() && Current is {Objects.IsEmpty: false});
         ResetCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ResetAsync), CanRun);
         SelectCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(SelectCurrentAsync),
-            () => CanRun() && Current is { Objects.IsEmpty: false });
+            () => CanRun() && Current is {Objects.IsEmpty: false});
         FocusCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(async token => await _actions.FocusAsync(Current!.Objects, token)),
             () => CanRun() && HasFocusTarget());
-        EnterCommand = new AsyncRelayCommand<LensNode>(node => NavigateAsync(() => Enter(node)), node => CanRun() && node is not null && Items.Contains(node));
-        BackCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(_navigation.Path.Count - 1)), () => CanRun() && Current is not null);
-        RootCommand = new AsyncRelayCommand(() => NavigateAsync(() => GoBackTo(0)), () => CanRun() && Current is not null);
+        EnterCommand = new AsyncRelayCommand<LensNode>(
+            node => NavigateAsync(() => Enter(node)),
+            node => CanRun() && node is not null && Items.Contains(node));
+        BackCommand = new AsyncRelayCommand(
+            () => NavigateAsync(() => GoBackTo(_navigation.Path.Count - 1)),
+            () => CanRun() && Current is not null);
+        RootCommand = new AsyncRelayCommand(
+            () => NavigateAsync(() => GoBackTo(0)),
+            () => CanRun() && Current is not null);
         BreadcrumbCommand = new AsyncRelayCommand<LensNode>(
-            node => NavigateAsync(() => GoBackTo(_navigation.Path.ToList().IndexOf(node!) + 1)),
+            node => NavigateAsync(() => GoBackTo(Array.IndexOf([.. _navigation.Path], node!) + 1)),
             node => CanRun() && node is not null && _navigation.Path.Contains(node));
-        PreviousCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(-1)), () => CanRun() && _navigation.CanPrevious);
-        NextCommand = new AsyncRelayCommand(() => NavigateAsync(() => MoveObject(1)), () => CanRun() && _navigation.CanNext);
+        PreviousCommand = new AsyncRelayCommand(
+            () => NavigateAsync(() => MoveObject(-1)),
+            () => CanRun() && _navigation.CanPrevious);
+        NextCommand = new AsyncRelayCommand(
+            () => NavigateAsync(() => MoveObject(1)),
+            () => CanRun() && _navigation.CanNext);
         ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
             filter => ExecuteActionAsync(token => ToggleFilterAsync(filter!, token)),
             filter => CanRun() && filter is not null && Filters.Contains(filter));
         ToggleAutoIsolationCommand = new AsyncRelayCommand(
-            () => ExecuteActionAsync(ToggleAutoIsolationAsync), CanRun);
+            () => ExecuteActionAsync(ToggleAutoIsolationAsync),
+            CanRun);
         ToggleAutoSelectCommand = new AsyncRelayCommand(
-            () => ExecuteActionAsync(ToggleAutoSelectAsync), CanRun);
+            () => ExecuteActionAsync(ToggleAutoSelectAsync),
+            CanRun);
         ToggleAutoFocusCommand = new AsyncRelayCommand(
-            () => ExecuteActionAsync(ToggleAutoFocusAsync), CanRun);
+            () => ExecuteActionAsync(ToggleAutoFocusAsync),
+            CanRun);
         SortByNameCommand = new RelayCommand(() => ChangeSort(false));
         SortByCountCommand = new RelayCommand(() => ChangeSort(true));
         ClearSearchCommand = new RelayCommand(() => SearchText = "");
@@ -136,13 +150,19 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Included root count and the lens-specific group name.</summary>
-    public string GroupSummary => new UiMessage(_grouping == DrawingGrouping.Layers ? "{0:N0} layers" : "{0:N0} types", GroupCount).ToString();
+    public string GroupSummary => new UiMessage(
+        _grouping == DrawingGrouping.Layers ? "{0:N0} layers" : "{0:N0} types",
+        GroupCount).ToString();
 
     /// <summary>Accessible description of name sorting.</summary>
-    public string SortByNameLabel => UiText.Current.Get(_grouping == DrawingGrouping.Layers ? "Sort layers by name" : "Sort types by name");
+    public string SortByNameLabel => UiText.Current.Get(
+        _grouping == DrawingGrouping.Layers ? "Sort layers by name" : "Sort types by name");
 
     /// <summary>Accessible description of count sorting.</summary>
-    public string SortByCountLabel => UiText.Current.Get(_grouping == DrawingGrouping.Layers ? "Sort layers by object count" : "Sort types by object count");
+    public string SortByCountLabel => UiText.Current.Get(
+        _grouping == DrawingGrouping.Layers
+            ? "Sort layers by object count"
+            : "Sort types by object count");
 
     /// <summary>Groups from the most recent inventory.</summary>
     public ImmutableArray<LensNode> Groups
@@ -195,7 +215,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     public bool IsObject => _navigation.Position > 0;
 
     /// <summary>One-based position within the current object set.</summary>
-    public string ObjectPosition => new UiMessage("{0} of {1}", _navigation.Position, _navigation.ObjectCount).ToString();
+    public string ObjectPosition =>
+        new UiMessage("{0} of {1}", _navigation.Position, _navigation.ObjectCount).ToString();
 
     /// <summary>Whether details replace the root list.</summary>
     public bool HasCurrent => Current is not null;
@@ -226,7 +247,10 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     /// <summary>Lens-provided explanation for an empty inventory.</summary>
     public string EmptyMessage => !Groups.IsEmpty && _visibleGroups.IsEmpty
-        ? UiText.Current.Get(_grouping == DrawingGrouping.Layers ? "No layers match your search." : "No types match your search.")
+        ? UiText.Current.Get(
+            _grouping == DrawingGrouping.Layers
+                ? "No layers match your search."
+                : "No types match your search.")
         : UiText.Current.Get(_emptyMessage);
 
     /// <summary>Sorts root groups by name; clicking again reverses direction.</summary>
@@ -314,11 +338,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         _spaceIsDrawingData = false;
         SpaceLabel = hasDrawing ? "Active drawing" : "No active drawing";
         OnPropertyChanged(nameof(DisplaySpaceLabel));
-        SetStatus(!hasDrawing
-            ? "Open a drawing to explore its objects."
-            : IsLensActive
-                ? "Drawing context changed. Updating the current space."
-                : "Drawing context changed. Activate a lens to explore.");
+        SetStatus(
+            !hasDrawing
+                ? "Open a drawing to explore its objects."
+                : IsLensActive
+                    ? "Drawing context changed. Updating the current space."
+                    : "Drawing context changed. Activate a lens to explore.");
         if (!_needsCleanup)
             return IsLensActive && hasDrawing ? RefreshContextAsync() : Task.CompletedTask;
 
@@ -348,9 +373,11 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         NotifyCommands();
     }
 
-    private bool CanRun() => !_disposed && !_activationToken.IsCancellationRequested && IsLensActive && _hasDrawing && !IsBusy;
+    private bool CanRun() =>
+        !_disposed && !_activationToken.IsCancellationRequested && IsLensActive && _hasDrawing && !IsBusy;
 
-    private bool HasFocusTarget() => Current is { Objects.IsEmpty: false } node && node.Actions.Contains(LensAction.Focus);
+    private bool HasFocusTarget() =>
+        Current is {Objects.IsEmpty: false} node && node.Actions.Contains(LensAction.Focus);
 
     private void ChangeSort(bool byCount)
     {
@@ -372,8 +399,10 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         [
             .. IsCountSortActive
                 ? _sortDescending
-                    ? groups.OrderByDescending(group => group.Count).ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
-                    : groups.OrderBy(group => group.Count).ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
+                    ? groups.OrderByDescending(group => group.Count)
+                        .ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
+                    : groups.OrderBy(group => group.Count)
+                        .ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
                 : _sortDescending
                     ? groups.OrderByDescending(group => group.Label, StringComparer.OrdinalIgnoreCase)
                     : groups.OrderBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
@@ -419,7 +448,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             cleanup.Token.ThrowIfCancellationRequested();
             SetStatus(DescribeCleanup(result));
 
-            if (result is HostResult<bool>.Success { Value: true })
+            if (result is HostResult<bool>.Success {Value: true})
                 _needsCleanup = false;
 
             return result;
@@ -458,12 +487,18 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         var result = await _actions.ClearAsync(cancellationToken);
         return result.Match(
-            cleared => new UiMessage(cleared ? "Selection and isolation cleared. Auto modes off." : "Cleanup did not complete."),
+            cleared => new UiMessage(
+                cleared
+                    ? "Selection and isolation cleared. Auto modes off."
+                    : "Cleanup did not complete."),
             reason => new UiMessage("Cleanup unavailable: {0}", new UiMessage(reason)));
     }
 
     private static UiMessage DescribeCleanup(HostResult<bool> result) => result.Match(
-        cleared => new UiMessage(cleared ? "Selection and isolation cleared. Auto settings kept." : "Cleanup did not complete."),
+        cleared => new UiMessage(
+            cleared
+                ? "Selection and isolation cleared. Auto settings kept."
+                : "Cleanup did not complete."),
         reason => new UiMessage("Cleanup unavailable: {0}", new UiMessage(reason)));
 
     private void NotifyCommands()
@@ -490,7 +525,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         var cleared = await _actions.ClearAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (cleared is not HostResult<bool>.Success { Value: true })
+        if (cleared is not HostResult<bool>.Success {Value: true})
             return DescribeCleanup(cleared);
 
         var result = await _actions.ReadAsync(_grouping, _enabledFilters, cancellationToken);
@@ -504,7 +539,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             _spaceIsDrawingData = false;
             SpaceLabel = "Unavailable";
             OnPropertyChanged(nameof(DisplaySpaceLabel));
-            return ((HostResult<LensPresentation>.Unavailable)result).Reason;
+            return ((HostResult<LensPresentation>.Unavailable) result).Reason;
         }
 
         _spaceIsDrawingData = true;
@@ -572,7 +607,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         if (result is HostResult<bool>.Unavailable unavailable)
             return new UiMessage("Selection unavailable: {0}", new UiMessage(unavailable.Reason));
 
-        if (result is not HostResult<bool>.Success { Value: true })
+        if (result is not HostResult<bool>.Success {Value: true})
             return "Selection did not complete.";
 
         return clearing ? "CAD selection cleared." : "CAD objects selected.";
@@ -589,15 +624,16 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     private async Task<UiMessage> ApplySelectionAndIsolationAsync(CancellationToken cancellationToken)
     {
-        var messages = new List<UiMessage>();
+        List<UiMessage> messages = [];
 
         if (IsAutoSelect)
             messages.Add(await SelectCurrentAsync(cancellationToken));
 
         cancellationToken.ThrowIfCancellationRequested();
-        messages.Add(IsAutoIsolation
-            ? await _actions.IsolateObjectsAsync(Current!.Objects, cancellationToken)
-            : await ClearIsolationAsync(cancellationToken));
+        messages.Add(
+            IsAutoIsolation
+                ? await _actions.IsolateObjectsAsync(Current!.Objects, cancellationToken)
+                : await ClearIsolationAsync(cancellationToken));
 
         return messages.Count == 1 ? messages[0] : new UiMessage("{0} {1}", messages[0], messages[1]);
     }
@@ -716,7 +752,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnLanguageChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) => OnPropertyChanged(string.Empty);
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(string.Empty);
 
     private void SetStatus(UiMessage message)
     {

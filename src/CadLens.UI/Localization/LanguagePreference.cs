@@ -5,8 +5,10 @@ public enum LanguagePreference
 {
     /// <summary>Use the first Windows display language, with English fallback.</summary>
     Windows,
+
     /// <summary>Use English.</summary>
     English,
+
     /// <summary>Use Russian.</summary>
     Russian
 }

@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Input;
+using System.Windows.Media;
 using JetBrains.Annotations;
 
 namespace CadLens.UI;
@@ -74,16 +75,21 @@ public partial class ExplorerWindow
 
     private void LanguageClicked(object sender, RoutedEventArgs args)
     {
-        var button = (Button)sender;
-        button.ContextMenu.Resources = Resources;
-        button.ContextMenu.PlacementTarget = button;
-        button.ContextMenu.Placement = PlacementMode.Bottom;
-        button.ContextMenu.IsOpen = true;
+        var button = (Button) sender;
+        var menu = button.ContextMenu;
+
+        if (menu is null)
+            return;
+
+        menu.Resources = Resources;
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
     }
 
     private void LanguageSelected(object sender, RoutedEventArgs args)
     {
-        if (Enum.TryParse<LanguagePreference>(((MenuItem)sender).Tag as string, out var preference))
+        if (Enum.TryParse<LanguagePreference>(((MenuItem) sender).Tag as string, out var preference))
             UiText.Current.Select(preference);
     }
 
@@ -99,8 +105,7 @@ public partial class ExplorerWindow
             var translated = UiText.Current.Get(english);
             Resources[key] = translated;
 
-            if (viewResources is not null)
-                viewResources[key] = translated;
+            viewResources?[key] = translated;
         }
     }
 
@@ -164,12 +169,12 @@ public partial class ExplorerWindow
     private Rect GetMonitorWorkArea()
     {
         var handle = new WindowInteropHelper(this).Handle;
-        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        var info = new MonitorInfo {Size = Marshal.SizeOf<MonitorInfo>()};
 
         if (handle == IntPtr.Zero || !GetMonitorInfo(MonitorFromWindow(handle, NearestMonitor), ref info))
             return SystemParameters.WorkArea;
 
-        var transform = HwndSource.FromHwnd(handle)?.CompositionTarget?.TransformFromDevice ?? System.Windows.Media.Matrix.Identity;
+        var transform = HwndSource.FromHwnd(handle)?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
         var topLeft = transform.Transform(new Point(info.Work.Left, info.Work.Top));
         var bottomRight = transform.Transform(new Point(info.Work.Right, info.Work.Bottom));
 

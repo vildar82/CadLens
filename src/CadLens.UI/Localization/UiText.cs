@@ -16,7 +16,10 @@ public sealed partial class UiText : INotifyPropertyChanged
 
     /// <summary>Language shared by this CAD Lens process.</summary>
     public static UiText Current { get; } = new(
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CadLens", "language.json"));
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "CadLens",
+            "language.json"));
 
     /// <summary>Loads a preference from its file, falling back to Windows when absent or invalid.</summary>
     /// <param name="preferencePath">Per-user JSON preference file.</param>
@@ -110,7 +113,9 @@ public sealed partial class UiText : INotifyPropertyChanged
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
-                System.Diagnostics.Trace.TraceWarning("Unable to remove temporary language preference: {0}", exception.Message);
+                System.Diagnostics.Trace.TraceWarning(
+                    "Unable to remove temporary language preference: {0}",
+                    exception.Message);
             }
         }
     }
@@ -118,7 +123,8 @@ public sealed partial class UiText : INotifyPropertyChanged
     private CultureInfo ResolveCulture()
     {
         var russian = Preference == LanguagePreference.Russian ||
-            (Preference == LanguagePreference.Windows && _windowsLanguage().Split('-')[0].Equals("ru", StringComparison.OrdinalIgnoreCase));
+                      (Preference == LanguagePreference.Windows &&
+                       _windowsLanguage().Split('-')[0].Equals("ru", StringComparison.OrdinalIgnoreCase));
 
         return CultureInfo.GetCultureInfo(russian ? "ru" : "en");
     }
@@ -131,7 +137,7 @@ public sealed partial class UiText : INotifyPropertyChanged
         if (!GetUserPreferredUILanguages(languageName, out _, IntPtr.Zero, ref length) || length == 0)
             return "en";
 
-        var buffer = Marshal.AllocHGlobal(checked((int)length * sizeof(char)));
+        var buffer = Marshal.AllocHGlobal(checked((int) length * sizeof(char)));
 
         try
         {
@@ -147,5 +153,9 @@ public sealed partial class UiText : INotifyPropertyChanged
 
     [LibraryImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetUserPreferredUILanguages(uint flags, out uint languages, IntPtr buffer, ref uint length);
+    private static partial bool GetUserPreferredUILanguages(
+        uint flags,
+        out uint languages,
+        IntPtr buffer,
+        ref uint length);
 }

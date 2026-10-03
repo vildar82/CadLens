@@ -4,147 +4,449 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
-  <data name="Accent" xml:space="preserve"><value>Акцент</value></data>
-  <data name="Activate a lens to explore the drawing." xml:space="preserve"><value>Включите линзу для просмотра чертежа.</value></data>
-  <data name="Active drawing" xml:space="preserve"><value>Текущий чертёж</value></data>
-  <data name="All layers" xml:space="preserve"><value>Все слои</value></data>
-  <data name="All types" xml:space="preserve"><value>Все типы</value></data>
-  <data name="Amber" xml:space="preserve"><value>Янтарный</value></data>
-  <data name="Appearance" xml:space="preserve"><value>Оформление</value></data>
-  <data name="Unable to save preferences. Changes apply for this session." xml:space="preserve"><value>Оформление изменено для этого сеанса. Не удалось сохранить настройку.</value></data>
-  <data name="Changes apply immediately." xml:space="preserve"><value>Изменения оформления применяются сразу.</value></data>
-  <data name="Auto Focus" xml:space="preserve"><value>Автофокус</value></data>
-  <data name="Auto Isolate" xml:space="preserve"><value>Автоизоляция</value></data>
-  <data name="Auto Select" xml:space="preserve"><value>Автовыбор</value></data>
-  <data name="Auto focus off. Camera kept." xml:space="preserve"><value>Автофокус выключен. Камера сохранена.</value></data>
-  <data name="Auto focus on." xml:space="preserve"><value>Автофокус включён.</value></data>
-  <data name="Auto off" xml:space="preserve"><value>Авто выкл.</value></data>
-  <data name="Auto off · camera kept" xml:space="preserve"><value>Авто выкл. · камера сохранена</value></data>
-  <data name="Automatically fit the camera when browsing layers, types, and objects." xml:space="preserve"><value>Автоматически наводить камеру при просмотре слоёв, типов и объектов.</value></data>
-  <data name="Automatically hide other active-space objects while browsing. Turning this off restores their display." xml:space="preserve"><value>Автоматически скрывать другие объекты текущего пространства при просмотре. Отключение восстанавливает их отображение.</value></data>
-  <data name="Automatically select CAD objects while browsing. Works with Auto Focus off." xml:space="preserve"><value>Автоматически выбирать объекты CAD при просмотре. Работает и без автофокуса.</value></data>
-  <data name="Back" xml:space="preserve"><value>Назад</value></data>
-  <data name="Blue" xml:space="preserve"><value>Синий</value></data>
-  <data name="CAD objects selected." xml:space="preserve"><value>Объекты CAD выбраны.</value></data>
-  <data name="CAD selection" xml:space="preserve"><value>Выбор в CAD</value></data>
-  <data name="CAD selection cleared." xml:space="preserve"><value>Выбор в CAD сброшен.</value></data>
-  <data name="Camera" xml:space="preserve"><value>Камера</value></data>
-  <data name="Choose a layer. Auto modes apply while browsing." xml:space="preserve"><value>Выберите слой. Авторежимы действуют при просмотре.</value></data>
-  <data name="Choose a theme, palette, and accent color." xml:space="preserve"><value>Выбрать тему, палитру и цвет акцента.</value></data>
-  <data name="Choose a type. Auto modes apply while browsing." xml:space="preserve"><value>Выберите тип. Авторежимы действуют при просмотре.</value></data>
-  <data name="Cleanup did not complete." xml:space="preserve"><value>Сброс не завершён.</value></data>
-  <data name="Cleanup did not complete: {0}" xml:space="preserve"><value>Сброс не завершён: {0}</value></data>
-  <data name="Cleanup unavailable: {0}" xml:space="preserve"><value>Сброс недоступен: {0}</value></data>
-  <data name="Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera." xml:space="preserve"><value>Очистить выбор в CAD и временную изоляцию, отключить все авторежимы и сохранить камеру.</value></data>
-  <data name="Clear search" xml:space="preserve"><value>Очистить поиск</value></data>
-  <data name="Clearing lens effects… Waiting for AutoCAD." xml:space="preserve"><value>Сброс эффектов линзы… Ожидание AutoCAD.</value></data>
-  <data name="Close CAD Lens" xml:space="preserve"><value>Закрыть CAD Lens</value></data>
-  <data name="Dark" xml:space="preserve"><value>Тёмная</value></data>
-  <data name="Drawing context changed. Activate a lens to explore." xml:space="preserve"><value>Контекст чертежа изменился. Включите линзу для просмотра.</value></data>
-  <data name="Drawing context changed. Updating the current space." xml:space="preserve"><value>Контекст чертежа изменился. Обновление текущего пространства.</value></data>
-  <data name="Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden." xml:space="preserve"><value>Показать текущий слой, тип или объект в активном виде. Меняется только камера; скрытые объекты остаются скрытыми.</value></data>
-  <data name="Focus" xml:space="preserve"><value>Фокус</value></data>
-  <data name="Focus camera" xml:space="preserve"><value>Навести камеру</value></data>
-  <data name="Focus is unavailable in a locked or unavailable layout viewport." xml:space="preserve"><value>Фокус недоступен в заблокированном или недоступном видовом экране листа.</value></data>
-  <data name="Focus is unavailable in perspective views." xml:space="preserve"><value>Фокус недоступен в перспективных видах.</value></data>
-  <data name="Focus unavailable: the current target has no usable bounds." xml:space="preserve"><value>Фокус недоступен: у текущего объекта нет пригодных границ.</value></data>
-  <data name="Follow AutoCAD" xml:space="preserve"><value>Как в AutoCAD</value></data>
-  <data name="Graphite" xml:space="preserve"><value>Графит</value></data>
-  <data name="Hidden: frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Скрыт: заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value></data>
-  <data name="Hidden: globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Скрыт: заморожен глобально, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value></data>
-  <data name="Hidden: globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Скрыт: заморожен глобально. Включение в список и фокус не меняют видимость.</value></data>
-  <data name="Hidden: off, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Скрыт: отключён, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value></data>
-  <data name="Hidden: off, globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Скрыт: отключён, заморожен глобально, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value></data>
-  <data name="Hidden: off, globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Скрыт: отключён, заморожен глобально. Включение в список и фокус не меняют видимость.</value></data>
-  <data name="Hidden: off. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Скрыт: отключён. Включение в список и фокус не меняют видимость.</value></data>
-  <data name="Include frozen" xml:space="preserve"><value>Замороженные</value></data>
-  <data name="Include globally and viewport-frozen layers without revealing them." xml:space="preserve"><value>Включить слои, замороженные глобально или на видовом экране, не меняя их видимость.</value></data>
-  <data name="Include off" xml:space="preserve"><value>Отключённые</value></data>
-  <data name="Include switched-off layers without switching them on." xml:space="preserve"><value>Включить отключённые слои, не включая их.</value></data>
-  <data name="Isolate" xml:space="preserve"><value>Изолировать</value></data>
-  <data name="Isolate temporarily" xml:space="preserve"><value>Временно изолировать</value></data>
-  <data name="Isolation cleanup did not complete." xml:space="preserve"><value>Сброс изоляции не завершён.</value></data>
-  <data name="Isolation cleanup unavailable: {0}" xml:space="preserve"><value>Сброс изоляции недоступен: {0}</value></data>
-  <data name="Language" xml:space="preserve"><value>Язык</value></data>
-  <data name="Language changed for this session. The preference could not be saved." xml:space="preserve"><value>Язык изменён для этого сеанса. Не удалось сохранить настройку.</value></data>
-  <data name="Layer" xml:space="preserve"><value>Слой</value></data>
-  <data name="Layer is on and thawed" xml:space="preserve"><value>Слой включён и разморожен</value></data>
-  <data name="Layers" xml:space="preserve"><value>Слои</value></data>
-  <data name="Lens effects cleared." xml:space="preserve"><value>Эффекты линзы сброшены.</value></data>
-  <data name="Light" xml:space="preserve"><value>Светлая</value></data>
-  <data name="Locked" xml:space="preserve"><value>Блокировка</value></data>
-  <data name="Mint" xml:space="preserve"><value>Мятный</value></data>
-  <data name="Name" xml:space="preserve"><value>Имя</value></data>
-  <data name="Next object" xml:space="preserve"><value>Следующий объект</value></data>
-  <data name="No" xml:space="preserve"><value>Нет</value></data>
-  <data name="No active drawing" xml:space="preserve"><value>Нет текущего чертежа</value></data>
-  <data name="No active drawing or Focus targets." xml:space="preserve"><value>Нет текущего чертежа или объектов для фокуса.</value></data>
-  <data name="No active drawing." xml:space="preserve"><value>Нет текущего чертежа.</value></data>
-  <data name="No current-space targets have usable bounds. Refresh if objects were erased or moved." xml:space="preserve"><value>У объектов текущего пространства нет пригодных границ. Обновите список, если объекты удалены или перемещены.</value></data>
-  <data name="No layers contain included objects in the current space." xml:space="preserve"><value>В текущем пространстве нет слоёв с включёнными объектами.</value></data>
-  <data name="No layers match your search." xml:space="preserve"><value>Слои не найдены.</value></data>
-  <data name="No types contain included objects in the current space." xml:space="preserve"><value>В текущем пространстве нет типов с включёнными объектами.</value></data>
-  <data name="No types match your search." xml:space="preserve"><value>Типы не найдены.</value></data>
-  <data name="No valid current-space targets remain. Selection cleared; refresh the list." xml:space="preserve"><value>В текущем пространстве нет доступных объектов. Выбор сброшен; обновите список.</value></data>
-  <data name="Object Types" xml:space="preserve"><value>Типы объектов</value></data>
-  <data name="Objects" xml:space="preserve"><value>Объекты</value></data>
-  <data name="Open a drawing to explore its objects." xml:space="preserve"><value>Откройте чертёж для просмотра его объектов.</value></data>
-  <data name="Other objects hidden temporarily. Originally hidden objects remain hidden." xml:space="preserve"><value>Другие объекты временно скрыты. Изначально скрытые объекты остаются скрытыми.</value></data>
-  <data name="Palette" xml:space="preserve"><value>Палитра</value></data>
-  <data name="Paper" xml:space="preserve"><value>Бумага</value></data>
-  <data name="Previous object" xml:space="preserve"><value>Предыдущий объект</value></data>
-  <data name="Primitive type" xml:space="preserve"><value>Тип примитива</value></data>
-  <data name="Quiet" xml:space="preserve"><value>Спокойная</value></data>
-  <data name="Refresh active space" xml:space="preserve"><value>Обновить текущее пространство</value></data>
-  <data name="Refresh to explore the active space." xml:space="preserve"><value>Обновите список для просмотра текущего пространства.</value></data>
-  <data name="Reset" xml:space="preserve"><value>Сброс</value></data>
-  <data name="Reset selection, isolation, and Auto modes" xml:space="preserve"><value>Сбросить выбор, изоляцию и авторежимы</value></data>
-  <data name="Restore defaults" xml:space="preserve"><value>Сбросить настройки</value></data>
-  <data name="Search layers" xml:space="preserve"><value>Поиск слоёв</value></data>
-  <data name="Search types" xml:space="preserve"><value>Поиск типов</value></data>
-  <data name="Select" xml:space="preserve"><value>Выбрать</value></data>
-  <data name="Select CAD objects" xml:space="preserve"><value>Выбрать объекты CAD</value></data>
-  <data name="Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged." xml:space="preserve"><value>Выбрать текущий слой, тип или объект в CAD. Камера и временная изоляция сохраняются.</value></data>
-  <data name="Selection and isolation cleared. Auto modes off." xml:space="preserve"><value>Выбор и изоляция сброшены. Авторежимы отключены.</value></data>
-  <data name="Selection and isolation cleared. Auto settings kept." xml:space="preserve"><value>Выбор и изоляция сброшены. Настройки авторежимов сохранены.</value></data>
-  <data name="Selection did not complete." xml:space="preserve"><value>Выбор не завершён.</value></data>
-  <data name="Selection unavailable: {0}" xml:space="preserve"><value>Выбор недоступен: {0}</value></data>
-  <data name="Sort layers by name" xml:space="preserve"><value>Сортировать слои по имени</value></data>
-  <data name="Sort layers by object count" xml:space="preserve"><value>Сортировать слои по числу объектов</value></data>
-  <data name="Sort types by name" xml:space="preserve"><value>Сортировать типы по имени</value></data>
-  <data name="Sort types by object count" xml:space="preserve"><value>Сортировать типы по числу объектов</value></data>
-  <data name="Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged." xml:space="preserve"><value>Временно скрыть другие объекты текущего пространства. Камера и выбор в CAD сохраняются.</value></data>
-  <data name="Temporary" xml:space="preserve"><value>Временно</value></data>
-  <data name="Temporary isolation cleared." xml:space="preserve"><value>Временная изоляция сброшена.</value></data>
-  <data name="The active drawing is no longer available." xml:space="preserve"><value>Текущий чертёж больше недоступен.</value></data>
-  <data name="The drawing context changed. Refresh before isolating." xml:space="preserve"><value>Контекст чертежа изменился. Обновите список перед изоляцией.</value></data>
-  <data name="The drawing context changed. Refresh before selecting." xml:space="preserve"><value>Контекст чертежа изменился. Обновите список перед выбором.</value></data>
-  <data name="The drawing context changed. Refresh before using Focus." xml:space="preserve"><value>Контекст чертежа изменился. Обновите список перед фокусом.</value></data>
-  <data name="The selection contains no direct active-space objects." xml:space="preserve"><value>Выбор не содержит непосредственных объектов текущего пространства.</value></data>
-  <data name="The targets do not belong to AutoCAD." xml:space="preserve"><value>Объекты не принадлежат AutoCAD.</value></data>
-  <data name="The task service has stopped." xml:space="preserve"><value>Сервис задач остановлен.</value></data>
-  <data name="Theme" xml:space="preserve"><value>Тема</value></data>
-  <data name="Unable to activate {0}: {1}" xml:space="preserve"><value>Не удалось включить линзу «{0}»: {1}</value></data>
-  <data name="Unable to complete the operation: {0}" xml:space="preserve"><value>Не удалось выполнить операцию: {0}</value></data>
-  <data name="Unavailable" xml:space="preserve"><value>Недоступно</value></data>
-  <data name="Use Windows language" xml:space="preserve"><value>Как в Windows</value></data>
-  <data name="View fitted." xml:space="preserve"><value>Камера наведена.</value></data>
-  <data name="Violet" xml:space="preserve"><value>Фиолетовый</value></data>
-  <data name="Visibility" xml:space="preserve"><value>Видимость</value></data>
-  <data name="Working…" xml:space="preserve"><value>Выполняется…</value></data>
-  <data name="Yes" xml:space="preserve"><value>Да</value></data>
-  <data name="{0:N0} objects" xml:space="preserve"><value>Объектов: {0:N0}</value></data>
-  <data name="{0} is active." xml:space="preserve"><value>Линза «{0}» включена.</value></data>
-  <data name="{0} of {1}" xml:space="preserve"><value>{0} из {1}</value></data>
-  <data name="{0} {1}" xml:space="preserve"><value>{0} {1}</value></data>
-  <data name="{0}: {1}" xml:space="preserve"><value>{0}: {1}</value></data>
-  <data name="✓ Auto on" xml:space="preserve"><value>✓ Авто вкл.</value></data>
-  <data name="{0:N0} layers" xml:space="preserve"><value>Слоёв: {0:N0}</value></data>
-  <data name="{0:N0} types" xml:space="preserve"><value>Типов: {0:N0}</value></data>
-  <data name="CAD Lens diagnostics" xml:space="preserve"><value>Диагностика CAD Lens</value></data>
-  <data name="Saved to {0}" xml:space="preserve"><value>Сохранено в {0}</value></data>
-  <data name="Cut" xml:space="preserve"><value>Вырезать</value></data>
-  <data name="Copy" xml:space="preserve"><value>Копировать</value></data>
-  <data name="Paste" xml:space="preserve"><value>Вставить</value></data>
-  <data name="Select all" xml:space="preserve"><value>Выбрать всё</value></data>
+  <data name="Accent" xml:space="preserve">
+    <value>Акцент</value>
+  </data>
+  <data name="Activate a lens to explore the drawing." xml:space="preserve">
+    <value>Включите линзу для просмотра чертежа.</value>
+  </data>
+  <data name="Active drawing" xml:space="preserve">
+    <value>Текущий чертёж</value>
+  </data>
+  <data name="All layers" xml:space="preserve">
+    <value>Все слои</value>
+  </data>
+  <data name="All types" xml:space="preserve">
+    <value>Все типы</value>
+  </data>
+  <data name="Amber" xml:space="preserve">
+    <value>Янтарный</value>
+  </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Оформление</value>
+  </data>
+  <data name="Unable to save preferences. Changes apply for this session." xml:space="preserve">
+    <value>Оформление изменено для этого сеанса. Не удалось сохранить настройку.</value>
+  </data>
+  <data name="Changes apply immediately." xml:space="preserve">
+    <value>Изменения оформления применяются сразу.</value>
+  </data>
+  <data name="Auto Focus" xml:space="preserve">
+    <value>Автофокус</value>
+  </data>
+  <data name="Auto Isolate" xml:space="preserve">
+    <value>Автоизоляция</value>
+  </data>
+  <data name="Auto Select" xml:space="preserve">
+    <value>Автовыбор</value>
+  </data>
+  <data name="Auto focus off. Camera kept." xml:space="preserve">
+    <value>Автофокус выключен. Камера сохранена.</value>
+  </data>
+  <data name="Auto focus on." xml:space="preserve">
+    <value>Автофокус включён.</value>
+  </data>
+  <data name="Auto off" xml:space="preserve">
+    <value>Авто выкл.</value>
+  </data>
+  <data name="Auto off · camera kept" xml:space="preserve">
+    <value>Авто выкл. · камера сохранена</value>
+  </data>
+  <data name="Automatically fit the camera when browsing layers, types, and objects." xml:space="preserve">
+    <value>Автоматически наводить камеру при просмотре слоёв, типов и объектов.</value>
+  </data>
+  <data
+    name="Automatically hide other active-space objects while browsing. Turning this off restores their display."
+    xml:space="preserve">
+    <value>Автоматически скрывать другие объекты текущего пространства при просмотре. Отключение восстанавливает их отображение.</value>
+  </data>
+  <data name="Automatically select CAD objects while browsing. Works with Auto Focus off." xml:space="preserve">
+    <value>Автоматически выбирать объекты CAD при просмотре. Работает и без автофокуса.</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Назад</value>
+  </data>
+  <data name="Blue" xml:space="preserve">
+    <value>Синий</value>
+  </data>
+  <data name="CAD objects selected." xml:space="preserve">
+    <value>Объекты CAD выбраны.</value>
+  </data>
+  <data name="CAD selection" xml:space="preserve">
+    <value>Выбор в CAD</value>
+  </data>
+  <data name="CAD selection cleared." xml:space="preserve">
+    <value>Выбор в CAD сброшен.</value>
+  </data>
+  <data name="Camera" xml:space="preserve">
+    <value>Камера</value>
+  </data>
+  <data name="Choose a layer. Auto modes apply while browsing." xml:space="preserve">
+    <value>Выберите слой. Авторежимы действуют при просмотре.</value>
+  </data>
+  <data name="Choose a theme, palette, and accent color." xml:space="preserve">
+    <value>Выбрать тему, палитру и цвет акцента.</value>
+  </data>
+  <data name="Choose a type. Auto modes apply while browsing." xml:space="preserve">
+    <value>Выберите тип. Авторежимы действуют при просмотре.</value>
+  </data>
+  <data name="Cleanup did not complete." xml:space="preserve">
+    <value>Сброс не завершён.</value>
+  </data>
+  <data name="Cleanup did not complete: {0}" xml:space="preserve">
+    <value>Сброс не завершён: {0}</value>
+  </data>
+  <data name="Cleanup unavailable: {0}" xml:space="preserve">
+    <value>Сброс недоступен: {0}</value>
+  </data>
+  <data
+    name="Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera."
+    xml:space="preserve">
+    <value>Очистить выбор в CAD и временную изоляцию, отключить все авторежимы и сохранить камеру.</value>
+  </data>
+  <data name="Clear search" xml:space="preserve">
+    <value>Очистить поиск</value>
+  </data>
+  <data name="Clearing lens effects… Waiting for AutoCAD." xml:space="preserve">
+    <value>Сброс эффектов линзы… Ожидание AutoCAD.</value>
+  </data>
+  <data name="Close CAD Lens" xml:space="preserve">
+    <value>Закрыть CAD Lens</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Тёмная</value>
+  </data>
+  <data name="Drawing context changed. Activate a lens to explore." xml:space="preserve">
+    <value>Контекст чертежа изменился. Включите линзу для просмотра.</value>
+  </data>
+  <data name="Drawing context changed. Updating the current space." xml:space="preserve">
+    <value>Контекст чертежа изменился. Обновление текущего пространства.</value>
+  </data>
+  <data
+    name="Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden."
+    xml:space="preserve">
+    <value>Показать текущий слой, тип или объект в активном виде. Меняется только камера; скрытые объекты остаются скрытыми.</value>
+  </data>
+  <data name="Focus" xml:space="preserve">
+    <value>Фокус</value>
+  </data>
+  <data name="Focus camera" xml:space="preserve">
+    <value>Навести камеру</value>
+  </data>
+  <data name="Focus is unavailable in a locked or unavailable layout viewport." xml:space="preserve">
+    <value>Фокус недоступен в заблокированном или недоступном видовом экране листа.</value>
+  </data>
+  <data name="Focus is unavailable in perspective views." xml:space="preserve">
+    <value>Фокус недоступен в перспективных видах.</value>
+  </data>
+  <data name="Focus unavailable: the current target has no usable bounds." xml:space="preserve">
+    <value>Фокус недоступен: у текущего объекта нет пригодных границ.</value>
+  </data>
+  <data name="Follow AutoCAD" xml:space="preserve">
+    <value>Как в AutoCAD</value>
+  </data>
+  <data name="Graphite" xml:space="preserve">
+    <value>Графит</value>
+  </data>
+  <data name="Hidden: frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Скрыт: заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value>
+  </data>
+  <data
+    name="Hidden: globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it."
+    xml:space="preserve">
+    <value>Скрыт: заморожен глобально, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value>
+  </data>
+  <data name="Hidden: globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Скрыт: заморожен глобально. Включение в список и фокус не меняют видимость.</value>
+  </data>
+  <data name="Hidden: off, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Скрыт: отключён, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value>
+  </data>
+  <data
+    name="Hidden: off, globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it."
+    xml:space="preserve">
+    <value>Скрыт: отключён, заморожен глобально, заморожен на текущем видовом экране. Включение в список и фокус не меняют видимость.</value>
+  </data>
+  <data name="Hidden: off, globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Скрыт: отключён, заморожен глобально. Включение в список и фокус не меняют видимость.</value>
+  </data>
+  <data name="Hidden: off. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Скрыт: отключён. Включение в список и фокус не меняют видимость.</value>
+  </data>
+  <data name="Include frozen" xml:space="preserve">
+    <value>Замороженные</value>
+  </data>
+  <data name="Include globally and viewport-frozen layers without revealing them." xml:space="preserve">
+    <value>Включить слои, замороженные глобально или на видовом экране, не меняя их видимость.</value>
+  </data>
+  <data name="Include off" xml:space="preserve">
+    <value>Отключённые</value>
+  </data>
+  <data name="Include switched-off layers without switching them on." xml:space="preserve">
+    <value>Включить отключённые слои, не включая их.</value>
+  </data>
+  <data name="Isolate" xml:space="preserve">
+    <value>Изолировать</value>
+  </data>
+  <data name="Isolate temporarily" xml:space="preserve">
+    <value>Временно изолировать</value>
+  </data>
+  <data name="Isolation cleanup did not complete." xml:space="preserve">
+    <value>Сброс изоляции не завершён.</value>
+  </data>
+  <data name="Isolation cleanup unavailable: {0}" xml:space="preserve">
+    <value>Сброс изоляции недоступен: {0}</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Язык</value>
+  </data>
+  <data name="Language changed for this session. The preference could not be saved." xml:space="preserve">
+    <value>Язык изменён для этого сеанса. Не удалось сохранить настройку.</value>
+  </data>
+  <data name="Layer" xml:space="preserve">
+    <value>Слой</value>
+  </data>
+  <data name="Layer is on and thawed" xml:space="preserve">
+    <value>Слой включён и разморожен</value>
+  </data>
+  <data name="Layers" xml:space="preserve">
+    <value>Слои</value>
+  </data>
+  <data name="Lens effects cleared." xml:space="preserve">
+    <value>Эффекты линзы сброшены.</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Светлая</value>
+  </data>
+  <data name="Locked" xml:space="preserve">
+    <value>Блокировка</value>
+  </data>
+  <data name="Mint" xml:space="preserve">
+    <value>Мятный</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="Next object" xml:space="preserve">
+    <value>Следующий объект</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="No active drawing" xml:space="preserve">
+    <value>Нет текущего чертежа</value>
+  </data>
+  <data name="No active drawing or Focus targets." xml:space="preserve">
+    <value>Нет текущего чертежа или объектов для фокуса.</value>
+  </data>
+  <data name="No active drawing." xml:space="preserve">
+    <value>Нет текущего чертежа.</value>
+  </data>
+  <data
+    name="No current-space targets have usable bounds. Refresh if objects were erased or moved."
+    xml:space="preserve">
+    <value>У объектов текущего пространства нет пригодных границ. Обновите список, если объекты удалены или перемещены.</value>
+  </data>
+  <data name="No layers contain included objects in the current space." xml:space="preserve">
+    <value>В текущем пространстве нет слоёв с включёнными объектами.</value>
+  </data>
+  <data name="No layers match your search." xml:space="preserve">
+    <value>Слои не найдены.</value>
+  </data>
+  <data name="No types contain included objects in the current space." xml:space="preserve">
+    <value>В текущем пространстве нет типов с включёнными объектами.</value>
+  </data>
+  <data name="No types match your search." xml:space="preserve">
+    <value>Типы не найдены.</value>
+  </data>
+  <data name="No valid current-space targets remain. Selection cleared; refresh the list." xml:space="preserve">
+    <value>В текущем пространстве нет доступных объектов. Выбор сброшен; обновите список.</value>
+  </data>
+  <data name="Object Types" xml:space="preserve">
+    <value>Типы объектов</value>
+  </data>
+  <data name="Objects" xml:space="preserve">
+    <value>Объекты</value>
+  </data>
+  <data name="Open a drawing to explore its objects." xml:space="preserve">
+    <value>Откройте чертёж для просмотра его объектов.</value>
+  </data>
+  <data name="Other objects hidden temporarily. Originally hidden objects remain hidden." xml:space="preserve">
+    <value>Другие объекты временно скрыты. Изначально скрытые объекты остаются скрытыми.</value>
+  </data>
+  <data name="Palette" xml:space="preserve">
+    <value>Палитра</value>
+  </data>
+  <data name="Paper" xml:space="preserve">
+    <value>Бумага</value>
+  </data>
+  <data name="Previous object" xml:space="preserve">
+    <value>Предыдущий объект</value>
+  </data>
+  <data name="Primitive type" xml:space="preserve">
+    <value>Тип примитива</value>
+  </data>
+  <data name="Quiet" xml:space="preserve">
+    <value>Спокойная</value>
+  </data>
+  <data name="Refresh active space" xml:space="preserve">
+    <value>Обновить текущее пространство</value>
+  </data>
+  <data name="Refresh to explore the active space." xml:space="preserve">
+    <value>Обновите список для просмотра текущего пространства.</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Сброс</value>
+  </data>
+  <data name="Reset selection, isolation, and Auto modes" xml:space="preserve">
+    <value>Сбросить выбор, изоляцию и авторежимы</value>
+  </data>
+  <data name="Restore defaults" xml:space="preserve">
+    <value>Сбросить настройки</value>
+  </data>
+  <data name="Search layers" xml:space="preserve">
+    <value>Поиск слоёв</value>
+  </data>
+  <data name="Search types" xml:space="preserve">
+    <value>Поиск типов</value>
+  </data>
+  <data name="Select" xml:space="preserve">
+    <value>Выбрать</value>
+  </data>
+  <data name="Select CAD objects" xml:space="preserve">
+    <value>Выбрать объекты CAD</value>
+  </data>
+  <data
+    name="Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged."
+    xml:space="preserve">
+    <value>Выбрать текущий слой, тип или объект в CAD. Камера и временная изоляция сохраняются.</value>
+  </data>
+  <data name="Selection and isolation cleared. Auto modes off." xml:space="preserve">
+    <value>Выбор и изоляция сброшены. Авторежимы отключены.</value>
+  </data>
+  <data name="Selection and isolation cleared. Auto settings kept." xml:space="preserve">
+    <value>Выбор и изоляция сброшены. Настройки авторежимов сохранены.</value>
+  </data>
+  <data name="Selection did not complete." xml:space="preserve">
+    <value>Выбор не завершён.</value>
+  </data>
+  <data name="Selection unavailable: {0}" xml:space="preserve">
+    <value>Выбор недоступен: {0}</value>
+  </data>
+  <data name="Sort layers by name" xml:space="preserve">
+    <value>Сортировать слои по имени</value>
+  </data>
+  <data name="Sort layers by object count" xml:space="preserve">
+    <value>Сортировать слои по числу объектов</value>
+  </data>
+  <data name="Sort types by name" xml:space="preserve">
+    <value>Сортировать типы по имени</value>
+  </data>
+  <data name="Sort types by object count" xml:space="preserve">
+    <value>Сортировать типы по числу объектов</value>
+  </data>
+  <data
+    name="Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged."
+    xml:space="preserve">
+    <value>Временно скрыть другие объекты текущего пространства. Камера и выбор в CAD сохраняются.</value>
+  </data>
+  <data name="Temporary" xml:space="preserve">
+    <value>Временно</value>
+  </data>
+  <data name="Temporary isolation cleared." xml:space="preserve">
+    <value>Временная изоляция сброшена.</value>
+  </data>
+  <data name="The active drawing is no longer available." xml:space="preserve">
+    <value>Текущий чертёж больше недоступен.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before isolating." xml:space="preserve">
+    <value>Контекст чертежа изменился. Обновите список перед изоляцией.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before selecting." xml:space="preserve">
+    <value>Контекст чертежа изменился. Обновите список перед выбором.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before using Focus." xml:space="preserve">
+    <value>Контекст чертежа изменился. Обновите список перед фокусом.</value>
+  </data>
+  <data name="The selection contains no direct active-space objects." xml:space="preserve">
+    <value>Выбор не содержит непосредственных объектов текущего пространства.</value>
+  </data>
+  <data name="The targets do not belong to AutoCAD." xml:space="preserve">
+    <value>Объекты не принадлежат AutoCAD.</value>
+  </data>
+  <data name="The task service has stopped." xml:space="preserve">
+    <value>Сервис задач остановлен.</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Тема</value>
+  </data>
+  <data name="Unable to activate {0}: {1}" xml:space="preserve">
+    <value>Не удалось включить линзу «{0}»: {1}</value>
+  </data>
+  <data name="Unable to complete the operation: {0}" xml:space="preserve">
+    <value>Не удалось выполнить операцию: {0}</value>
+  </data>
+  <data name="Unavailable" xml:space="preserve">
+    <value>Недоступно</value>
+  </data>
+  <data name="Use Windows language" xml:space="preserve">
+    <value>Как в Windows</value>
+  </data>
+  <data name="View fitted." xml:space="preserve">
+    <value>Камера наведена.</value>
+  </data>
+  <data name="Violet" xml:space="preserve">
+    <value>Фиолетовый</value>
+  </data>
+  <data name="Visibility" xml:space="preserve">
+    <value>Видимость</value>
+  </data>
+  <data name="Working…" xml:space="preserve">
+    <value>Выполняется…</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Да</value>
+  </data>
+  <data name="{0:N0} objects" xml:space="preserve">
+    <value>Объектов: {0:N0}</value>
+  </data>
+  <data name="{0} is active." xml:space="preserve">
+    <value>Линза «{0}» включена.</value>
+  </data>
+  <data name="{0} of {1}" xml:space="preserve">
+    <value>{0} из {1}</value>
+  </data>
+  <data name="{0} {1}" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="{0}: {1}" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="✓ Auto on" xml:space="preserve">
+    <value>✓ Авто вкл.</value>
+  </data>
+  <data name="{0:N0} layers" xml:space="preserve">
+    <value>Слоёв: {0:N0}</value>
+  </data>
+  <data name="{0:N0} types" xml:space="preserve">
+    <value>Типов: {0:N0}</value>
+  </data>
+  <data name="CAD Lens diagnostics" xml:space="preserve">
+    <value>Диагностика CAD Lens</value>
+  </data>
+  <data name="Saved to {0}" xml:space="preserve">
+    <value>Сохранено в {0}</value>
+  </data>
+  <data name="Cut" xml:space="preserve">
+    <value>Вырезать</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Копировать</value>
+  </data>
+  <data name="Paste" xml:space="preserve">
+    <value>Вставить</value>
+  </data>
+  <data name="Select all" xml:space="preserve">
+    <value>Выбрать всё</value>
+  </data>
 </root>

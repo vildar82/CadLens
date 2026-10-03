@@ -4,147 +4,449 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
-  <data name="Accent" xml:space="preserve"><value>Accent</value></data>
-  <data name="Activate a lens to explore the drawing." xml:space="preserve"><value>Activate a lens to explore the drawing.</value></data>
-  <data name="Active drawing" xml:space="preserve"><value>Active drawing</value></data>
-  <data name="All layers" xml:space="preserve"><value>All layers</value></data>
-  <data name="All types" xml:space="preserve"><value>All types</value></data>
-  <data name="Amber" xml:space="preserve"><value>Amber</value></data>
-  <data name="Appearance" xml:space="preserve"><value>Appearance</value></data>
-  <data name="Unable to save preferences. Changes apply for this session." xml:space="preserve"><value>Unable to save preferences. Changes apply for this session.</value></data>
-  <data name="Changes apply immediately." xml:space="preserve"><value>Changes apply immediately.</value></data>
-  <data name="Auto Focus" xml:space="preserve"><value>Auto Focus</value></data>
-  <data name="Auto Isolate" xml:space="preserve"><value>Auto Isolate</value></data>
-  <data name="Auto Select" xml:space="preserve"><value>Auto Select</value></data>
-  <data name="Auto focus off. Camera kept." xml:space="preserve"><value>Auto focus off. Camera kept.</value></data>
-  <data name="Auto focus on." xml:space="preserve"><value>Auto focus on.</value></data>
-  <data name="Auto off" xml:space="preserve"><value>Auto off</value></data>
-  <data name="Auto off · camera kept" xml:space="preserve"><value>Auto off · camera kept</value></data>
-  <data name="Automatically fit the camera when browsing layers, types, and objects." xml:space="preserve"><value>Automatically fit the camera when browsing layers, types, and objects.</value></data>
-  <data name="Automatically hide other active-space objects while browsing. Turning this off restores their display." xml:space="preserve"><value>Automatically hide other active-space objects while browsing. Turning this off restores their display.</value></data>
-  <data name="Automatically select CAD objects while browsing. Works with Auto Focus off." xml:space="preserve"><value>Automatically select CAD objects while browsing. Works with Auto Focus off.</value></data>
-  <data name="Back" xml:space="preserve"><value>Back</value></data>
-  <data name="Blue" xml:space="preserve"><value>Blue</value></data>
-  <data name="CAD objects selected." xml:space="preserve"><value>CAD objects selected.</value></data>
-  <data name="CAD selection" xml:space="preserve"><value>CAD selection</value></data>
-  <data name="CAD selection cleared." xml:space="preserve"><value>CAD selection cleared.</value></data>
-  <data name="Camera" xml:space="preserve"><value>Camera</value></data>
-  <data name="Choose a layer. Auto modes apply while browsing." xml:space="preserve"><value>Choose a layer. Auto modes apply while browsing.</value></data>
-  <data name="Choose a theme, palette, and accent color." xml:space="preserve"><value>Choose a theme, palette, and accent color.</value></data>
-  <data name="Choose a type. Auto modes apply while browsing." xml:space="preserve"><value>Choose a type. Auto modes apply while browsing.</value></data>
-  <data name="Cleanup did not complete." xml:space="preserve"><value>Cleanup did not complete.</value></data>
-  <data name="Cleanup did not complete: {0}" xml:space="preserve"><value>Cleanup did not complete: {0}</value></data>
-  <data name="Cleanup unavailable: {0}" xml:space="preserve"><value>Cleanup unavailable: {0}</value></data>
-  <data name="Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera." xml:space="preserve"><value>Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera.</value></data>
-  <data name="Clear search" xml:space="preserve"><value>Clear search</value></data>
-  <data name="Clearing lens effects… Waiting for AutoCAD." xml:space="preserve"><value>Clearing lens effects… Waiting for AutoCAD.</value></data>
-  <data name="Close CAD Lens" xml:space="preserve"><value>Close CAD Lens</value></data>
-  <data name="Dark" xml:space="preserve"><value>Dark</value></data>
-  <data name="Drawing context changed. Activate a lens to explore." xml:space="preserve"><value>Drawing context changed. Activate a lens to explore.</value></data>
-  <data name="Drawing context changed. Updating the current space." xml:space="preserve"><value>Drawing context changed. Updating the current space.</value></data>
-  <data name="Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden." xml:space="preserve"><value>Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden.</value></data>
-  <data name="Focus" xml:space="preserve"><value>Focus</value></data>
-  <data name="Focus camera" xml:space="preserve"><value>Focus camera</value></data>
-  <data name="Focus is unavailable in a locked or unavailable layout viewport." xml:space="preserve"><value>Focus is unavailable in a locked or unavailable layout viewport.</value></data>
-  <data name="Focus is unavailable in perspective views." xml:space="preserve"><value>Focus is unavailable in perspective views.</value></data>
-  <data name="Focus unavailable: the current target has no usable bounds." xml:space="preserve"><value>Focus unavailable: the current target has no usable bounds.</value></data>
-  <data name="Follow AutoCAD" xml:space="preserve"><value>Follow AutoCAD</value></data>
-  <data name="Graphite" xml:space="preserve"><value>Graphite</value></data>
-  <data name="Hidden: frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Hidden: frozen in active viewport. Inclusion and Focus do not reveal it.</value></data>
-  <data name="Hidden: globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Hidden: globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it.</value></data>
-  <data name="Hidden: globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Hidden: globally frozen. Inclusion and Focus do not reveal it.</value></data>
-  <data name="Hidden: off, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Hidden: off, frozen in active viewport. Inclusion and Focus do not reveal it.</value></data>
-  <data name="Hidden: off, globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Hidden: off, globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it.</value></data>
-  <data name="Hidden: off, globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Hidden: off, globally frozen. Inclusion and Focus do not reveal it.</value></data>
-  <data name="Hidden: off. Inclusion and Focus do not reveal it." xml:space="preserve"><value>Hidden: off. Inclusion and Focus do not reveal it.</value></data>
-  <data name="Include frozen" xml:space="preserve"><value>Include frozen</value></data>
-  <data name="Include globally and viewport-frozen layers without revealing them." xml:space="preserve"><value>Include globally and viewport-frozen layers without revealing them.</value></data>
-  <data name="Include off" xml:space="preserve"><value>Include off</value></data>
-  <data name="Include switched-off layers without switching them on." xml:space="preserve"><value>Include switched-off layers without switching them on.</value></data>
-  <data name="Isolate" xml:space="preserve"><value>Isolate</value></data>
-  <data name="Isolate temporarily" xml:space="preserve"><value>Isolate temporarily</value></data>
-  <data name="Isolation cleanup did not complete." xml:space="preserve"><value>Isolation cleanup did not complete.</value></data>
-  <data name="Isolation cleanup unavailable: {0}" xml:space="preserve"><value>Isolation cleanup unavailable: {0}</value></data>
-  <data name="Language" xml:space="preserve"><value>Language</value></data>
-  <data name="Language changed for this session. The preference could not be saved." xml:space="preserve"><value>Language changed for this session. The preference could not be saved.</value></data>
-  <data name="Layer" xml:space="preserve"><value>Layer</value></data>
-  <data name="Layer is on and thawed" xml:space="preserve"><value>Layer is on and thawed</value></data>
-  <data name="Layers" xml:space="preserve"><value>Layers</value></data>
-  <data name="Lens effects cleared." xml:space="preserve"><value>Lens effects cleared.</value></data>
-  <data name="Light" xml:space="preserve"><value>Light</value></data>
-  <data name="Locked" xml:space="preserve"><value>Locked</value></data>
-  <data name="Mint" xml:space="preserve"><value>Mint</value></data>
-  <data name="Name" xml:space="preserve"><value>Name</value></data>
-  <data name="Next object" xml:space="preserve"><value>Next object</value></data>
-  <data name="No" xml:space="preserve"><value>No</value></data>
-  <data name="No active drawing" xml:space="preserve"><value>No active drawing</value></data>
-  <data name="No active drawing or Focus targets." xml:space="preserve"><value>No active drawing or Focus targets.</value></data>
-  <data name="No active drawing." xml:space="preserve"><value>No active drawing.</value></data>
-  <data name="No current-space targets have usable bounds. Refresh if objects were erased or moved." xml:space="preserve"><value>No current-space targets have usable bounds. Refresh if objects were erased or moved.</value></data>
-  <data name="No layers contain included objects in the current space." xml:space="preserve"><value>No layers contain included objects in the current space.</value></data>
-  <data name="No layers match your search." xml:space="preserve"><value>No layers match your search.</value></data>
-  <data name="No types contain included objects in the current space." xml:space="preserve"><value>No types contain included objects in the current space.</value></data>
-  <data name="No types match your search." xml:space="preserve"><value>No types match your search.</value></data>
-  <data name="No valid current-space targets remain. Selection cleared; refresh the list." xml:space="preserve"><value>No valid current-space targets remain. Selection cleared; refresh the list.</value></data>
-  <data name="Object Types" xml:space="preserve"><value>Object Types</value></data>
-  <data name="Objects" xml:space="preserve"><value>Objects</value></data>
-  <data name="Open a drawing to explore its objects." xml:space="preserve"><value>Open a drawing to explore its objects.</value></data>
-  <data name="Other objects hidden temporarily. Originally hidden objects remain hidden." xml:space="preserve"><value>Other objects hidden temporarily. Originally hidden objects remain hidden.</value></data>
-  <data name="Palette" xml:space="preserve"><value>Palette</value></data>
-  <data name="Paper" xml:space="preserve"><value>Paper</value></data>
-  <data name="Previous object" xml:space="preserve"><value>Previous object</value></data>
-  <data name="Primitive type" xml:space="preserve"><value>Primitive type</value></data>
-  <data name="Quiet" xml:space="preserve"><value>Quiet</value></data>
-  <data name="Refresh active space" xml:space="preserve"><value>Refresh active space</value></data>
-  <data name="Refresh to explore the active space." xml:space="preserve"><value>Refresh to explore the active space.</value></data>
-  <data name="Reset" xml:space="preserve"><value>Reset</value></data>
-  <data name="Reset selection, isolation, and Auto modes" xml:space="preserve"><value>Reset selection, isolation, and Auto modes</value></data>
-  <data name="Restore defaults" xml:space="preserve"><value>Restore defaults</value></data>
-  <data name="Search layers" xml:space="preserve"><value>Search layers</value></data>
-  <data name="Search types" xml:space="preserve"><value>Search types</value></data>
-  <data name="Select" xml:space="preserve"><value>Select</value></data>
-  <data name="Select CAD objects" xml:space="preserve"><value>Select CAD objects</value></data>
-  <data name="Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged." xml:space="preserve"><value>Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged.</value></data>
-  <data name="Selection and isolation cleared. Auto modes off." xml:space="preserve"><value>Selection and isolation cleared. Auto modes off.</value></data>
-  <data name="Selection and isolation cleared. Auto settings kept." xml:space="preserve"><value>Selection and isolation cleared. Auto settings kept.</value></data>
-  <data name="Selection did not complete." xml:space="preserve"><value>Selection did not complete.</value></data>
-  <data name="Selection unavailable: {0}" xml:space="preserve"><value>Selection unavailable: {0}</value></data>
-  <data name="Sort layers by name" xml:space="preserve"><value>Sort layers by name</value></data>
-  <data name="Sort layers by object count" xml:space="preserve"><value>Sort layers by object count</value></data>
-  <data name="Sort types by name" xml:space="preserve"><value>Sort types by name</value></data>
-  <data name="Sort types by object count" xml:space="preserve"><value>Sort types by object count</value></data>
-  <data name="Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged." xml:space="preserve"><value>Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged.</value></data>
-  <data name="Temporary" xml:space="preserve"><value>Temporary</value></data>
-  <data name="Temporary isolation cleared." xml:space="preserve"><value>Temporary isolation cleared.</value></data>
-  <data name="The active drawing is no longer available." xml:space="preserve"><value>The active drawing is no longer available.</value></data>
-  <data name="The drawing context changed. Refresh before isolating." xml:space="preserve"><value>The drawing context changed. Refresh before isolating.</value></data>
-  <data name="The drawing context changed. Refresh before selecting." xml:space="preserve"><value>The drawing context changed. Refresh before selecting.</value></data>
-  <data name="The drawing context changed. Refresh before using Focus." xml:space="preserve"><value>The drawing context changed. Refresh before using Focus.</value></data>
-  <data name="The selection contains no direct active-space objects." xml:space="preserve"><value>The selection contains no direct active-space objects.</value></data>
-  <data name="The targets do not belong to AutoCAD." xml:space="preserve"><value>The targets do not belong to AutoCAD.</value></data>
-  <data name="The task service has stopped." xml:space="preserve"><value>The task service has stopped.</value></data>
-  <data name="Theme" xml:space="preserve"><value>Theme</value></data>
-  <data name="Unable to activate {0}: {1}" xml:space="preserve"><value>Unable to activate {0}: {1}</value></data>
-  <data name="Unable to complete the operation: {0}" xml:space="preserve"><value>Unable to complete the operation: {0}</value></data>
-  <data name="Unavailable" xml:space="preserve"><value>Unavailable</value></data>
-  <data name="Use Windows language" xml:space="preserve"><value>Use Windows language</value></data>
-  <data name="View fitted." xml:space="preserve"><value>View fitted.</value></data>
-  <data name="Violet" xml:space="preserve"><value>Violet</value></data>
-  <data name="Visibility" xml:space="preserve"><value>Visibility</value></data>
-  <data name="Working…" xml:space="preserve"><value>Working…</value></data>
-  <data name="Yes" xml:space="preserve"><value>Yes</value></data>
-  <data name="{0:N0} objects" xml:space="preserve"><value>{0:N0} objects</value></data>
-  <data name="{0} is active." xml:space="preserve"><value>{0} is active.</value></data>
-  <data name="{0} of {1}" xml:space="preserve"><value>{0} of {1}</value></data>
-  <data name="{0} {1}" xml:space="preserve"><value>{0} {1}</value></data>
-  <data name="{0}: {1}" xml:space="preserve"><value>{0}: {1}</value></data>
-  <data name="✓ Auto on" xml:space="preserve"><value>✓ Auto on</value></data>
-  <data name="{0:N0} layers" xml:space="preserve"><value>{0:N0} layers</value></data>
-  <data name="{0:N0} types" xml:space="preserve"><value>{0:N0} types</value></data>
-  <data name="CAD Lens diagnostics" xml:space="preserve"><value>CAD Lens diagnostics</value></data>
-  <data name="Saved to {0}" xml:space="preserve"><value>Saved to {0}</value></data>
-  <data name="Cut" xml:space="preserve"><value>Cut</value></data>
-  <data name="Copy" xml:space="preserve"><value>Copy</value></data>
-  <data name="Paste" xml:space="preserve"><value>Paste</value></data>
-  <data name="Select all" xml:space="preserve"><value>Select all</value></data>
+  <data name="Accent" xml:space="preserve">
+    <value>Accent</value>
+  </data>
+  <data name="Activate a lens to explore the drawing." xml:space="preserve">
+    <value>Activate a lens to explore the drawing.</value>
+  </data>
+  <data name="Active drawing" xml:space="preserve">
+    <value>Active drawing</value>
+  </data>
+  <data name="All layers" xml:space="preserve">
+    <value>All layers</value>
+  </data>
+  <data name="All types" xml:space="preserve">
+    <value>All types</value>
+  </data>
+  <data name="Amber" xml:space="preserve">
+    <value>Amber</value>
+  </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Unable to save preferences. Changes apply for this session." xml:space="preserve">
+    <value>Unable to save preferences. Changes apply for this session.</value>
+  </data>
+  <data name="Changes apply immediately." xml:space="preserve">
+    <value>Changes apply immediately.</value>
+  </data>
+  <data name="Auto Focus" xml:space="preserve">
+    <value>Auto Focus</value>
+  </data>
+  <data name="Auto Isolate" xml:space="preserve">
+    <value>Auto Isolate</value>
+  </data>
+  <data name="Auto Select" xml:space="preserve">
+    <value>Auto Select</value>
+  </data>
+  <data name="Auto focus off. Camera kept." xml:space="preserve">
+    <value>Auto focus off. Camera kept.</value>
+  </data>
+  <data name="Auto focus on." xml:space="preserve">
+    <value>Auto focus on.</value>
+  </data>
+  <data name="Auto off" xml:space="preserve">
+    <value>Auto off</value>
+  </data>
+  <data name="Auto off · camera kept" xml:space="preserve">
+    <value>Auto off · camera kept</value>
+  </data>
+  <data name="Automatically fit the camera when browsing layers, types, and objects." xml:space="preserve">
+    <value>Automatically fit the camera when browsing layers, types, and objects.</value>
+  </data>
+  <data
+    name="Automatically hide other active-space objects while browsing. Turning this off restores their display."
+    xml:space="preserve">
+    <value>Automatically hide other active-space objects while browsing. Turning this off restores their display.</value>
+  </data>
+  <data name="Automatically select CAD objects while browsing. Works with Auto Focus off." xml:space="preserve">
+    <value>Automatically select CAD objects while browsing. Works with Auto Focus off.</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="CAD objects selected." xml:space="preserve">
+    <value>CAD objects selected.</value>
+  </data>
+  <data name="CAD selection" xml:space="preserve">
+    <value>CAD selection</value>
+  </data>
+  <data name="CAD selection cleared." xml:space="preserve">
+    <value>CAD selection cleared.</value>
+  </data>
+  <data name="Camera" xml:space="preserve">
+    <value>Camera</value>
+  </data>
+  <data name="Choose a layer. Auto modes apply while browsing." xml:space="preserve">
+    <value>Choose a layer. Auto modes apply while browsing.</value>
+  </data>
+  <data name="Choose a theme, palette, and accent color." xml:space="preserve">
+    <value>Choose a theme, palette, and accent color.</value>
+  </data>
+  <data name="Choose a type. Auto modes apply while browsing." xml:space="preserve">
+    <value>Choose a type. Auto modes apply while browsing.</value>
+  </data>
+  <data name="Cleanup did not complete." xml:space="preserve">
+    <value>Cleanup did not complete.</value>
+  </data>
+  <data name="Cleanup did not complete: {0}" xml:space="preserve">
+    <value>Cleanup did not complete: {0}</value>
+  </data>
+  <data name="Cleanup unavailable: {0}" xml:space="preserve">
+    <value>Cleanup unavailable: {0}</value>
+  </data>
+  <data
+    name="Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera."
+    xml:space="preserve">
+    <value>Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera.</value>
+  </data>
+  <data name="Clear search" xml:space="preserve">
+    <value>Clear search</value>
+  </data>
+  <data name="Clearing lens effects… Waiting for AutoCAD." xml:space="preserve">
+    <value>Clearing lens effects… Waiting for AutoCAD.</value>
+  </data>
+  <data name="Close CAD Lens" xml:space="preserve">
+    <value>Close CAD Lens</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Drawing context changed. Activate a lens to explore." xml:space="preserve">
+    <value>Drawing context changed. Activate a lens to explore.</value>
+  </data>
+  <data name="Drawing context changed. Updating the current space." xml:space="preserve">
+    <value>Drawing context changed. Updating the current space.</value>
+  </data>
+  <data
+    name="Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden."
+    xml:space="preserve">
+    <value>Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden.</value>
+  </data>
+  <data name="Focus" xml:space="preserve">
+    <value>Focus</value>
+  </data>
+  <data name="Focus camera" xml:space="preserve">
+    <value>Focus camera</value>
+  </data>
+  <data name="Focus is unavailable in a locked or unavailable layout viewport." xml:space="preserve">
+    <value>Focus is unavailable in a locked or unavailable layout viewport.</value>
+  </data>
+  <data name="Focus is unavailable in perspective views." xml:space="preserve">
+    <value>Focus is unavailable in perspective views.</value>
+  </data>
+  <data name="Focus unavailable: the current target has no usable bounds." xml:space="preserve">
+    <value>Focus unavailable: the current target has no usable bounds.</value>
+  </data>
+  <data name="Follow AutoCAD" xml:space="preserve">
+    <value>Follow AutoCAD</value>
+  </data>
+  <data name="Graphite" xml:space="preserve">
+    <value>Graphite</value>
+  </data>
+  <data name="Hidden: frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Hidden: frozen in active viewport. Inclusion and Focus do not reveal it.</value>
+  </data>
+  <data
+    name="Hidden: globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it."
+    xml:space="preserve">
+    <value>Hidden: globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it.</value>
+  </data>
+  <data name="Hidden: globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Hidden: globally frozen. Inclusion and Focus do not reveal it.</value>
+  </data>
+  <data name="Hidden: off, frozen in active viewport. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Hidden: off, frozen in active viewport. Inclusion and Focus do not reveal it.</value>
+  </data>
+  <data
+    name="Hidden: off, globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it."
+    xml:space="preserve">
+    <value>Hidden: off, globally frozen, frozen in active viewport. Inclusion and Focus do not reveal it.</value>
+  </data>
+  <data name="Hidden: off, globally frozen. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Hidden: off, globally frozen. Inclusion and Focus do not reveal it.</value>
+  </data>
+  <data name="Hidden: off. Inclusion and Focus do not reveal it." xml:space="preserve">
+    <value>Hidden: off. Inclusion and Focus do not reveal it.</value>
+  </data>
+  <data name="Include frozen" xml:space="preserve">
+    <value>Include frozen</value>
+  </data>
+  <data name="Include globally and viewport-frozen layers without revealing them." xml:space="preserve">
+    <value>Include globally and viewport-frozen layers without revealing them.</value>
+  </data>
+  <data name="Include off" xml:space="preserve">
+    <value>Include off</value>
+  </data>
+  <data name="Include switched-off layers without switching them on." xml:space="preserve">
+    <value>Include switched-off layers without switching them on.</value>
+  </data>
+  <data name="Isolate" xml:space="preserve">
+    <value>Isolate</value>
+  </data>
+  <data name="Isolate temporarily" xml:space="preserve">
+    <value>Isolate temporarily</value>
+  </data>
+  <data name="Isolation cleanup did not complete." xml:space="preserve">
+    <value>Isolation cleanup did not complete.</value>
+  </data>
+  <data name="Isolation cleanup unavailable: {0}" xml:space="preserve">
+    <value>Isolation cleanup unavailable: {0}</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Language changed for this session. The preference could not be saved." xml:space="preserve">
+    <value>Language changed for this session. The preference could not be saved.</value>
+  </data>
+  <data name="Layer" xml:space="preserve">
+    <value>Layer</value>
+  </data>
+  <data name="Layer is on and thawed" xml:space="preserve">
+    <value>Layer is on and thawed</value>
+  </data>
+  <data name="Layers" xml:space="preserve">
+    <value>Layers</value>
+  </data>
+  <data name="Lens effects cleared." xml:space="preserve">
+    <value>Lens effects cleared.</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Locked" xml:space="preserve">
+    <value>Locked</value>
+  </data>
+  <data name="Mint" xml:space="preserve">
+    <value>Mint</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Next object" xml:space="preserve">
+    <value>Next object</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="No active drawing" xml:space="preserve">
+    <value>No active drawing</value>
+  </data>
+  <data name="No active drawing or Focus targets." xml:space="preserve">
+    <value>No active drawing or Focus targets.</value>
+  </data>
+  <data name="No active drawing." xml:space="preserve">
+    <value>No active drawing.</value>
+  </data>
+  <data
+    name="No current-space targets have usable bounds. Refresh if objects were erased or moved."
+    xml:space="preserve">
+    <value>No current-space targets have usable bounds. Refresh if objects were erased or moved.</value>
+  </data>
+  <data name="No layers contain included objects in the current space." xml:space="preserve">
+    <value>No layers contain included objects in the current space.</value>
+  </data>
+  <data name="No layers match your search." xml:space="preserve">
+    <value>No layers match your search.</value>
+  </data>
+  <data name="No types contain included objects in the current space." xml:space="preserve">
+    <value>No types contain included objects in the current space.</value>
+  </data>
+  <data name="No types match your search." xml:space="preserve">
+    <value>No types match your search.</value>
+  </data>
+  <data name="No valid current-space targets remain. Selection cleared; refresh the list." xml:space="preserve">
+    <value>No valid current-space targets remain. Selection cleared; refresh the list.</value>
+  </data>
+  <data name="Object Types" xml:space="preserve">
+    <value>Object Types</value>
+  </data>
+  <data name="Objects" xml:space="preserve">
+    <value>Objects</value>
+  </data>
+  <data name="Open a drawing to explore its objects." xml:space="preserve">
+    <value>Open a drawing to explore its objects.</value>
+  </data>
+  <data name="Other objects hidden temporarily. Originally hidden objects remain hidden." xml:space="preserve">
+    <value>Other objects hidden temporarily. Originally hidden objects remain hidden.</value>
+  </data>
+  <data name="Palette" xml:space="preserve">
+    <value>Palette</value>
+  </data>
+  <data name="Paper" xml:space="preserve">
+    <value>Paper</value>
+  </data>
+  <data name="Previous object" xml:space="preserve">
+    <value>Previous object</value>
+  </data>
+  <data name="Primitive type" xml:space="preserve">
+    <value>Primitive type</value>
+  </data>
+  <data name="Quiet" xml:space="preserve">
+    <value>Quiet</value>
+  </data>
+  <data name="Refresh active space" xml:space="preserve">
+    <value>Refresh active space</value>
+  </data>
+  <data name="Refresh to explore the active space." xml:space="preserve">
+    <value>Refresh to explore the active space.</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Reset selection, isolation, and Auto modes" xml:space="preserve">
+    <value>Reset selection, isolation, and Auto modes</value>
+  </data>
+  <data name="Restore defaults" xml:space="preserve">
+    <value>Restore defaults</value>
+  </data>
+  <data name="Search layers" xml:space="preserve">
+    <value>Search layers</value>
+  </data>
+  <data name="Search types" xml:space="preserve">
+    <value>Search types</value>
+  </data>
+  <data name="Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Select CAD objects" xml:space="preserve">
+    <value>Select CAD objects</value>
+  </data>
+  <data
+    name="Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged."
+    xml:space="preserve">
+    <value>Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged.</value>
+  </data>
+  <data name="Selection and isolation cleared. Auto modes off." xml:space="preserve">
+    <value>Selection and isolation cleared. Auto modes off.</value>
+  </data>
+  <data name="Selection and isolation cleared. Auto settings kept." xml:space="preserve">
+    <value>Selection and isolation cleared. Auto settings kept.</value>
+  </data>
+  <data name="Selection did not complete." xml:space="preserve">
+    <value>Selection did not complete.</value>
+  </data>
+  <data name="Selection unavailable: {0}" xml:space="preserve">
+    <value>Selection unavailable: {0}</value>
+  </data>
+  <data name="Sort layers by name" xml:space="preserve">
+    <value>Sort layers by name</value>
+  </data>
+  <data name="Sort layers by object count" xml:space="preserve">
+    <value>Sort layers by object count</value>
+  </data>
+  <data name="Sort types by name" xml:space="preserve">
+    <value>Sort types by name</value>
+  </data>
+  <data name="Sort types by object count" xml:space="preserve">
+    <value>Sort types by object count</value>
+  </data>
+  <data
+    name="Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged."
+    xml:space="preserve">
+    <value>Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged.</value>
+  </data>
+  <data name="Temporary" xml:space="preserve">
+    <value>Temporary</value>
+  </data>
+  <data name="Temporary isolation cleared." xml:space="preserve">
+    <value>Temporary isolation cleared.</value>
+  </data>
+  <data name="The active drawing is no longer available." xml:space="preserve">
+    <value>The active drawing is no longer available.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before isolating." xml:space="preserve">
+    <value>The drawing context changed. Refresh before isolating.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before selecting." xml:space="preserve">
+    <value>The drawing context changed. Refresh before selecting.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before using Focus." xml:space="preserve">
+    <value>The drawing context changed. Refresh before using Focus.</value>
+  </data>
+  <data name="The selection contains no direct active-space objects." xml:space="preserve">
+    <value>The selection contains no direct active-space objects.</value>
+  </data>
+  <data name="The targets do not belong to AutoCAD." xml:space="preserve">
+    <value>The targets do not belong to AutoCAD.</value>
+  </data>
+  <data name="The task service has stopped." xml:space="preserve">
+    <value>The task service has stopped.</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Unable to activate {0}: {1}" xml:space="preserve">
+    <value>Unable to activate {0}: {1}</value>
+  </data>
+  <data name="Unable to complete the operation: {0}" xml:space="preserve">
+    <value>Unable to complete the operation: {0}</value>
+  </data>
+  <data name="Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Use Windows language" xml:space="preserve">
+    <value>Use Windows language</value>
+  </data>
+  <data name="View fitted." xml:space="preserve">
+    <value>View fitted.</value>
+  </data>
+  <data name="Violet" xml:space="preserve">
+    <value>Violet</value>
+  </data>
+  <data name="Visibility" xml:space="preserve">
+    <value>Visibility</value>
+  </data>
+  <data name="Working…" xml:space="preserve">
+    <value>Working…</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="{0:N0} objects" xml:space="preserve">
+    <value>{0:N0} objects</value>
+  </data>
+  <data name="{0} is active." xml:space="preserve">
+    <value>{0} is active.</value>
+  </data>
+  <data name="{0} of {1}" xml:space="preserve">
+    <value>{0} of {1}</value>
+  </data>
+  <data name="{0} {1}" xml:space="preserve">
+    <value>{0} {1}</value>
+  </data>
+  <data name="{0}: {1}" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="✓ Auto on" xml:space="preserve">
+    <value>✓ Auto on</value>
+  </data>
+  <data name="{0:N0} layers" xml:space="preserve">
+    <value>{0:N0} layers</value>
+  </data>
+  <data name="{0:N0} types" xml:space="preserve">
+    <value>{0:N0} types</value>
+  </data>
+  <data name="CAD Lens diagnostics" xml:space="preserve">
+    <value>CAD Lens diagnostics</value>
+  </data>
+  <data name="Saved to {0}" xml:space="preserve">
+    <value>Saved to {0}</value>
+  </data>
+  <data name="Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="Select all" xml:space="preserve">
+    <value>Select all</value>
+  </data>
 </root>

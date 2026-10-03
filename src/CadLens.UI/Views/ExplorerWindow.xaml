@@ -89,14 +89,17 @@
                                 <DataTemplate DataType="{x:Type local:LensOption}">
                                     <ToggleButton
                                         Padding="7,6"
-                                        AutomationProperties.HelpText="{Binding DataContext.Status, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        AutomationProperties.HelpText="{Binding DataContext.Status,
+                                            RelativeSource={RelativeSource AncestorType=Window}}"
                                         AutomationProperties.Name="{local:Localize Binding={Binding Descriptor.Label}}"
-                                        Command="{Binding DataContext.ToggleLensCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        Command="{Binding DataContext.ToggleLensCommand,
+                                            RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
                                         Content="{local:Localize Binding={Binding Descriptor.Label}}"
                                         IsChecked="{Binding IsActive, Mode=OneWay}"
                                         Style="{StaticResource QuietToggle}"
-                                        ToolTip="{Binding DataContext.Status, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        ToolTip="{Binding DataContext.Status,
+                                            RelativeSource={RelativeSource AncestorType=Window}}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -115,32 +118,43 @@
                         ToolTip="{local:Localize 'Language'}"
                         WindowChrome.IsHitTestVisibleInChrome="True">
                         <Button.ContextMenu>
-                            <ContextMenu Background="{DynamicResource QuietSurface}" Foreground="{DynamicResource QuietText}">
+                            <ContextMenu Background="{DynamicResource QuietSurface}"
+                                         Foreground="{DynamicResource QuietText}">
                                 <MenuItem
                                     Header="{local:Localize 'Use Windows language'}"
                                     IsCheckable="True"
-                                    IsChecked="{Binding IsWindowsLanguage, Source={x:Static local:UiText.Current}, Mode=OneWay}"
+                                    IsChecked="{Binding IsWindowsLanguage,
+                                        Source={x:Static local:UiText.Current},
+                                        Mode=OneWay}"
                                     Tag="Windows"
                                     Click="LanguageSelected" />
                                 <Separator />
                                 <MenuItem
                                     Header="English"
                                     IsCheckable="True"
-                                    IsChecked="{Binding IsEnglishLanguage, Source={x:Static local:UiText.Current}, Mode=OneWay}"
+                                    IsChecked="{Binding IsEnglishLanguage,
+                                        Source={x:Static local:UiText.Current},
+                                        Mode=OneWay}"
                                     Tag="English"
                                     Click="LanguageSelected" />
                                 <MenuItem
                                     Header="Русский"
                                     IsCheckable="True"
-                                    IsChecked="{Binding IsRussianLanguage, Source={x:Static local:UiText.Current}, Mode=OneWay}"
+                                    IsChecked="{Binding IsRussianLanguage,
+                                        Source={x:Static local:UiText.Current},
+                                        Mode=OneWay}"
                                     Tag="Russian"
                                     Click="LanguageSelected" />
                                 <Separator />
-                                <MenuItem IsEnabled="False" Header="{Binding PreferenceError, Source={x:Static local:UiText.Current}}">
+                                <MenuItem IsEnabled="False"
+                                          Header="{Binding PreferenceError, Source={x:Static local:UiText.Current}}">
                                     <MenuItem.Style>
                                         <Style TargetType="MenuItem">
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding PreferenceError, Source={x:Static local:UiText.Current}}" Value="">
+                                                <DataTrigger
+                                                    Binding="{Binding PreferenceError,
+                                                        Source={x:Static local:UiText.Current}}"
+                                                    Value="">
                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
                                             </Style.Triggers>

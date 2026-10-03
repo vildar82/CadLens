@@ -81,7 +81,7 @@ internal sealed class ExplorerOwner
 
     private void OnClosed(object? sender, EventArgs args) => _ = CloseSessionAsync();
 
-    // ReSharper disable once AsyncVoidEventHandlerMethod -- EventHandler requires void; diagnostics failures are caught below.
+    // ReSharper disable once AsyncVoidEventHandlerMethod -- Diagnostics failures are caught below.
     private async void OnDiagnosticsRequested(object? sender, EventArgs args)
     {
         if (_requests is null || _window is null || _diagnosticsRunning)
@@ -108,7 +108,10 @@ internal sealed class ExplorerOwner
             var path = await DrawingDiagnostics.SaveAsync(success.Value);
 
             if (window.IsVisible)
-                MessageBox.Show(window, string.Format(UiText.Current.Culture, UiText.Current.Get("Saved to {0}"), path), UiText.Current.Get("CAD Lens diagnostics"));
+                MessageBox.Show(
+                    window,
+                    string.Format(UiText.Current.Culture, UiText.Current.Get("Saved to {0}"), path),
+                    UiText.Current.Get("CAD Lens diagnostics"));
         }
         catch (Exception exception)
         {
