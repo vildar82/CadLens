@@ -19,6 +19,8 @@ public sealed class AppearancePreferences : ObservableObject
         Load();
     }
 
+    internal SettingsService SettingsStore => _settings;
+
     /// <summary>Available base themes.</summary>
     public ImmutableArray<string> Themes { get; } = ["Follow AutoCAD", "Light", "Dark"];
 

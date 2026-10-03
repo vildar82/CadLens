@@ -97,6 +97,8 @@ Layers and Objects save their inclusion filters, search text, sorting column/dir
 independently under `%LOCALAPPDATA%\CadLens`. Closing and reopening the panel or restarting AutoCAD
 restores these preferences. The panel still starts collapsed; activate a lens to read the drawing.
 Each fresh session starts at the root list, with drawing-specific targets and navigation cleared.
+The panel also saves its expanded width and height when collapsed or closed. Activating a lens restores
+that size within the current monitor's work area. Window position is not saved.
 Restored Auto modes apply when you choose a target. If saving fails, the controls remain usable for
 the current session and the lens status explains that the preferences could not be saved.
 
