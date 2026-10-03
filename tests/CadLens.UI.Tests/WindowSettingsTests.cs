@@ -16,22 +16,22 @@ public sealed class WindowSettingsTests
         WpfTest.Run(() =>
         {
             using var file = new SettingsFile();
+            using var windows = new WindowScope();
             using var model = CreateModel();
-            var window = new ExplorerWindow(model, new AppearancePreferences(file.Service)) {Left = 10, Top = 20};
+            var window = windows.Track(new ExplorerWindow(model, new AppearancePreferences(file.Service)) {Left = 10, Top = 20});
             ToggleLens(model);
-            window.Width = 420;
-            window.Height = 700;
+            var size = Resize(window, 420, 700);
             Assert.False(File.Exists(SettingsPath(file)));
             window.Close();
 
             using var saved = JsonDocument.Parse(File.ReadAllText(SettingsPath(file)));
             Assert.Equal(["Width", "Height"], saved.RootElement.EnumerateObject().Select(property => property.Name));
             using var reopenedModel = CreateModel();
-            var reopened = new ExplorerWindow(reopenedModel, new AppearancePreferences(new SettingsService(file.Directory)));
+            var reopened = windows.Track(new ExplorerWindow(reopenedModel, new AppearancePreferences(new SettingsService(file.Directory))));
             Assert.Equal((340, 52), (reopened.Width, reopened.Height));
             Assert.True(double.IsNaN(reopened.Left) && double.IsNaN(reopened.Top));
             ToggleLens(reopenedModel);
-            Assert.Equal((420, 700), (reopened.Width, reopened.Height));
+            Assert.Equal(size, new Size(reopened.Width, reopened.Height));
             reopened.Close();
         });
     }
@@ -43,16 +43,16 @@ public sealed class WindowSettingsTests
         WpfTest.Run(() =>
         {
             using var file = new SettingsFile();
+            using var windows = new WindowScope();
             using var model = CreateModel();
-            var window = new ExplorerWindow(model, settings: file.Service);
+            var window = windows.Track(new ExplorerWindow(model, settings: file.Service));
             ToggleLens(model);
-            window.Width = 460;
-            window.Height = 720;
+            Resize(window, 460, 720);
             ToggleLens(model);
             var saved = File.ReadAllText(SettingsPath(file));
             Assert.Equal((340, 52), (window.Width, window.Height));
             ToggleLens(model);
-            window.Width = 480;
+            var size = Resize(window, 480, window.Height);
             Assert.Equal(saved, File.ReadAllText(SettingsPath(file)));
             ToggleLens(model);
             saved = File.ReadAllText(SettingsPath(file));
@@ -60,9 +60,9 @@ public sealed class WindowSettingsTests
             Assert.Equal(saved, File.ReadAllText(SettingsPath(file)));
 
             using var reopenedModel = CreateModel();
-            var reopened = new ExplorerWindow(reopenedModel, settings: new SettingsService(file.Directory));
+            var reopened = windows.Track(new ExplorerWindow(reopenedModel, settings: new SettingsService(file.Directory)));
             ToggleLens(reopenedModel);
-            Assert.Equal((480, 720), (reopened.Width, reopened.Height));
+            Assert.Equal(size, new Size(reopened.Width, reopened.Height));
             reopened.Close();
         });
     }
@@ -74,18 +74,18 @@ public sealed class WindowSettingsTests
         WpfTest.Run(() =>
         {
             using var file = new SettingsFile();
+            using var windows = new WindowScope();
             using var model = CreateModel();
-            var window = new ExplorerWindow(model, settings: file.Service);
+            var window = windows.Track(new ExplorerWindow(model, settings: file.Service));
             ToggleLens(model);
-            window.Width = 440;
-            window.Height = 710;
+            var size = Resize(window, 440, 710);
             model.Close(true);
             window.Close();
 
             using var reopenedModel = CreateModel();
-            var reopened = new ExplorerWindow(reopenedModel, settings: new SettingsService(file.Directory));
+            var reopened = windows.Track(new ExplorerWindow(reopenedModel, settings: new SettingsService(file.Directory)));
             ToggleLens(reopenedModel);
-            Assert.Equal((440, 710), (reopened.Width, reopened.Height));
+            Assert.Equal(size, new Size(reopened.Width, reopened.Height));
             reopened.Close();
         });
     }
@@ -105,9 +105,10 @@ public sealed class WindowSettingsTests
         WpfTest.Run(() =>
         {
             using var file = new SettingsFile();
+            using var windows = new WindowScope();
             File.WriteAllText(SettingsPath(file), json);
             using var model = CreateModel();
-            var window = new ExplorerWindow(model, settings: file.Service);
+            var window = windows.Track(new ExplorerWindow(model, settings: file.Service));
             Assert.Equal((340, 52), (window.Width, window.Height));
             ToggleLens(model);
             Assert.Equal(
@@ -126,9 +127,10 @@ public sealed class WindowSettingsTests
         WpfTest.Run(() =>
         {
             using var file = new SettingsFile();
+            using var windows = new WindowScope();
             file.Service.Save("window-size.json", new {Width = width, Height = height});
             using var model = CreateModel();
-            var window = new ExplorerWindow(model, settings: file.Service);
+            var window = windows.Track(new ExplorerWindow(model, settings: file.Service));
             ToggleLens(model);
             Assert.Equal(Math.Clamp(width, window.MinWidth, window.MaxWidth), window.Width);
             Assert.Equal(Math.Clamp(height, window.MinHeight, window.MaxHeight), window.Height);
@@ -145,23 +147,23 @@ public sealed class WindowSettingsTests
         WpfTest.Run(() =>
         {
             using var file = new SettingsFile();
+            using var windows = new WindowScope();
             Directory.CreateDirectory(SettingsPath(file));
             using var model = CreateModel();
-            var window = new ExplorerWindow(model, settings: file.Service);
+            var window = windows.Track(new ExplorerWindow(model, settings: file.Service));
             ToggleLens(model);
-            window.Width = 450;
-            window.Height = 730;
+            var size = Resize(window, 450, 730);
             ToggleLens(model);
             Assert.Equal((340, 52), (window.Width, window.Height));
             ToggleLens(model);
-            Assert.Equal((450, 730), (window.Width, window.Height));
+            Assert.Equal(size, new Size(window.Width, window.Height));
             Directory.Delete(SettingsPath(file));
             window.Close();
 
             using var reopenedModel = CreateModel();
-            var reopened = new ExplorerWindow(reopenedModel, settings: new SettingsService(file.Directory));
+            var reopened = windows.Track(new ExplorerWindow(reopenedModel, settings: new SettingsService(file.Directory)));
             ToggleLens(reopenedModel);
-            Assert.Equal((450, 730), (reopened.Width, reopened.Height));
+            Assert.Equal(size, new Size(reopened.Width, reopened.Height));
             reopened.Close();
         });
     }
@@ -173,4 +175,31 @@ public sealed class WindowSettingsTests
         model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
 
     private static string SettingsPath(SettingsFile file) => Path.Combine(file.Directory, "window-size.json");
+
+    private static Size Resize(ExplorerWindow window, double width, double height)
+    {
+        window.Width = Math.Clamp(width, window.MinWidth, window.MaxWidth);
+        window.Height = Math.Clamp(height, window.MinHeight, window.MaxHeight);
+
+        return new Size(window.Width, window.Height);
+    }
+
+    private sealed class WindowScope : IDisposable
+    {
+        private readonly List<ExplorerWindow> _windows = [];
+
+        internal ExplorerWindow Track(ExplorerWindow window)
+        {
+            _windows.Add(window);
+            window.Closed += (_, _) => _windows.Remove(window);
+
+            return window;
+        }
+
+        public void Dispose()
+        {
+            foreach (var window in _windows.ToArray())
+                window.Close();
+        }
+    }
 }
