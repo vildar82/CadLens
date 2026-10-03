@@ -129,7 +129,7 @@ public sealed class ExplorerViewModelTests
             window.Height = 700;
             model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
             Assert.Equal(52, window.Height);
-            Assert.Equal(300, window.Width);
+            Assert.Equal(340, window.Width);
             Assert.Equal(20, window.Left);
             Assert.Equal(20, window.Top);
             model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();

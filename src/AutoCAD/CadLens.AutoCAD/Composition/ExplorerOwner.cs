@@ -100,20 +100,20 @@ internal sealed class ExplorerOwner
             {
                 MessageBox.Show(
                     window,
-                    ((HostResult<DrawingSnapshot>.Unavailable) result).Reason,
-                    "CAD Lens diagnostics");
+                    UiText.Current.Get(((HostResult<DrawingSnapshot>.Unavailable) result).Reason),
+                    UiText.Current.Get("CAD Lens diagnostics"));
                 return;
             }
 
             var path = await DrawingDiagnostics.SaveAsync(success.Value);
 
             if (window.IsVisible)
-                MessageBox.Show(window, $"Saved to {path}", "CAD Lens diagnostics");
+                MessageBox.Show(window, string.Format(UiText.Current.Culture, UiText.Current.Get("Saved to {0}"), path), UiText.Current.Get("CAD Lens diagnostics"));
         }
         catch (Exception exception)
         {
             if (window.IsVisible)
-                MessageBox.Show(window, exception.Message, "CAD Lens diagnostics");
+                MessageBox.Show(window, exception.Message, UiText.Current.Get("CAD Lens diagnostics"));
         }
         finally
         {

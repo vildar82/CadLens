@@ -39,24 +39,24 @@
                         DockPanel.Dock="Right"
                         FontSize="11"
                         Foreground="{StaticResource QuietMuted}"
-                        Text="{Binding SpaceLabel}"
+                        Text="{Binding DisplaySpaceLabel}"
                         TextTrimming="CharacterEllipsis"
-                        ToolTip="{Binding SpaceLabel}" />
+                        ToolTip="{Binding DisplaySpaceLabel}" />
                     <TextBlock
                         FontSize="17"
                         FontWeight="SemiBold"
-                        Text="{Binding LensLabel}" />
+                        Text="{ui:Localize Binding={Binding LensLabel}}" />
                 </DockPanel>
                 <DockPanel>
                     <Button
                         Width="28"
                         Padding="0"
-                        AutomationProperties.Name="Refresh active space"
+                        AutomationProperties.Name="{ui:Localize 'Refresh active space'}"
                         Command="{Binding ReadCommand}"
                         Content="↻"
                         DockPanel.Dock="Right"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Refresh active space" />
+                        ToolTip="{ui:Localize 'Refresh active space'}" />
                     <ItemsControl ItemsSource="{Binding Filters}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -68,13 +68,13 @@
                                 <ToggleButton
                                     Margin="0,0,5,0"
                                     Padding="6,4"
-                                    AutomationProperties.Name="{Binding Descriptor.Label}"
+                                    AutomationProperties.Name="{ui:Localize Binding={Binding Descriptor.Label}}"
                                     Command="{Binding DataContext.ToggleFilterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}"
                                     FontSize="11"
                                     IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                     Style="{StaticResource ModeToggle}"
-                                    ToolTip="{Binding Descriptor.Description}">
+                                    ToolTip="{ui:Localize Binding={Binding Descriptor.Description}}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Margin="0,0,4,0">
                                             <TextBlock.Style>
@@ -88,7 +88,7 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                        <TextBlock Text="{Binding Descriptor.Label}" />
+                                        <TextBlock Text="{ui:Localize Binding={Binding Descriptor.Label}}" />
                                     </StackPanel>
                                 </ToggleButton>
                             </DataTemplate>
@@ -117,7 +117,7 @@
                         DockPanel.Dock="Right"
                         FontSize="11"
                         Foreground="{StaticResource QuietMuted}"
-                        Text="{Binding ObjectCount, StringFormat={}{0:N0} objects}" />
+                        Text="{ui:Localize Binding={Binding ObjectCount}, Format='{}{0:N0} objects'}" />
                     <TextBlock
                         FontSize="11"
                         FontWeight="SemiBold"
@@ -130,11 +130,11 @@
                         Height="30"
                         Margin="0,0,5,0"
                         Padding="0"
-                        AutomationProperties.Name="Back"
+                        AutomationProperties.Name="{ui:Localize 'Back'}"
                         Command="{Binding BackCommand}"
                         DockPanel.Dock="Left"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Back">
+                        ToolTip="{ui:Localize 'Back'}">
                         <Path
                             Width="14"
                             Height="12"
@@ -152,7 +152,7 @@
                         Margin="0,0,5,0"
                         Padding="7,4"
                         Command="{Binding RootCommand}"
-                        Content="{Binding RootLabel}"
+                        Content="{ui:Localize Binding={Binding RootLabel}}"
                         DockPanel.Dock="Left"
                         Style="{StaticResource ModeButton}" />
                     <ItemsControl VerticalAlignment="Center" ItemsSource="{Binding Breadcrumbs}">
@@ -216,7 +216,7 @@
                             Margin="0,2,0,0"
                             FontSize="11"
                             Foreground="{StaticResource QuietAccent}"
-                            Text="{Binding Current.Count, FallbackValue='', StringFormat={}{0:N0} objects}" />
+                            Text="{ui:Localize Binding={Binding Current.Count}, Format='{}{0:N0} objects'}" />
                     </StackPanel>
                 </Border>
                 <Grid Grid.Row="1" Margin="0,0,0,5">
@@ -265,12 +265,12 @@
                                 Width="23"
                                 Height="23"
                                 Padding="0"
-                                AutomationProperties.Name="Clear search"
+                                AutomationProperties.Name="{ui:Localize 'Clear search'}"
                                 Command="{Binding ClearSearchCommand}"
                                 Content="×"
                                 DockPanel.Dock="Right"
                                 FontSize="14"
-                                ToolTip="Clear search">
+                                ToolTip="{ui:Localize 'Clear search'}">
                                 <Button.Style>
                                     <Style BasedOn="{StaticResource ModeButton}" TargetType="Button">
                                         <Style.Triggers>
@@ -285,7 +285,7 @@
                                 <TextBox
                                     Padding="0"
                                     VerticalContentAlignment="Center"
-                                    AutomationProperties.Name="{Binding SearchPlaceholder}"
+                                    AutomationProperties.Name="{ui:Localize Binding={Binding SearchPlaceholder}}"
                                     Background="Transparent"
                                     BorderThickness="0"
                                     CaretBrush="{StaticResource QuietText}"
@@ -295,7 +295,7 @@
                                     VerticalAlignment="Center"
                                     Foreground="{StaticResource QuietMuted}"
                                     IsHitTestVisible="False"
-                                    Text="{Binding SearchPlaceholder}">
+                                    Text="{ui:Localize Binding={Binding SearchPlaceholder}}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed" />
@@ -323,7 +323,7 @@
                             Style="{StaticResource ModeSortHeader}"
                             ToolTip="{Binding SortByCountLabel}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Objects" />
+                                <TextBlock Text="{ui:Localize 'Objects'}" />
                                 <TextBlock Margin="4,0,0,0" Text="{Binding CountSortArrow}" />
                             </StackPanel>
                         </ToggleButton>
@@ -335,7 +335,7 @@
                             Style="{StaticResource ModeSortHeader}"
                             ToolTip="{Binding SortByNameLabel}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Name" />
+                                <TextBlock Text="{ui:Localize 'Name'}" />
                                 <TextBlock Margin="4,0,0,0" Text="{Binding NameSortArrow}" />
                             </StackPanel>
                         </ToggleButton>
@@ -432,18 +432,18 @@
                                     <DataTemplate DataType="{x:Type lenses:DetailField}">
                                         <Grid Margin="0,0,0,6">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="80" />
+                                                <ColumnDefinition Width="100" />
                                                 <ColumnDefinition Width="*" />
                                             </Grid.ColumnDefinitions>
                                             <TextBlock
                                                 Margin="0,0,6,0"
                                                 FontSize="11"
                                                 Foreground="{StaticResource QuietMuted}"
-                                                Text="{Binding Label}" />
+                                                Text="{ui:Localize Binding={Binding Label}}" />
                                             <TextBlock
                                                 Grid.Column="1"
                                                 FontSize="12"
-                                                Text="{Binding Value}"
+                                                Text="{ui:Localize Binding={Binding}, DetailValue=True}"
                                                 TextWrapping="Wrap" />
                                         </Grid>
                                     </DataTemplate>
@@ -465,21 +465,21 @@
                     <Button
                         Width="28"
                         Padding="0"
-                        AutomationProperties.Name="Previous object"
+                        AutomationProperties.Name="{ui:Localize 'Previous object'}"
                         Command="{Binding PreviousCommand}"
                         Content="‹"
                         DockPanel.Dock="Left"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Previous object" />
+                        ToolTip="{ui:Localize 'Previous object'}" />
                     <Button
                         Width="28"
                         Padding="0"
-                        AutomationProperties.Name="Next object"
+                        AutomationProperties.Name="{ui:Localize 'Next object'}"
                         Command="{Binding NextCommand}"
                         Content="›"
                         DockPanel.Dock="Right"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Next object" />
+                        ToolTip="{ui:Localize 'Next object'}" />
                     <TextBlock
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -501,64 +501,64 @@
                         <RowDefinition Height="26" />
                     </Grid.RowDefinitions>
                     <Button
-                        AutomationProperties.Name="Focus camera"
+                        AutomationProperties.Name="{ui:Localize 'Focus camera'}"
                         Command="{Binding FocusCommand}"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden.">
+                        ToolTip="{ui:Localize 'Fit the current layer, type, or object in the active view. Changes the camera only; hidden objects stay hidden.'}">
                         <StackPanel>
-                            <TextBlock HorizontalAlignment="Center" Text="Focus" />
+                            <TextBlock HorizontalAlignment="Center" Text="{ui:Localize 'Focus'}" />
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 Style="{StaticResource ModeDescriptor}"
-                                Text="Camera" />
+                                Text="{ui:Localize 'Camera'}" />
                         </StackPanel>
                     </Button>
                     <ToggleButton
                         Grid.Row="2"
                         Grid.Column="0"
                         MinHeight="26"
-                        AutomationProperties.Name="Auto Focus"
+                        AutomationProperties.Name="{ui:Localize 'Auto Focus'}"
                         Command="{Binding ToggleAutoFocusCommand}"
                         IsChecked="{Binding IsAutoFocus, Mode=OneWay}"
                         Style="{StaticResource ModeAuto}"
-                        ToolTip="Automatically fit the camera when browsing layers, types, and objects." />
+                        ToolTip="{ui:Localize 'Automatically fit the camera when browsing layers, types, and objects.'}" />
                     <Button
                         Grid.Row="0"
                         Grid.Column="2"
-                        AutomationProperties.Name="Select CAD objects"
+                        AutomationProperties.Name="{ui:Localize 'Select CAD objects'}"
                         Command="{Binding SelectCommand}"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged.">
+                        ToolTip="{ui:Localize 'Select the current layer, type, or object in CAD. Keep the camera and temporary isolation unchanged.'}">
                         <StackPanel>
-                            <TextBlock HorizontalAlignment="Center" Text="Select" />
+                            <TextBlock HorizontalAlignment="Center" Text="{ui:Localize 'Select'}" />
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 Style="{StaticResource ModeDescriptor}"
-                                Text="CAD selection" />
+                                Text="{ui:Localize 'CAD selection'}" />
                         </StackPanel>
                     </Button>
                     <ToggleButton
                         Grid.Row="2"
                         Grid.Column="2"
                         MinHeight="26"
-                        AutomationProperties.Name="Auto Select"
+                        AutomationProperties.Name="{ui:Localize 'Auto Select'}"
                         Command="{Binding ToggleAutoSelectCommand}"
                         IsChecked="{Binding IsAutoSelect, Mode=OneWay}"
                         Style="{StaticResource ModeAuto}"
-                        ToolTip="Automatically select CAD objects while browsing. Works with Auto Focus off." />
+                        ToolTip="{ui:Localize 'Automatically select CAD objects while browsing. Works with Auto Focus off.'}" />
                     <Button
                         Grid.Row="0"
                         Grid.Column="4"
-                        AutomationProperties.Name="Isolate temporarily"
+                        AutomationProperties.Name="{ui:Localize 'Isolate temporarily'}"
                         Command="{Binding IsolateCommand}"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged.">
+                        ToolTip="{ui:Localize 'Temporarily hide other active-space objects. Keep the camera and CAD selection unchanged.'}">
                         <StackPanel>
-                            <TextBlock HorizontalAlignment="Center" Text="Isolate" />
+                            <TextBlock HorizontalAlignment="Center" Text="{ui:Localize 'Isolate'}" />
                             <TextBlock
                                 HorizontalAlignment="Center"
                                 Style="{StaticResource ModeDescriptor}"
-                                Text="Temporary" />
+                                Text="{ui:Localize 'Temporary'}" />
                         </StackPanel>
                     </Button>
                     <ToggleButton
@@ -566,31 +566,31 @@
                         Grid.Row="2"
                         Grid.Column="4"
                         MinHeight="26"
-                        AutomationProperties.Name="Auto Isolate"
+                        AutomationProperties.Name="{ui:Localize 'Auto Isolate'}"
                         Command="{Binding ToggleAutoIsolationCommand}"
                         IsChecked="{Binding IsAutoIsolation, Mode=OneWay}"
                         Style="{StaticResource ModeAuto}"
-                        ToolTip="Automatically hide other active-space objects while browsing. Turning this off restores their display." />
+                        ToolTip="{ui:Localize 'Automatically hide other active-space objects while browsing. Turning this off restores their display.'}" />
                 </Grid>
                 <DockPanel Margin="0,7,0,0">
                     <Button
                         x:Name="ResetAction"
                         Padding="10,4"
-                        AutomationProperties.Name="Reset selection, isolation, and Auto modes"
+                        AutomationProperties.Name="{ui:Localize 'Reset selection, isolation, and Auto modes'}"
                         Command="{Binding ResetCommand}"
-                        Content="Reset"
+                        Content="{ui:Localize 'Reset'}"
                         DockPanel.Dock="Left"
                         Style="{StaticResource ModeButton}"
-                        ToolTip="Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera." />
+                        ToolTip="{ui:Localize 'Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera.'}" />
                     <TextBlock
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"
                         FontSize="10"
                         Foreground="{StaticResource QuietMuted}"
-                        Text="Auto off · camera kept" />
+                        Text="{ui:Localize 'Auto off · camera kept'}" />
                 </DockPanel>
                 <TextBlock
-                    Height="28"
+                    MinHeight="28"
                     Margin="1,4,1,0"
                     AutomationProperties.LiveSetting="Polite"
                     FontSize="11"

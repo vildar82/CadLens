@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Input;
 using JetBrains.Annotations;
@@ -27,6 +29,8 @@ public partial class ExplorerWindow
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+        UiText.Current.PropertyChanged += OnLanguageChanged;
+        ApplyLocalizedAppearanceLabels();
         viewModel.PropertyChanged += OnViewModelChanged;
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
@@ -47,11 +51,76 @@ public partial class ExplorerWindow
     {
         if (args.PropertyName == nameof(ExplorerViewModel.IsLensActive))
             UpdateMode();
+
+        if (args.PropertyName == nameof(ExplorerViewModel.ActiveView))
+            ApplyLocalizedAppearanceLabels();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs args) => UpdateMode();
 
-    private void OnClosed(object? sender, EventArgs args) => _viewModel.PropertyChanged -= OnViewModelChanged;
+    private void OnClosed(object? sender, EventArgs args)
+    {
+        _viewModel.PropertyChanged -= OnViewModelChanged;
+        UiText.Current.PropertyChanged -= OnLanguageChanged;
+    }
+
+    private void LanguageClicked(object sender, RoutedEventArgs args)
+    {
+        var button = (Button)sender;
+        button.ContextMenu.Resources = Resources;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.Placement = PlacementMode.Bottom;
+        button.ContextMenu.IsOpen = true;
+    }
+
+    private void LanguageSelected(object sender, RoutedEventArgs args)
+    {
+        if (Enum.TryParse<LanguagePreference>(((MenuItem)sender).Tag as string, out var preference))
+            UiText.Current.Select(preference);
+    }
+
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args) => ApplyLocalizedAppearanceLabels();
+
+    private void ApplyLocalizedAppearanceLabels()
+    {
+        // Local resources override optional appearance-menu defaults when both features are installed.
+        var viewResources = _viewModel.ActiveView?.Resources;
+
+        foreach (var (key, english) in AppearanceLabels)
+        {
+            var translated = UiText.Current.Get(english);
+            Resources[key] = translated;
+
+            if (viewResources is not null)
+                viewResources[key] = translated;
+        }
+    }
+
+    private static readonly (string Key, string English)[] AppearanceLabels =
+    [
+        ("AppearanceLabel", "Appearance"),
+        ("AppearanceHelp", "Choose a theme, palette, and accent color."),
+        ("ThemeLabel", "Theme"),
+        ("FollowAutoCadLabel", "Follow AutoCAD"),
+        ("LightLabel", "Light"),
+        ("DarkLabel", "Dark"),
+        ("PaletteLabel", "Palette"),
+        ("QuietLabel", "Quiet"),
+        ("GraphiteLabel", "Graphite"),
+        ("PaperLabel", "Paper"),
+        ("AccentLabel", "Accent"),
+        ("MintLabel", "Mint"),
+        ("BlueLabel", "Blue"),
+        ("VioletLabel", "Violet"),
+        ("AmberLabel", "Amber"),
+        ("RestoreDefaultsLabel", "Restore defaults"),
+        ("AppearanceChangesApplied", "Changes apply immediately."),
+        ("EditCutLabel", "Cut"),
+        ("EditCopyLabel", "Copy"),
+        ("EditPasteLabel", "Paste"),
+        ("EditSelectAllLabel", "Select all"),
+        ("AppearanceSaveFailed", "Unable to save preferences. Changes apply for this session.")
+    ];
 
     private void UpdateMode()
     {
@@ -79,7 +148,7 @@ public partial class ExplorerWindow
 
             MinHeight = CompactHeight;
             Height = CompactHeight;
-            Width = MinimumPanelWidth;
+            Width = 340;
             ResizeMode = ResizeMode.NoResize;
         }
     }

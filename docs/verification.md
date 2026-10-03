@@ -41,3 +41,10 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    reopening should restore valid navigation/settings without moving the camera. Retry failed cleanup.
 6. Check keyboard use, narrow layouts, dragging/resizing, mixed-DPI monitors, and a large drawing.
    Compare geometry, entity/layer properties, cameras, and DBMOD before and after temporary effects.
+7. Switch English/Russian/Use Windows language in compact and expanded states. Check both lenses,
+   filters, search, object details, status messages, tooltips, and keyboard access at narrow widths.
+   Changing language while Auto modes or isolation are active must preserve navigation, selection,
+   camera, and isolation. Drawing layer/type/layout names and handles must remain unchanged.
+   Reopen CAD Lens and restart the host to confirm persistence. Check Windows display-language
+   detection with a different regional format and AutoCAD language; unsupported Windows languages
+   should use English. Test a fresh bundle and a manual NETLOAD copy including the ru subdirectory.
