@@ -23,8 +23,8 @@ not security isolation. This desktop session may expose only generic spawning: i
 the selected role file and pass its developer_instructions explicitly to the spawned agent. Report
 that fallback rather than claiming the custom role was automatically loaded.
 
-Read current AGENTS.md, README.md, docs/SDD.md, and the relevant current and in-progress OpenSpec
-requirements. Verify facts against current source; screenshots can become stale. Begin with
+Read current AGENTS.md, README.md, and the source and tests relevant to the requested behavior.
+Verify facts against current source; screenshots can become stale. Begin with
 src/CadLens.UI/Views/ExplorerWindow.xaml and src/CadLens.UI/Lenses/Layers/Views/LayersView.xaml.
 
 The current product is one movable window over an AutoCAD drawing, with a compact inactive lens bar
@@ -37,7 +37,7 @@ agreement; visual alternatives may vary hierarchy, spacing, typography, and plac
 
 | Role | Input | Deliverable |
 | --- | --- | --- |
-| ux_reviewer | Current UI, scenarios, specs | Prioritized problems with evidence and acceptance criteria |
+| ux_reviewer | Current UI, scenarios, behavior | Prioritized problems with evidence and acceptance criteria |
 | visual_designer | Brief, UX findings, current UI | Runnable WPF variants, screenshots, and interaction details |
 | wpf_developer | Prototype task or selected variant | Temporary WPF prototype or production integration |
 | ui_reviewer | Brief or selected variant, implementation, criteria | Independent findings and verification gaps |
@@ -55,9 +55,9 @@ agreement; visual alternatives may vary hierarchy, spacing, typography, and plac
    For the current experiment, preserve A's preferred narrow structure and explore richer restrained treatments.
 4. Build, launch, inspect, and independently review the variants. Show launch/switch instructions,
    variant names, screenshots, and specific interaction tasks. Let the user try them in one app.
-5. Before production integration, follow docs/SDD.md for the selected design, one planning artifact
-   at a time. Give the developer the selected variant, scope, criteria, and exact file ownership.
-   A running prototype or successful specification validation does not select a production design.
+5. Once the user selects a design, give the developer the selected variant, scope, criteria, and
+   exact file ownership for production integration. A running prototype does not select a design;
+   no separate planning artifacts are required.
 6. Give the reviewer the brief or selected design and evidence without coaching it toward a pass.
    Route required fixes to the developer, then recheck affected scenarios. After two unsuccessful
    correction rounds, summarize the unresolved tradeoff for the user instead of cycling indefinitely.
