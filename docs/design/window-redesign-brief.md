@@ -68,7 +68,7 @@ real mouse/keyboard feedback, and loading/empty/error examples. Inspect running 
 WPF developer: own temporary prototype support, with separate file ownership.
 Coordinator: reconcile constraints and findings, present tradeoffs, and help the user compare tasks.
 UI reviewer: check concept coverage and clarity before presentation; report visual evidence limits.
-Production integration starts after the user chooses a variant and the project's planning steps are agreed.
+Production integration starts after the user chooses a variant and the implementation scope is clear.
 
 ## Review with the user
 

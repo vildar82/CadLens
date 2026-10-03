@@ -7,6 +7,13 @@
 - Prefer deleting unnecessary concepts to renaming them or distributing them across more classes.
 - A host task service must execute queued work directly; do not nest one execution service inside another.
 
+## Working approach
+
+- Use current code and tests as the maintained behavior contract. Inspect affected source, tests, and host boundaries before changing behavior; update affected tests when intended behavior changes.
+- Make routine implementation and maintenance decisions within the user's task scope. Apply ordinary fixes directly without mandatory proposal, design, or task documents.
+- Keep instructions for stable working rules and docs for useful usage guidance, durable decisions, or non-obvious constraints. Remove stale or duplicated documentation.
+- Run relevant managed checks and report their limits. Native AutoCAD/Civil 3D checks belong to the user; provide concise scenarios when needed without treating unavailable host checks as a blocker to agent-side work.
+
 ## Language
 
 - Use English in project instructions, documentation, specifications, code comments, and user-facing text.
@@ -17,7 +24,7 @@
 
 - Keep each PR focused on one coherent change. Put unrelated fixes, cleanup, and experiments in separate PRs.
 - Use a specific English title that describes the result and reads well in release notes. Avoid generic titles such as "Fix", "Update", or "Bundle".
-- Describe the final diff: why the change is needed, what it changes, and how it was verified. Link the relevant issue or OpenSpec change when there is one.
+- Describe the final diff: why the change is needed, what it changes, and how it was verified. Link the relevant issue when there is one.
 - Report managed checks and native AutoCAD/Civil 3D observations separately. Do not include unverified claims, unrelated work, or a running implementation diary.
 - Before merging, review the final diff, title, description, and CI result. Update the PR text if its scope changed.
 

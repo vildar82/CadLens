@@ -99,9 +99,9 @@ The shell discovers `ILens` registrations, creates their views lazily on the UI 
 
 Only `LayersLens` is registered in production. Its WPF files and `ILayersActions` live in `src/CadLens.UI/Lenses/Layers`; its provider, models, and navigation live in `CadLens.Lenses`. The AutoCAD adapter provides drawing operations. Tests register an unrelated Counter lens to check that the shell can load another module without Layers-specific changes.
 
-### Specifications and CI
+### CI and releases
 
-The project uses OpenSpec to agree on behavior and verification criteria before implementing a slice. See [the spec-driven development guide](docs/SDD.md) and the [current command specification](openspec/specs/autocad-command/spec.md).
+Current code and tests describe the supported behavior. Keep documentation for usage, important decisions, and host constraints; ordinary changes do not require separate planning artifacts.
 
 On every push, the Windows GitHub Actions workflow restores dependencies, builds the solution, runs managed tests, and uploads the bundle ZIP. Native AutoCAD rendering and lifecycle checks are separate.
 
@@ -111,15 +111,7 @@ GitHub generates the release description from merged pull request titles, contri
 
 ## Verification
 
-The first plugin is implemented, and its bootstrap, Layers, panel, and navigation changes are archived. Their records distinguish managed checks, UI preview checks, and native host observations:
-
-- [First Layers lens verification](openspec/changes/archive/2026-09-20-first-layers-lens/verification.md)
-- [Panel and lens switching verification](openspec/changes/archive/2026-09-26-lens-panel-and-switching/verification.md)
-- [Independent navigation modes verification](openspec/changes/archive/2026-09-26-independent-navigation-modes/verification.md)
-
-The current Isolate implementation is described in the active [isolation design](openspec/changes/improve-entity-highlighting/design.md). The archived rendering checks above concern the previous Highlight behavior and do not verify Isolate. A diagnostic host probe showed a hatch and block insertion could be hidden with the visibility flag; broader isolation behavior and cleanup still need native checks.
-
-The original bootstrap DLL was loaded with `NETLOAD` in Civil 3D 2026 on September 19, 2026; that check used an earlier greeting command. Before the isolation change, the user reported that the panel and navigation worked in AutoCAD, but the host version and individual scenario results were not recorded. Separate standard AutoCAD 2025 and 2026 installations, and loading the new bundle in a native host, have not been verified here. Managed builds, tests, and preview behavior do not establish those host results.
+See the [verification guide](docs/verification.md) for managed checks, native AutoCAD scenarios, and the current evidence limits. Build and test results do not establish native rendering, lifecycle, or host compatibility. Earlier Layers and Highlight acceptance does not verify the current Isolate behavior.
 
 ## Future ideas
 
