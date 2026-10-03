@@ -274,6 +274,7 @@ public sealed class AppearanceTests
                 var track = Assert.IsType<Track>(scrollbar.Template.FindName("PART_Track", scrollbar));
                 var thumb = track.Thumb;
                 Assert.True(scroller.ScrollableHeight > 0);
+                Assert.Equal(8, scrollbar.ActualWidth);
                 Assert.True(thumb.ActualHeight >= 24, $"Scrollbar thumb is only {thumb.ActualHeight} px high.");
                 Assert.Equal(
                     scrollbar.Maximum - scrollbar.Minimum,

@@ -65,3 +65,18 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    Fresh sessions must start at the root list without old drawing targets or effects. Switch drawings
    and spaces to confirm preferences survive while navigation resets. Press Reset and reopen again:
    Auto modes should stay off while filters, search, and sorting remain saved.
+9. Browse polylines of all three families, repeated/dynamic/attributed blocks, hatches (patterned, solid,
+   and gradient), splines, lines, circles/arcs, text, and custom objects. Confirm row measurements,
+   missing values, named block details, and the separation of lineweight, width, and extrusion thickness.
+   Count nested block insertions once, attribute definitions in the definition count, insertion attributes
+   separately, and show unavailable counts for xrefs. These are structural counts, not visibility counts.
+   Choose different numeric and text fields with Show property, check row values, sort in both directions,
+   and check Previous/Next, including changing the property while an object is open. Combine Color,
+   Linetype, and Lineweight or hatch Pattern and Angle. Compare each subgroup's Select/Isolate targets
+   with its objects. Preserve a selected object when regrouping or refreshing changed properties.
+   Check changed subgroup targets with Auto modes enabled. Reopen both lenses to verify their independent per-type grouping choices.
+   Switch language, test narrow widths and long names, and confirm grouping stays unchanged. Refresh
+   after editing properties; grouping and sorting alone must not reread the drawing.
+   Change `LUPREC` and `AUPREC`, then Refresh. Check rounded rows, group captions, details, and tooltips
+   in English and Russian. Values that round to the same caption should keep their distinct groups
+   and exact numeric sort order. Check themed grouping checkboxes and centered labels in Light/Dark.

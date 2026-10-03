@@ -14,9 +14,12 @@ public static class EntityTypeExtensions
         "AcDbArc" => "Arc",
         "AcDbCircle" => "Circle",
         "AcDbBlockReference" => "Block insertion",
+        "AcDbMInsertBlock" => "Block array",
         "AcDbMText" => "MText",
         "AcDbText" => "Text",
         "AcDbHatch" => "Hatch",
+        "AcDbSpline" => "Spline",
+        "AcDbMline" => "Multiline",
         _ => key
     };
 }

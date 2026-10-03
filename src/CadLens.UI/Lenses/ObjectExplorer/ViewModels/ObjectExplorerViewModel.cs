@@ -14,11 +14,19 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     private readonly DrawingGrouping _grouping;
     private readonly SettingsService? _settings;
     private readonly string _settingsFileName;
+
+    private readonly Dictionary<string, ImmutableArray<DrawingPropertyId>> _propertyGrouping =
+        new(StringComparer.Ordinal);
+
+    private readonly Dictionary<string, DrawingPropertyId> _displayProperties = new(StringComparer.Ordinal);
+
     private readonly NavigationState _navigation = new();
+    private DrawingInventory? _inventory;
+    private LensNode? _propertyOptionsType;
+    private string _searchText = "";
     private ImmutableHashSet<string> _enabledFilters = [];
     private CancellationToken _activationToken;
     private string _emptyMessage = "Refresh to explore the active space.";
-    private string _searchText = "";
     private CancellationTokenSource? _pendingRequest;
     private Task _operation = Task.CompletedTask;
     private ImmutableArray<LensNode> _visibleGroups = [];
@@ -33,7 +41,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
     /// <param name="grouping">Root organization for this lens.</param>
-    /// <param name="settings">Optional persistent preferences; omitted for isolated transient sessions.</param>
+    /// <param name="settings">Optional persistent preferences for this lens.</param>
     public ObjectExplorerViewModel(
         IObjectExplorerActions actions,
         DrawingGrouping grouping,
@@ -80,6 +88,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         ToggleFilterCommand = new AsyncRelayCommand<FilterOption>(
             filter => ExecuteActionAsync(token => ToggleFilterAsync(filter!, token)),
             filter => CanRun() && filter is not null && Filters.Contains(filter));
+        ToggleGroupingCommand = new AsyncRelayCommand<GroupingOption>(
+            option => ExecuteActionAsync(token => ToggleGroupingAsync(option!, token)),
+            option => CanRun() && CanGroup && option is not null && GroupingOptions.Contains(option));
+        SelectDisplayPropertyCommand = new RelayCommand<GroupingOption>(
+            SelectDisplayProperty,
+            option => CanRun() && CanGroup && option is not null && DisplayPropertyOptions.Contains(option));
         ToggleAutoIsolationCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(ToggleAutoIsolationAsync),
             CanRun);
@@ -113,6 +127,13 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             _status,
             new UiMessage("Unable to save preferences. Changes apply for this session.")).ToString()
         : _status.ToString();
+
+    /// <summary>Numeric display precision from the most recent drawing inventory.</summary>
+    public DrawingPrecision Precision
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = DrawingPrecision.Default;
 
     /// <summary>Active space supplied by the lens.</summary>
     public string SpaceLabel
@@ -172,13 +193,116 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     /// <summary>Accessible description of name sorting.</summary>
     public string SortByNameLabel => UiText.Current.Get(
-        _grouping == DrawingGrouping.Layers ? "Sort layers by name" : "Sort types by name");
+        Current is null
+            ? _grouping == DrawingGrouping.Layers ? "Sort layers by name" : "Sort types by name"
+            : "Sort by name");
 
     /// <summary>Accessible description of count sorting.</summary>
     public string SortByCountLabel => UiText.Current.Get(
-        _grouping == DrawingGrouping.Layers
-            ? "Sort layers by object count"
-            : "Sort types by object count");
+        Current is { } node && node.Children.All(child => child.Kind == LensNodeKind.Object)
+            ? DisplayPropertyId is { } id ? DrawingProperties.GetLabel(id) : "Details"
+            : "Objects");
+
+    private LensNode? GroupingType => _navigation.Path.FirstOrDefault(node => node.Kind == LensNodeKind.Type);
+    private string? GroupingTypeKey => GroupingType?.TypeKey;
+
+    /// <summary>Whether properties of the current primitive type can be combined.</summary>
+    public bool CanGroup => _inventory is not null && GroupingTypeKey is not null;
+
+    private ImmutableArray<DrawingPropertyId> AvailableProperties
+    {
+        get
+        {
+            if (_inventory is null || GroupingType is not { } type)
+            {
+                _propertyOptionsType = null;
+                field = [];
+                return field;
+            }
+
+            if (ReferenceEquals(type, _propertyOptionsType))
+                return field;
+
+            var targets = type.Objects.ToHashSet();
+            field = DrawingProperties.GetAvailableFields(
+                _inventory.Entities.Where(entity => targets.Contains(entity.Id)));
+            _propertyOptionsType = type;
+
+            return field;
+        }
+    } = [];
+
+    /// <summary>Property displayed beside objects and used for value sorting.</summary>
+    public DrawingPropertyId? DisplayPropertyId
+    {
+        get
+        {
+            if (GroupingTypeKey is not { } typeKey)
+                return null;
+
+            var available = AvailableProperties;
+
+            if (_displayProperties.TryGetValue(typeKey, out var selected) && available.Contains(selected))
+                return selected;
+
+            return GroupingType?.RowMetric is { } metric && available.Contains(metric.Id)
+                ? metric.Id
+                : available.IsEmpty
+                    ? null
+                    : available[0];
+        }
+    }
+
+    /// <summary>Localized caption of the currently displayed property.</summary>
+    public string DisplayPropertyLabel => DisplayPropertyId is { } id
+        ? UiText.Current.Get(DrawingProperties.GetLabel(id))
+        : UiText.Current.Get("Details");
+
+    /// <summary>Observed properties available for the single displayed column.</summary>
+    public ImmutableArray<GroupingOption> DisplayPropertyOptions
+    {
+        get
+        {
+            var selected = DisplayPropertyId;
+
+            return
+            [
+                .. AvailableProperties.Select(id => new GroupingOption(
+                    id,
+                    DrawingProperties.GetLabel(id),
+                    id == selected))
+            ];
+        }
+    }
+
+    /// <summary>Properties observed in this type's detached snapshots.</summary>
+    public ImmutableArray<GroupingOption> GroupingOptions
+    {
+        get
+        {
+            if (_inventory is null || GroupingTypeKey is not { } typeKey)
+                return [];
+
+            var selected = _propertyGrouping.GetValueOrDefault(typeKey, []);
+            return
+            [
+                .. AvailableProperties
+                    .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), selected.Contains(id)))
+            ];
+        }
+    }
+
+    /// <summary>Readable combination of the selected grouping properties.</summary>
+    public string GroupingSummary
+    {
+        get
+        {
+            var labels = GroupingOptions.Where(option => option.IsSelected)
+                .Select(option => UiText.Current.Get(option.Label)).ToList();
+
+            return labels.Count == 0 ? UiText.Current.Get("None") : string.Join(" + ", labels);
+        }
+    }
 
     /// <summary>Groups from the most recent inventory.</summary>
     public ImmutableArray<LensNode> Groups
@@ -305,6 +429,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Reloads inventory with one inclusion option toggled.</summary>
     public IAsyncRelayCommand<FilterOption> ToggleFilterCommand { get; }
 
+    /// <summary>Combines a property with the other checked properties using the retained inventory.</summary>
+    public IAsyncRelayCommand<GroupingOption> ToggleGroupingCommand { get; }
+
+    /// <summary>Changes the displayed object property without another drawing read or host effects.</summary>
+    public IRelayCommand<GroupingOption> SelectDisplayPropertyCommand { get; }
+
     /// <summary>Switches navigation isolation on or off.</summary>
     public IAsyncRelayCommand ToggleAutoIsolationCommand { get; }
 
@@ -350,6 +480,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
+        _inventory = null;
+        Precision = DrawingPrecision.Default;
         Groups = [];
         _navigation.Reset([], false);
 
@@ -402,12 +534,17 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     {
         _sortDescending = IsCountSortActive == byCount ? !_sortDescending : byCount;
         IsCountSortActive = byCount;
+        NotifySorting();
+        UpdateVisibleGroups();
+        SavePreferences();
+    }
+
+    private void NotifySorting()
+    {
         OnPropertyChanged(nameof(IsNameSortActive));
         OnPropertyChanged(nameof(IsCountSortActive));
         OnPropertyChanged(nameof(NameSortArrow));
         OnPropertyChanged(nameof(CountSortArrow));
-        UpdateVisibleGroups();
-        SavePreferences();
     }
 
     private void RestorePreferences()
@@ -422,6 +559,25 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         IsCountSortActive = preferences.IsCountSortActive;
         _sortDescending = preferences.SortDescending;
         _searchText = preferences.SearchText ?? "";
+
+        foreach (var (typeKey, names) in preferences.PropertyGrouping ?? [])
+        {
+            var fields = new List<DrawingPropertyId>();
+
+            foreach (var name in names ?? [])
+            {
+                if (Enum.TryParse<DrawingPropertyId>(name, out var id) && Enum.IsDefined(id))
+                    fields.Add(id);
+            }
+
+            _propertyGrouping[typeKey] = [.. fields.Distinct().Order()];
+        }
+
+        foreach (var (typeKey, name) in preferences.DisplayProperties ?? [])
+        {
+            if (Enum.TryParse<DrawingPropertyId>(name, out var id) && Enum.IsDefined(id))
+                _displayProperties[typeKey] = id;
+        }
     }
 
     private void SavePreferences()
@@ -436,9 +592,37 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             [.. _enabledFilters.Order(StringComparer.Ordinal)],
             SearchText,
             IsCountSortActive,
-            _sortDescending);
+            _sortDescending,
+            _propertyGrouping.ToDictionary(pair => pair.Key, pair => pair.Value.Select(id => id.ToString()).ToArray()),
+            _displayProperties.ToDictionary(pair => pair.Key, pair => pair.Value.ToString()));
         _saveFailed = !_settings.Save(_settingsFileName, preferences);
         OnPropertyChanged(nameof(Status));
+    }
+
+    private IEnumerable<LensNode> OrderItems(IEnumerable<LensNode> items)
+    {
+        if (!IsCountSortActive)
+            return _sortDescending
+                ? items.OrderByDescending(Label, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(node => node.Id, StringComparer.Ordinal)
+                : items.OrderBy(Label, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(node => node.Id, StringComparer.Ordinal);
+
+        var property = DisplayPropertyId;
+        var comparer = Comparer<DrawingValue?>.Create(DrawingProperties.CompareValues);
+        var availableFirst = items.OrderBy(node => Value(node) is null);
+        var ordered = _sortDescending
+            ? availableFirst.ThenByDescending(Value, comparer)
+            : availableFirst.ThenBy(Value, comparer);
+
+        return ordered.ThenBy(Label, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(node => node.Id, StringComparer.Ordinal);
+
+        DrawingValue? Value(LensNode node) => node.Kind == LensNodeKind.Object
+            ? property is { } id ? DrawingProperties.GetValue(node, id) : node.RowMetric?.Value
+            : new DrawingNumberValue(node.Count, DrawingUnit.Count);
+
+        string Label(LensNode node) => DrawingValueFormatter.FormatLabel(node, Precision);
     }
 
     private void UpdateVisibleGroups()
@@ -446,22 +630,15 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         var groups = Groups.Where(group => group.Label.Contains(
             SearchText.Trim(),
             StringComparison.OrdinalIgnoreCase));
-        _visibleGroups =
-        [
-            .. IsCountSortActive
-                ? _sortDescending
-                    ? groups.OrderByDescending(group => group.Count)
-                        .ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
-                    : groups.OrderBy(group => group.Count)
-                        .ThenBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
-                : _sortDescending
-                    ? groups.OrderByDescending(group => group.Label, StringComparer.OrdinalIgnoreCase)
-                    : groups.OrderBy(group => group.Label, StringComparer.OrdinalIgnoreCase)
-        ];
+        _visibleGroups = [.. OrderItems(groups)];
+        _navigation.SetItemOrder(OrderItems);
         OnPropertyChanged(nameof(Items));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(EmptyMessage));
+        OnPropertyChanged(nameof(ObjectPosition));
         EnterCommand.NotifyCanExecuteChanged();
+        PreviousCommand.NotifyCanExecuteChanged();
+        NextCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>Loads the lens view for the active session.</summary>
@@ -567,6 +744,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         PreviousCommand.NotifyCanExecuteChanged();
         NextCommand.NotifyCanExecuteChanged();
         ToggleFilterCommand.NotifyCanExecuteChanged();
+        ToggleGroupingCommand.NotifyCanExecuteChanged();
+        SelectDisplayPropertyCommand.NotifyCanExecuteChanged();
         ToggleAutoIsolationCommand.NotifyCanExecuteChanged();
         ToggleAutoSelectCommand.NotifyCanExecuteChanged();
         ToggleAutoFocusCommand.NotifyCanExecuteChanged();
@@ -585,6 +764,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         if (result is not HostResult<LensPresentation>.Success success)
         {
+            _inventory = null;
+            Precision = DrawingPrecision.Default;
             Groups = [];
             _navigation.Reset([], false);
             NotifyNavigation();
@@ -601,7 +782,11 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         RootLabel = success.Value.RootLabel;
         SearchPlaceholder = success.Value.SearchPlaceholder;
         GroupLabel = success.Value.GroupLabel;
-        Groups = success.Value.Groups;
+        _inventory = success.Value.Inventory;
+        Precision = success.Value.Precision ?? _inventory?.Precision ?? DrawingPrecision.Default;
+        Groups = _inventory is not null && _propertyGrouping.Values.Any(fields => !fields.IsDefaultOrEmpty)
+            ? DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping).Groups
+            : success.Value.Groups;
         _emptyMessage = success.Value.EmptyMessage;
         _enabledFilters = _enabledFilters.Intersect(success.Value.Filters.Select(filter => filter.Id));
         Filters =
@@ -749,6 +934,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
                 throw;
 
             Groups = [];
+            _inventory = null;
             _navigation.Reset([], false);
             NotifyNavigation();
 
@@ -765,7 +951,70 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsObject));
         OnPropertyChanged(nameof(ObjectPosition));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(SortByCountLabel));
+        OnPropertyChanged(nameof(SortByNameLabel));
+        OnPropertyChanged(nameof(CanGroup));
+        OnPropertyChanged(nameof(GroupingOptions));
+        OnPropertyChanged(nameof(GroupingSummary));
+        OnPropertyChanged(nameof(DisplayPropertyId));
+        OnPropertyChanged(nameof(DisplayPropertyLabel));
+        OnPropertyChanged(nameof(DisplayPropertyOptions));
         NotifyCommands();
+    }
+
+    private void SelectDisplayProperty(GroupingOption? option)
+    {
+        if (option is null || GroupingTypeKey is not { } typeKey)
+            return;
+
+        _displayProperties[typeKey] = option.Id;
+
+        if (!IsCountSortActive)
+        {
+            IsCountSortActive = true;
+            _sortDescending = false;
+        }
+
+        NotifySorting();
+        UpdateVisibleGroups();
+        NotifyNavigation();
+        SavePreferences();
+    }
+
+    private async Task<UiMessage> ToggleGroupingAsync(GroupingOption option, CancellationToken cancellationToken)
+    {
+        if (_inventory is null || GroupingTypeKey is not { } typeKey)
+            return "Grouping unavailable.";
+
+        var selected = _propertyGrouping.GetValueOrDefault(typeKey, []);
+        _propertyGrouping[typeKey] = option.IsSelected
+            ? selected.Remove(option.Id)
+            : [.. selected.Append(option.Id).Distinct().Order()];
+        var previousTargets = Current?.Objects ?? [];
+        Groups = DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping).Groups;
+        _navigation.Reset(Groups, true);
+        NotifyNavigation();
+        SavePreferences();
+
+        if (Current is null || previousTargets.SequenceEqual(Current.Objects))
+            return "Grouping updated.";
+
+        List<UiMessage> messages = [];
+
+        if (IsAutoSelect)
+            messages.Add(await SelectCurrentAsync(cancellationToken));
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (IsAutoIsolation)
+            messages.Add(await _actions.IsolateObjectsAsync(Current.Objects, cancellationToken));
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (IsAutoFocus)
+            messages.Add(await FocusCurrentAsync(cancellationToken));
+
+        return messages.Count == 0 ? "Grouping updated." : new UiMessage("{0}", string.Join(" ", messages));
     }
 
     private Task ExecuteActionAsync(Func<CancellationToken, Task<UiMessage>> action)
@@ -809,7 +1058,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(string.Empty);
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        UpdateVisibleGroups();
+        OnPropertyChanged(string.Empty);
+        NotifyCommands();
+    }
 
     private void SetStatus(UiMessage message)
     {

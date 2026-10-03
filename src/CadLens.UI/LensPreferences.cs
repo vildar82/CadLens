@@ -8,4 +8,6 @@ internal sealed record LensPreferences(
     string[]? EnabledFilters = null,
     string? SearchText = null,
     bool IsCountSortActive = false,
-    bool SortDescending = false);
+    bool SortDescending = false,
+    Dictionary<string, string[]>? PropertyGrouping = null,
+    Dictionary<string, string>? DisplayProperties = null);

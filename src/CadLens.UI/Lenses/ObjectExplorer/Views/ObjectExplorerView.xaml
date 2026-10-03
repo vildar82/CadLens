@@ -66,8 +66,7 @@
                                     Margin="0,0,5,0"
                                     Padding="6,4"
                                     AutomationProperties.Name="{ui:Localize Binding={Binding Descriptor.Label}}"
-                                    Command="{Binding DataContext.ToggleFilterCommand,
-                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Command="{Binding DataContext.ToggleFilterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}"
                                     FontSize="11"
                                     IsChecked="{Binding IsEnabled, Mode=OneWay}"
@@ -165,13 +164,12 @@
                                 <Button
                                     Margin="0,0,3,0"
                                     Padding="5,4"
-                                    Command="{Binding DataContext.BreadcrumbCommand,
-                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    Command="{Binding DataContext.BreadcrumbCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                     CommandParameter="{Binding}"
                                     FontSize="11"
                                     Style="{StaticResource ModeButton}"
-                                    ToolTip="{Binding Label}">
-                                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                                    ToolTip="{ui:DrawingValueFormatter Binding={Binding}}">
+                                    <TextBlock Text="{ui:DrawingValueFormatter Binding={Binding}}" TextTrimming="CharacterEllipsis" />
                                 </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -182,9 +180,154 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
+                <Grid Margin="0,0,0,6" Visibility="{Binding CanGroup, Converter={StaticResource BooleanVisibility}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ToggleButton
+                        x:Name="GroupingAction"
+                        Padding="8,5"
+                        HorizontalContentAlignment="Stretch"
+                        AutomationProperties.Name="{ui:Localize 'Group by properties'}"
+                        FontSize="11"
+                        Style="{StaticResource ModeToggle}"
+                        ToolTip="{ui:Localize 'Choose properties to combine into one group'}">
+                        <DockPanel>
+                            <TextBlock
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                DockPanel.Dock="Right"
+                                Text="▾" />
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="10"
+                                    Foreground="{DynamicResource QuietMuted}"
+                                    Text="{ui:Localize 'Group by'}" />
+                                <TextBlock
+                                    Text="{Binding GroupingSummary}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTip="{Binding GroupingSummary}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </ToggleButton>
+                    <Popup
+                        x:Name="GroupingPopup"
+                        Grid.Column="0"
+                        AllowsTransparency="True"
+                        DataContext="{Binding DataContext, ElementName=GroupingAction}"
+                        IsOpen="{Binding IsChecked, ElementName=GroupingAction, Mode=TwoWay}"
+                        Placement="Bottom"
+                        PlacementTarget="{Binding ElementName=GroupingAction}"
+                        StaysOpen="False">
+                        <Border
+                            Width="{Binding ActualWidth, ElementName=GroupingAction}"
+                            MinWidth="180"
+                            MaxHeight="320"
+                            Padding="7"
+                            Background="{DynamicResource QuietSurface}"
+                            BorderBrush="{DynamicResource QuietBorder}"
+                            BorderThickness="1"
+                            CornerRadius="5">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding GroupingOptions}" Tag="{Binding ToggleGroupingCommand}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type ui:GroupingOption}">
+                                            <CheckBox
+                                                Margin="0,0,0,3"
+                                                AutomationProperties.Name="{ui:Localize Binding={Binding Label}}"
+                                                Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                Content="{ui:Localize Binding={Binding Label}}"
+                                                IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                Style="{StaticResource QuietCheckBox}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                    <ToggleButton
+                        x:Name="DisplayPropertyAction"
+                        Grid.Column="2"
+                        Padding="8,5"
+                        HorizontalContentAlignment="Stretch"
+                        AutomationProperties.Name="{ui:Localize 'Show property'}"
+                        FontSize="11"
+                        Style="{StaticResource ModeToggle}"
+                        ToolTip="{ui:Localize 'Choose the property shown in object rows'}">
+                        <DockPanel>
+                            <TextBlock
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                DockPanel.Dock="Right"
+                                Text="▾" />
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="10"
+                                    Foreground="{DynamicResource QuietMuted}"
+                                    Text="{ui:Localize 'Show property'}" />
+                                <TextBlock
+                                    Text="{Binding DisplayPropertyLabel}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTip="{Binding DisplayPropertyLabel}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </ToggleButton>
+                    <Popup
+                        x:Name="DisplayPropertyPopup"
+                        Grid.Column="2"
+                        AllowsTransparency="True"
+                        DataContext="{Binding DataContext, ElementName=DisplayPropertyAction}"
+                        IsOpen="{Binding IsChecked, ElementName=DisplayPropertyAction, Mode=TwoWay}"
+                        Placement="Bottom"
+                        PlacementTarget="{Binding ElementName=DisplayPropertyAction}"
+                        StaysOpen="False">
+                        <Border
+                            Width="{Binding ActualWidth, ElementName=DisplayPropertyAction}"
+                            MinWidth="180"
+                            MaxHeight="320"
+                            Padding="7"
+                            Background="{DynamicResource QuietSurface}"
+                            BorderBrush="{DynamicResource QuietBorder}"
+                            BorderThickness="1"
+                            CornerRadius="5">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding DisplayPropertyOptions}" Tag="{Binding SelectDisplayPropertyCommand}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type ui:GroupingOption}">
+                                            <Button
+                                                Margin="0,0,0,3"
+                                                Padding="5,4"
+                                                AutomationProperties.Name="{ui:Localize Binding={Binding Label}}"
+                                                Click="DisplayPropertyClicked"
+                                                Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource ModeRow}">
+                                                <DockPanel>
+                                                    <TextBlock
+                                                        Margin="7,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        DockPanel.Dock="Right"
+                                                        Foreground="{DynamicResource QuietAccent}"
+                                                        Text="✓"
+                                                        Visibility="{Binding IsSelected, Converter={StaticResource BooleanVisibility}}" />
+                                                    <TextBlock VerticalAlignment="Center" Text="{ui:Localize Binding={Binding Label}}" />
+                                                </DockPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                </Grid>
                 <Border
+                    Grid.Row="1"
                     Margin="0,0,0,6"
                     Padding="9,7"
                     Background="{DynamicResource QuietSurface}"
@@ -209,9 +352,9 @@
                         <TextBlock
                             FontSize="13"
                             FontWeight="SemiBold"
-                            Text="{Binding Current.Label, FallbackValue=''}"
+                            Text="{ui:DrawingValueFormatter Binding={Binding Current}}"
                             TextTrimming="CharacterEllipsis"
-                            ToolTip="{Binding Current.Label, FallbackValue=''}" />
+                            ToolTip="{ui:DrawingValueFormatter Binding={Binding Current}}" />
                         <TextBlock
                             Margin="0,2,0,0"
                             FontSize="11"
@@ -221,11 +364,11 @@
                                                Format='{}{0:N0} objects'}" />
                     </StackPanel>
                 </Border>
-                <Grid Grid.Row="1" Margin="0,0,0,5">
+                <Grid Grid.Row="2" Margin="0,0,0,5">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasCurrent}" Value="True">
+                                <DataTrigger Binding="{Binding IsObject}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -245,6 +388,9 @@
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasCurrent}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
                                     <Trigger Property="IsKeyboardFocusWithin" Value="True">
                                         <Setter Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
                                     </Trigger>
@@ -325,7 +471,7 @@
                             Style="{StaticResource ModeSortHeader}"
                             ToolTip="{Binding SortByCountLabel}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{ui:Localize 'Objects'}" />
+                                <TextBlock Text="{Binding SortByCountLabel}" />
                                 <TextBlock Margin="4,0,0,0" Text="{Binding CountSortArrow}" />
                             </StackPanel>
                         </ToggleButton>
@@ -344,14 +490,14 @@
                     </DockPanel>
                 </Grid>
                 <TextBlock
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Margin="2,8"
                     Foreground="{DynamicResource QuietMuted}"
                     Text="{Binding EmptyMessage}"
                     TextWrapping="Wrap"
                     Visibility="{Binding IsEmpty, Converter={StaticResource BooleanVisibility}}" />
                 <ListBox
-                    Grid.Row="2"
+                    Grid.Row="3"
                     Padding="0"
                     Background="Transparent"
                     BorderThickness="0"
@@ -387,24 +533,40 @@
                         <DataTemplate DataType="{x:Type lenses:LensNode}">
                             <Button
                                 Margin="0,0,0,4"
-                                AutomationProperties.Name="{Binding Label}"
-                                Command="{Binding DataContext.EnterCommand,
-                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                AutomationProperties.Name="{ui:DrawingValueFormatter Binding={Binding}}"
+                                Command="{Binding DataContext.EnterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 Style="{StaticResource ModeRow}"
-                                ToolTip="{Binding Label}">
+                                ToolTip="{ui:DrawingValueFormatter Binding={Binding}}">
                                 <DockPanel>
                                     <TextBlock
                                         Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
                                         DockPanel.Dock="Right"
                                         Foreground="{DynamicResource QuietAccent}"
                                         Text="›" />
                                     <TextBlock
+                                        MaxWidth="120"
+                                        MaxHeight="18"
                                         Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
                                         DockPanel.Dock="Right"
                                         Foreground="{DynamicResource QuietMuted}"
-                                        Text="{Binding Count, StringFormat={}{0:N0}}" />
-                                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                                        Text="{ui:DrawingValueFormatter Binding={Binding},
+                                                                        Metric=True,
+                                                                        PropertyBinding={Binding DataContext.DisplayPropertyId,
+                                                                                                 RelativeSource={RelativeSource AncestorType=UserControl}}}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip="{ui:DrawingValueFormatter Binding={Binding},
+                                                                           ValueToolTip=True,
+                                                                           PropertyBinding={Binding DataContext.DisplayPropertyId,
+                                                                                                    RelativeSource={RelativeSource AncestorType=UserControl}}}" />
+                                    <TextBlock
+                                        MaxHeight="34"
+                                        VerticalAlignment="Center"
+                                        Text="{ui:DrawingValueFormatter Binding={Binding}}"
+                                        TextTrimming="CharacterEllipsis"
+                                        TextWrapping="Wrap" />
                                 </DockPanel>
                             </Button>
                         </DataTemplate>
@@ -412,7 +574,7 @@
                 </ListBox>
                 <ScrollViewer
                     x:Name="ObjectDetails"
-                    Grid.Row="0"
+                    Grid.Row="1"
                     Grid.RowSpan="3"
                     HorizontalScrollBarVisibility="Disabled"
                     VerticalScrollBarVisibility="Auto"
@@ -428,7 +590,7 @@
                                 Margin="0,0,0,9"
                                 FontSize="14"
                                 FontWeight="SemiBold"
-                                Text="{Binding Current.Label, FallbackValue=''}"
+                                Text="{ui:DrawingValueFormatter Binding={Binding Current}}"
                                 TextWrapping="Wrap" />
                             <ItemsControl ItemsSource="{Binding Current.Fields, FallbackValue={x:Null}}">
                                 <ItemsControl.ItemTemplate>
@@ -465,8 +627,7 @@
             BorderBrush="{DynamicResource QuietBorder}"
             BorderThickness="0,1,0,0">
             <StackPanel>
-                <DockPanel Margin="0,0,0,7" Visibility="{Binding IsObject,
-                    Converter={StaticResource BooleanVisibility}}">
+                <DockPanel Margin="0,0,0,7" Visibility="{Binding IsObject, Converter={StaticResource BooleanVisibility}}">
                     <Button
                         Width="28"
                         Padding="0"

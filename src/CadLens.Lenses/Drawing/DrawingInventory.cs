@@ -6,7 +6,9 @@ namespace CadLens.Lenses;
 /// <param name="SpaceLabel">User-facing space description.</param>
 /// <param name="Layers">Layer metadata.</param>
 /// <param name="Entities">Direct active-space entities.</param>
+/// <param name="Precision">Drawing display precision, without rounding detached values.</param>
 public sealed record DrawingInventory(
     string SpaceLabel,
     ImmutableArray<LayerSnapshot> Layers,
-    ImmutableArray<EntitySnapshot> Entities);
+    ImmutableArray<EntitySnapshot> Entities,
+    DrawingPrecision? Precision = null);

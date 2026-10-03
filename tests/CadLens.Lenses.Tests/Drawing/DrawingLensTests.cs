@@ -89,7 +89,7 @@ public sealed class DrawingLensTests
             new HashSet<string> { DrawingLensProvider.IncludeFrozen, DrawingLensProvider.IncludeOff });
         var item = result.Groups[0].Children[0].Children[0];
         Assert.Contains(new DetailField("Layer", "Roads"), item.Fields);
-        Assert.Contains(new DetailField("Primitive type", "Polyline"), item.Fields);
+        Assert.Contains(new DetailField("Primitive type", "Polyline", DetailValueKind.PrimitiveType, new DrawingTextValue("Polyline", true)), item.Fields);
         Assert.Contains(
             "off, frozen in active viewport",
             item.Fields.Single(field => field.Label == "Visibility").Value);
@@ -117,10 +117,10 @@ public sealed class DrawingLensTests
         Assert.Equal(["1", "2"], lines.Objects.Select(id => id.DisplayId));
         Assert.Equal(lines.Objects, lines.Children.SelectMany(node => node.Objects));
         Assert.Contains(new DetailField("Layer", "Roads"), lines.Children[0].Fields);
-        Assert.Contains(new DetailField("Locked", "Yes"), lines.Children[0].Fields);
+        Assert.Contains(new DetailField("Locked", "Yes", DetailValueKind.ApplicationText), lines.Children[0].Fields);
         Assert.Contains(new DetailField("Layer", "Utilities"), lines.Children[1].Fields);
-        Assert.Contains(new DetailField("Locked", "No"), lines.Children[1].Fields);
-        Assert.Contains(new DetailField("Primitive type", "Line"), lines.Children[1].Fields);
+        Assert.Contains(new DetailField("Locked", "No", DetailValueKind.ApplicationText), lines.Children[1].Fields);
+        Assert.Contains(new DetailField("Primitive type", "Line", DetailValueKind.PrimitiveType, new DrawingTextValue("Line", true)), lines.Children[1].Fields);
         Assert.Contains(
             "off, frozen in active viewport",
             lines.Children[1].Fields.Single(field => field.Label == "Visibility").Value);
@@ -209,7 +209,7 @@ public sealed class DrawingLensTests
         Assert.Equal(1, state.Position);
         Assert.Equal(2, state.ObjectCount);
         Assert.Contains(new DetailField("Layer", "Utilities"), state.Current!.Fields);
-        Assert.Contains(new DetailField("Locked", "Yes"), state.Current.Fields);
+        Assert.Contains(new DetailField("Locked", "Yes", DetailValueKind.ApplicationText), state.Current.Fields);
         state.MoveObject(1);
         Assert.Equal("2", state.Current.Id);
         state.GoBackTo(1);
