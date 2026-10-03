@@ -26,7 +26,7 @@ public sealed class SelectedObjectsTests
         view.UpdateLayout();
         var selected = Assert.IsType<RadioButton>(view.FindName("SelectedObjectsScope"));
         var all = Assert.IsType<RadioButton>(view.FindName("AllObjectsScope"));
-        var refresh = WpfTest.Descendants(view).OfType<Button>().Single(button => button.Command == model.ReadCommand);
+        var refresh = WpfTest.Descendants(view).OfType<Button>().Single(button => ReferenceEquals(button.Command, model.ReadCommand));
         var previous = UiText.Current.Preference;
 
         try
@@ -99,6 +99,44 @@ public sealed class SelectedObjectsTests
         Assert.Contains("Select objects in CAD and refresh", model.EmptyMessage);
         Assert.True(model.ReadCommand.CanExecute(null));
         Assert.False(model.SelectCommand.CanExecute(null));
+    }
+
+    /// <summary>A failed scope switch keeps the previous presentation and its owned drawing effects.</summary>
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public async Task FailedScopeSwitchKeepsPreviousScopeAndTargets(bool startsSelected, bool captureFails)
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        await model.ActivateAsync(CancellationToken.None);
+
+        if (startsSelected)
+        {
+            actions.NativeSelection = [new TestEntityId(1)];
+            await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
+        }
+
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+        await model.SelectCommand.ExecuteAsync(null);
+        await model.IsolateCommand.ExecuteAsync(null);
+        var current = model.Current;
+        var groups = model.Groups;
+        var selected = actions.NativeSelection;
+        var isolated = actions.Isolated;
+        var reads = actions.ReadCount;
+        actions.CaptureFails = captureFails;
+        actions.CleanupFails = !captureFails;
+        await (startsSelected ? model.ShowAllObjectsCommand : model.ShowSelectedObjectsCommand).ExecuteAsync(null);
+
+        Assert.Equal(startsSelected, model.IsSelectedObjectsOnly);
+        Assert.Same(current, model.Current);
+        Assert.Equal(groups, model.Groups);
+        Assert.Equal(selected, actions.NativeSelection);
+        Assert.Equal(isolated, actions.Isolated);
+        Assert.Equal(reads, actions.ReadCount);
+        Assert.Contains(captureFails ? "selection fixture failure" : "Cleanup did not complete", model.Status);
     }
 
     /// <summary>Collapsing, switching lenses, and reactivation keep the captured set despite native cleanup.</summary>
@@ -214,12 +252,15 @@ public sealed class SelectedObjectsTests
         internal CancellationToken LastReadToken { get; private set; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
         internal bool CleanupFails { get; set; }
+        internal bool CaptureFails { get; set; }
 
         public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects()
         {
             Calls.Add("capture");
             CaptureCount++;
-            return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(NativeSelection);
+            return CaptureFails
+                ? new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("selection fixture failure")
+                : new HostResult<ImmutableArray<IPlacedObjectId>>.Success(NativeSelection);
         }
 
         public Task<HostResult<LensPresentation>> ReadAsync(

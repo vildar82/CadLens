@@ -113,9 +113,9 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal Dictionary<int, DBObject> Objects { get; } = [];
         internal ObjectId CurrentSpaceId { get; set; }
         internal ObjectId LayerTableId { get; set; }
-        internal bool TileMode => true;
-        internal int Luprec => 4;
-        internal int Auprec => 2;
+        internal bool TileMode { get; } = true;
+        internal int Luprec { get; } = 4;
+        internal int Auprec { get; } = 2;
         internal TransactionManager TransactionManager { get; } = new();
 
         internal ObjectId Add(DBObject value)
@@ -135,6 +135,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     internal sealed class Transaction : IDisposable
     {
+        // ReSharper disable once MemberCanBeMadeStatic.Local -- Mirrors the native transaction instance API.
         internal void Commit() { }
         public void Dispose() { }
         internal List<(OpenMode Mode, bool OpenErased, bool ForceOpenOnLockedLayer)> OpenRequests { get; } = [];
@@ -170,8 +171,8 @@ namespace Autodesk.AutoCAD.DatabaseServices
     public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
         internal ObjectId LayoutId { get; init; }
-        internal bool IsLayout => false;
-        internal string Name => "Model";
+        internal bool IsLayout { get; } = false;
+        internal string Name { get; } = "Model";
         /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
     }

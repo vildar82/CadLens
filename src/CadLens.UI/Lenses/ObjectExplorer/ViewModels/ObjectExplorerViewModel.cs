@@ -56,7 +56,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         RootLabel = grouping == DrawingGrouping.Layers ? "All layers" : "All types";
         SearchPlaceholder = grouping == DrawingGrouping.Layers ? "Search layers" : "Search types";
         GroupLabel = grouping == DrawingGrouping.Layers ? "layers" : "types";
-        ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(token => ReadInventoryAsync(token)), CanRun);
+        ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
         ShowAllObjectsCommand = new AsyncRelayCommand(
             () => IsAllObjects ? Task.CompletedTask : ExecuteActionAsync(token => ChangeScopeAsync(false, token)),
             CanRun);
@@ -132,11 +132,11 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         get;
         private set
         {
-            if (SetProperty(ref field, value))
-            {
-                OnPropertyChanged(nameof(IsAllObjects));
-                OnPropertyChanged(nameof(RefreshLabel));
-            }
+            if (!SetProperty(ref field, value))
+                return;
+
+            OnPropertyChanged(nameof(IsAllObjects));
+            OnPropertyChanged(nameof(RefreshLabel));
         }
     }
 
@@ -736,7 +736,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         await previous;
 
         if (ReferenceEquals(previous, _operation))
-            await ExecuteActionAsync(token => ReadInventoryAsync(token));
+            await ExecuteActionAsync(ReadInventoryAsync);
     }
 
     private async Task<UiMessage> ClearEffectsAsync(CancellationToken cancellationToken) =>
@@ -790,20 +790,25 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     private async Task<UiMessage> ChangeScopeAsync(bool selectedOnly, CancellationToken cancellationToken)
     {
-        IsSelectedObjectsOnly = selectedOnly;
-        _inventory = null;
-        Groups = [];
-        _navigation.Reset([], false);
-        NotifyNavigation();
-
-        return await ReadInventoryAsync(cancellationToken);
+        try
+        {
+            return await ReadInventoryAsync(selectedOnly, cancellationToken);
+        }
+        finally
+        {
+            OnPropertyChanged(nameof(IsSelectedObjectsOnly));
+            OnPropertyChanged(nameof(IsAllObjects));
+        }
     }
 
-    private async Task<UiMessage> ReadInventoryAsync(CancellationToken cancellationToken)
+    private Task<UiMessage> ReadInventoryAsync(CancellationToken cancellationToken) =>
+        ReadInventoryAsync(IsSelectedObjectsOnly, cancellationToken);
+
+    private async Task<UiMessage> ReadInventoryAsync(bool selectedOnly, CancellationToken cancellationToken)
     {
         ImmutableArray<IPlacedObjectId>? selectedObjects = null;
 
-        if (IsSelectedObjectsOnly)
+        if (selectedOnly)
         {
             var captured = _actions.CaptureSelectedObjects();
 
@@ -819,23 +824,30 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         if (cleared is not HostResult<bool>.Success {Value: true})
             return DescribeCleanup(cleared);
 
-        var result = await _actions.ReadAsync(_grouping, _enabledFilters, selectedObjects, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (result is not HostResult<LensPresentation>.Success success)
+        if (IsSelectedObjectsOnly != selectedOnly)
         {
+            IsSelectedObjectsOnly = selectedOnly;
             _inventory = null;
-            Precision = DrawingPrecision.Default;
             Groups = [];
             _navigation.Reset([], false);
             NotifyNavigation();
-            _spaceIsDrawingData = false;
-            SpaceLabel = "Unavailable";
-            OnPropertyChanged(nameof(DisplaySpaceLabel));
-            return ((HostResult<LensPresentation>.Unavailable) result).Reason;
         }
 
-        return await ApplyPresentationAsync(success.Value, cancellationToken);
+        var result = await _actions.ReadAsync(_grouping, _enabledFilters, selectedObjects, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (result is HostResult<LensPresentation>.Success success)
+            return await ApplyPresentationAsync(success.Value, cancellationToken);
+
+        _inventory = null;
+        Precision = DrawingPrecision.Default;
+        Groups = [];
+        _navigation.Reset([], false);
+        NotifyNavigation();
+        _spaceIsDrawingData = false;
+        SpaceLabel = "Unavailable";
+        OnPropertyChanged(nameof(DisplaySpaceLabel));
+        return ((HostResult<LensPresentation>.Unavailable) result).Reason;
     }
 
     private async Task<UiMessage> RebuildInventoryAsync(DrawingInventory inventory, CancellationToken cancellationToken)

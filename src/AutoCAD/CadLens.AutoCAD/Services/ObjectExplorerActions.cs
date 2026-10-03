@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using CadLens.Lenses;
 using CadLens.UI;
@@ -25,7 +26,7 @@ internal sealed class ObjectExplorerActions(
 
             var selection = document.Editor.SelectImplied();
             ImmutableArray<IPlacedObjectId> objects = selection.Status == PromptStatus.OK
-                ? [.. selection.Value.GetObjectIds().Select(id => (IPlacedObjectId) new EntityId(id))]
+                ? [.. selection.Value.GetObjectIds().Select<ObjectId, IPlacedObjectId>(id => new EntityId(id))]
                 : [];
 
             return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(objects);
