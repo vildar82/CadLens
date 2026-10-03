@@ -23,10 +23,7 @@ public sealed class LanguageCollection;
 [Collection("Language changes")]
 public sealed partial class LanguageTests : IDisposable
 {
-    private readonly string _directory = Path.Combine(
-        Path.GetTempPath(),
-        "CadLens-language-tests",
-        Guid.NewGuid().ToString("N"));
+    private readonly SettingsFile _file = new();
 
     private readonly LanguagePreference _previous = UiText.Current.Preference;
 
@@ -47,7 +44,7 @@ public sealed partial class LanguageTests : IDisposable
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("es-ES");
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de-DE");
-            var text = new UiText(PreferencePath, () => displayLanguage);
+            var text = new UiText(_file.Service, () => displayLanguage);
             Assert.Equal(LanguagePreference.Windows, text.Preference);
             Assert.Equal(expected, text.Culture.Name);
             text.Select(LanguagePreference.Russian, persist: false);
@@ -67,14 +64,14 @@ public sealed partial class LanguageTests : IDisposable
     public void ChoicePersistsWithoutReplacingWindowsMode()
     {
         var windowsLanguage = new WindowsLanguage();
-        var text = new UiText(PreferencePath, windowsLanguage.Read);
+        var text = new UiText(_file.Service, windowsLanguage.Read);
         text.Select(LanguagePreference.Russian);
-        Assert.Equal(LanguagePreference.Russian, new UiText(PreferencePath, () => "en").Preference);
+        Assert.Equal(LanguagePreference.Russian, new UiText(_file.Service, () => "en").Preference);
         text.Select(LanguagePreference.English);
-        Assert.Equal("en", new UiText(PreferencePath, () => "ru-RU").Culture.Name);
+        Assert.Equal("en", new UiText(_file.Service, () => "ru-RU").Culture.Name);
         text.Select(LanguagePreference.Windows);
         windowsLanguage.Name = "ru-RU";
-        var reopened = new UiText(PreferencePath, windowsLanguage.Read);
+        var reopened = new UiText(_file.Service, windowsLanguage.Read);
         Assert.Equal(LanguagePreference.Windows, reopened.Preference);
         Assert.Equal("ru", reopened.Culture.Name);
         windowsLanguage.Name = "es-ES";
@@ -91,9 +88,8 @@ public sealed partial class LanguageTests : IDisposable
     [InlineData("\"99\"")]
     public void InvalidPreferenceUsesWindows(string contents)
     {
-        Directory.CreateDirectory(_directory);
         File.WriteAllText(PreferencePath, contents);
-        var text = new UiText(PreferencePath, () => "ru-RU");
+        var text = new UiText(_file.Service, () => "ru-RU");
         Assert.Equal(LanguagePreference.Windows, text.Preference);
         Assert.Equal("ru", text.Culture.Name);
     }
@@ -103,11 +99,11 @@ public sealed partial class LanguageTests : IDisposable
     public void FailedSaveKeepsSessionLanguage()
     {
         Directory.CreateDirectory(PreferencePath);
-        var text = new UiText(PreferencePath, () => "en-US");
+        var text = new UiText(_file.Service, () => "en-US");
         text.Select(LanguagePreference.Russian);
         Assert.Equal("ru", text.Culture.Name);
         Assert.Contains("Не удалось сохранить", text.PreferenceError);
-        Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
+        Assert.Empty(Directory.GetFiles(_file.Directory, "*.tmp"));
     }
 
     /// <summary>Russian satellite resources cover every English entry and preserve format arguments.</summary>
@@ -130,7 +126,7 @@ public sealed partial class LanguageTests : IDisposable
             Assert.Equal(FormatArguments(key), FormatArguments(value));
         }
 
-        var text = new UiText(PreferencePath, () => "ru-RU");
+        var text = new UiText(_file.Service, () => "ru-RU");
         Assert.Equal("Unknown app phrase", text.Get("Unknown app phrase"));
     }
 
@@ -282,11 +278,10 @@ public sealed partial class LanguageTests : IDisposable
     {
         UiText.Current.Select(_previous, persist: false);
 
-        if (Directory.Exists(_directory))
-            Directory.Delete(_directory, recursive: true);
+        _file.Dispose();
     }
 
-    private string PreferencePath => Path.Combine(_directory, "language.json");
+    private string PreferencePath => Path.Combine(_file.Directory, "language.json");
 
     private static string[] FormatArguments(string text) =>
         [.. FormatArgumentPattern().Matches(text).Select(match => match.Value).Order()];

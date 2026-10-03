@@ -1,6 +1,6 @@
 ﻿namespace CadLens.Lenses;
 
-/// <summary>A lens-specific inclusion option; sessions start with all options disabled.</summary>
+/// <summary>A lens-specific inclusion option; options are disabled when no preferences are saved.</summary>
 /// <param name="Id">Stable option identity.</param>
 /// <param name="Label">User-facing label.</param>
 /// <param name="Description">Explanation displayed as a tooltip.</param>

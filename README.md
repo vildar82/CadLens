@@ -78,7 +78,9 @@ A new `CADLENS` session opens as a compact bar with both lenses inactive. Press 
 | Select | Replaces the CAD selection | Off |
 | Isolate | Temporarily hides other direct active-space objects | Off |
 
-Each action has its own Auto toggle, and all three start off. Enabled actions follow navigation. For selection without camera movement, turn Auto Select on and leave Auto Focus off. Select remains available when Focus cannot use bounds or the viewport is locked.
+Each action has its own Auto toggle. All three default to off; saved choices are restored for each lens.
+Enabled actions follow navigation. For selection without camera movement, turn Auto Select on and leave
+Auto Focus off. Select remains available when Focus cannot use bounds or the viewport is locked.
 
 ### Temporary isolation
 
@@ -86,7 +88,17 @@ Press Isolate on a layer, type, or object to keep its direct active-space object
 
 Turning Auto Isolate off, returning to the root list, pressing Reset, collapsing or closing the panel, or switching drawings or spaces restores the ordinary display. Isolation does not write entity or layer visibility properties to the DWG.
 
-Reset also clears CAD selection and turns off all Auto modes while keeping the camera, navigation, and inclusion filters. Effects stay clear during later navigation until a mode is enabled again. Reset is disabled while work is pending. Turning Auto Select off clears only CAD selection. With Auto Select off, a manual selection persists until replaced or cleared. Closing the panel discards session settings.
+Reset also clears CAD selection and turns off all Auto modes while keeping the camera, navigation,
+and inclusion filters. It saves the Auto modes as off. Effects stay clear during later navigation until
+a mode is enabled again. Reset is disabled while work is pending. Turning Auto Select off clears only
+CAD selection. With Auto Select off, a manual selection persists until replaced or cleared.
+
+Layers and Objects save their inclusion filters, search text, sorting column/direction, and Auto modes
+independently under `%LOCALAPPDATA%\CadLens`. Closing and reopening the panel or restarting AutoCAD
+restores these preferences. The panel still starts collapsed; activate a lens to read the drawing.
+Each fresh session starts at the root list, with drawing-specific targets and navigation cleared.
+Restored Auto modes apply when you choose a target. If saving fails, the controls remain usable for
+the current session and the lens status explains that the preferences could not be saved.
 
 CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or spaces reloads the active lens. These actions do not change stored DWG geometry or properties.
 
@@ -135,7 +147,12 @@ services.AddScoped<ILens, MyLens>();
 
 The shell discovers `ILens` registrations, creates their views lazily on the UI thread, and shows one active module at a time. Descriptor IDs must be unique. Deactivation must settle module work and remove its effects; failed cleanup blocks switching until a retry succeeds. Context changes invalidate saved targets, and Close cancels work and removes effects before the host queue stops. Module services are scoped to the panel session.
 
-Production registers two `ObjectExplorerLens` instances with different groupings. Each owns its navigation, filters, search, and Auto settings; both reuse one scoped inventory provider and host-action adapter. Shared WPF files live in `src/CadLens.UI/Lenses/ObjectExplorer`, and drawing models/grouping live in `src/CadLens.Lenses/Drawing`. Tests register an unrelated Counter lens to check that the shell still supports other modules.
+Production registers two `ObjectExplorerLens` instances with different groupings. Each owns its navigation,
+filters, search, and Auto settings; both reuse one scoped inventory provider and host-action adapter.
+`SettingsService` handles JSON loading and atomic saves for language, appearance, and lens preferences.
+Shared WPF files live in `src/CadLens.UI/Lenses/ObjectExplorer`, and drawing models/grouping live in
+`src/CadLens.Lenses/Drawing`. Tests register an unrelated Counter lens to check that the shell still
+supports other modules.
 
 ### CI and releases
 

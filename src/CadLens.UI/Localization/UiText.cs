@@ -1,9 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Globalization;
-using System.IO;
 using System.Resources;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace CadLens.UI;
 
@@ -11,22 +9,18 @@ namespace CadLens.UI;
 public sealed partial class UiText : INotifyPropertyChanged
 {
     private static readonly ResourceManager Resources = new("CadLens.UI.Localization.Strings", typeof(UiText).Assembly);
-    private readonly string _preferencePath;
+    private readonly SettingsService _settings;
     private readonly Func<string> _windowsLanguage;
 
     /// <summary>Language shared by this CAD Lens process.</summary>
-    public static UiText Current { get; } = new(
-        Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "CadLens",
-            "language.json"));
+    public static UiText Current { get; } = new(SettingsService.Current);
 
     /// <summary>Loads a preference from its file, falling back to Windows when absent or invalid.</summary>
-    /// <param name="preferencePath">Per-user JSON preference file.</param>
+    /// <param name="settings">Per-user JSON settings service.</param>
     /// <param name="windowsLanguage">Windows display-language reader, replaceable in managed checks.</param>
-    public UiText(string preferencePath, Func<string>? windowsLanguage = null)
+    public UiText(SettingsService settings, Func<string>? windowsLanguage = null)
     {
-        _preferencePath = preferencePath;
+        _settings = settings;
         _windowsLanguage = windowsLanguage ?? ReadWindowsLanguage;
         Preference = ReadPreference();
         Culture = ResolveCulture();
@@ -77,47 +71,16 @@ public sealed partial class UiText : INotifyPropertyChanged
 
     private LanguagePreference ReadPreference()
     {
-        try
-        {
-            var value = JsonSerializer.Deserialize<string>(File.ReadAllText(_preferencePath));
-            return Enum.TryParse<LanguagePreference>(value, out var preference) && Enum.IsDefined(preference)
-                ? preference
-                : LanguagePreference.Windows;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
-        {
-            return LanguagePreference.Windows;
-        }
+        var value = _settings.Load<string>("language.json");
+        return Enum.TryParse<LanguagePreference>(value, out var preference) && Enum.IsDefined(preference)
+            ? preference
+            : LanguagePreference.Windows;
     }
 
     private void SavePreference()
     {
-        var temporary = _preferencePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
-
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_preferencePath))!);
-            File.WriteAllText(temporary, JsonSerializer.Serialize(Preference.ToString()));
-            File.Move(temporary, _preferencePath, overwrite: true);
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
+        if (!_settings.Save("language.json", Preference.ToString()))
             PreferenceError = Get("Language changed for this session. The preference could not be saved.");
-            System.Diagnostics.Trace.TraceWarning("Unable to save CAD Lens language: {0}", exception.Message);
-        }
-        finally
-        {
-            try
-            {
-                File.Delete(temporary);
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                System.Diagnostics.Trace.TraceWarning(
-                    "Unable to remove temporary language preference: {0}",
-                    exception.Message);
-            }
-        }
     }
 
     private CultureInfo ResolveCulture()
