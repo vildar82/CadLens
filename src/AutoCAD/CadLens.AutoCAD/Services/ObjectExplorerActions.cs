@@ -17,7 +17,8 @@ internal sealed class ObjectExplorerActions(
     IObjectVisualizationService visualization,
     IHostTaskService hostTasks) : IObjectExplorerActions
 {
-    public async Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken)
+    public async Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -26,7 +27,8 @@ internal sealed class ObjectExplorerActions(
             var document = Application.DocumentManager.MdiActiveDocument;
 
             if (document is null)
-                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing is no longer available.");
+                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
+                    "The active drawing is no longer available.");
 
             var space = document.Database.CurrentSpaceId;
             var selected = ReadPreselection(document);
@@ -34,7 +36,9 @@ internal sealed class ObjectExplorerActions(
             if (!selected.IsEmpty)
                 return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(selected);
 
-            var result = await hostTasks.RunAsync(() => RequestObjects(document, space, cancellationToken), cancellationToken);
+            var result = await hostTasks.RunAsync(
+                () => RequestObjects(document, space, cancellationToken),
+                cancellationToken);
             return result.Bind(value => value);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -51,7 +55,8 @@ internal sealed class ObjectExplorerActions(
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!HasContext(document, space))
-            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
+                "The active drawing space has changed. Refresh to try again.");
 
         var selected = ReadPreselection(document);
 
@@ -59,12 +64,14 @@ internal sealed class ObjectExplorerActions(
             return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(selected);
 
         if (!document.Window.Focus())
-            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("Unable to activate the drawing for selection.");
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
+                "Unable to activate the drawing for selection.");
 
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!HasContext(document, space))
-            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
+                "The active drawing space has changed. Refresh to try again.");
 
         var restoreIsolation = graphics.Suspend();
 
@@ -73,7 +80,8 @@ internal sealed class ObjectExplorerActions(
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!HasContext(document, space))
-                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
+                    "The active drawing space has changed. Refresh to try again.");
 
             var options = new PromptSelectionOptions
             {
@@ -84,11 +92,13 @@ internal sealed class ObjectExplorerActions(
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!HasContext(document, space))
-                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing space has changed. Refresh to try again.");
+                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
+                    "The active drawing space has changed. Refresh to try again.");
 
             return result.Status == PromptStatus.OK
                 ? new HostResult<ImmutableArray<IPlacedObjectId>>.Success(ToObjects(result))
-                : new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("Object selection canceled. Previous view kept.");
+                : new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
+                    "Object selection canceled. Previous view kept.");
         }
         finally
         {
@@ -153,7 +163,7 @@ internal sealed class ObjectExplorerActions(
         if (selection is HostResult<bool>.Unavailable)
             return selection;
 
-        return selection is HostResult<bool>.Success { Value: true } ? isolated : new HostResult<bool>.Success(false);
+        return selection is HostResult<bool>.Success {Value: true} ? isolated : new HostResult<bool>.Success(false);
     }
 
     public async Task<string> IsolateObjectsAsync(
