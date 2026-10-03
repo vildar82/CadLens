@@ -1,16 +1,36 @@
 ﻿<ResourceDictionary
     x:Class="CadLens.UI.QuietTheme"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime">
     <BooleanToVisibilityConverter x:Key="BooleanVisibility" />
-    <SolidColorBrush x:Key="QuietSurface" Color="#1B2932" />
-    <SolidColorBrush x:Key="QuietText" Color="#EEF5F8" />
-    <SolidColorBrush x:Key="QuietMuted" Color="#9EB5BE" />
-    <SolidColorBrush x:Key="QuietAccent" Color="#78E3CE" />
+    <system:String x:Key="AppearanceLabel">Appearance</system:String>
+    <system:String x:Key="AppearanceHelp">Theme, palette, and accent color</system:String>
+    <system:String x:Key="ThemeLabel">Theme</system:String>
+    <system:String x:Key="FollowAutoCadLabel">Follow AutoCAD</system:String>
+    <system:String x:Key="LightLabel">Light</system:String>
+    <system:String x:Key="DarkLabel">Dark</system:String>
+    <system:String x:Key="PaletteLabel">Palette</system:String>
+    <system:String x:Key="QuietLabel">Quiet</system:String>
+    <system:String x:Key="GraphiteLabel">Graphite</system:String>
+    <system:String x:Key="PaperLabel">Paper</system:String>
+    <system:String x:Key="AccentLabel">Accent color</system:String>
+    <system:String x:Key="MintLabel">Mint</system:String>
+    <system:String x:Key="BlueLabel">Blue</system:String>
+    <system:String x:Key="VioletLabel">Violet</system:String>
+    <system:String x:Key="AmberLabel">Amber</system:String>
+    <system:String x:Key="RestoreDefaultsLabel">Restore defaults</system:String>
+    <system:String x:Key="AppearanceChangesApplied">Changes apply immediately.</system:String>
+    <system:String
+        x:Key="AppearanceSaveFailed">Unable to save preferences. Changes apply for this session.</system:String>
+    <system:String x:Key="EditCutLabel">Cut</system:String>
+    <system:String x:Key="EditCopyLabel">Copy</system:String>
+    <system:String x:Key="EditPasteLabel">Paste</system:String>
+    <system:String x:Key="EditSelectAllLabel">Select all</system:String>
     <Style x:Key="QuietControl" TargetType="ButtonBase">
-        <Setter Property="Foreground" Value="{StaticResource QuietText}" />
-        <Setter Property="Background" Value="#18232C" />
-        <Setter Property="BorderBrush" Value="#34434B" />
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="Background" Value="{DynamicResource QuietHeader}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="10,6" />
         <Setter Property="MinHeight" Value="32" />
@@ -38,7 +58,7 @@
                             <Border
                                 x:Name="FocusRing"
                                 Margin="-7,-3"
-                                BorderBrush="#FFFFFF"
+                                BorderBrush="{DynamicResource QuietFocus}"
                                 BorderThickness="1"
                                 CornerRadius="3"
                                 IsHitTestVisible="False"
@@ -47,20 +67,23 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Surface" Property="Background" Value="#23333D" />
-                            <Setter TargetName="Surface" Property="BorderBrush" Value="#78E3CE" />
+                            <Setter TargetName="Surface" Property="Background" Value="{DynamicResource QuietHover}" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Surface" Property="Background" Value="#0C141A" />
-                            <Setter TargetName="Surface" Property="BorderBrush" Value="#78E3CE" />
+                            <Setter TargetName="Surface" Property="Background" Value="{DynamicResource QuietPressed}" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="#7B909A" />
-                            <Setter TargetName="Surface" Property="Background" Value="#141C23" />
-                            <Setter TargetName="Surface" Property="BorderBrush" Value="#2B3942" />
+                            <Setter Property="Foreground" Value="{DynamicResource QuietDisabledText}" />
+                            <Setter
+                                TargetName="Surface"
+                                Property="Background"
+                                Value="{DynamicResource QuietDisabledSurface}" />
+                            <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
                             <Setter TargetName="FocusRing" Property="Visibility" Value="Collapsed" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -76,9 +99,9 @@
         x:Key="AccentButton"
         BasedOn="{StaticResource QuietButton}"
         TargetType="Button">
-        <Setter Property="Background" Value="#28413F" />
-        <Setter Property="BorderBrush" Value="#78E3CE" />
-        <Setter Property="Foreground" Value="#78E3CE" />
+        <Setter Property="Background" Value="{DynamicResource QuietSelected}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
+        <Setter Property="Foreground" Value="{DynamicResource QuietAccent}" />
     </Style>
     <Style
         x:Key="QuietToggle"
@@ -86,9 +109,9 @@
         TargetType="ToggleButton">
         <Style.Triggers>
             <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Background" Value="#28413F" />
-                <Setter Property="BorderBrush" Value="#78E3CE" />
-                <Setter Property="Foreground" Value="#78E3CE" />
+                <Setter Property="Background" Value="{DynamicResource QuietSelected}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
+                <Setter Property="Foreground" Value="{DynamicResource QuietAccent}" />
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -101,5 +124,305 @@
         <Setter Property="MinHeight" Value="39" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style TargetType="ToolTip">
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="Background" Value="{DynamicResource QuietSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="9,6" />
+        <Setter Property="MaxWidth" Value="320" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border
+                        Padding="{TemplateBinding Padding}"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="5">
+                        <ContentPresenter RecognizesAccessKey="True" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Resources>
+            <Style TargetType="TextBlock">
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+        </Style.Resources>
+    </Style>
+    <Style TargetType="TextBox">
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource QuietText}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource QuietSelected}" />
+        <Setter Property="SelectionOpacity" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource QuietSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="ContextMenu">
+            <Setter.Value>
+                <ContextMenu>
+                    <MenuItem Command="ApplicationCommands.Cut" Header="{DynamicResource EditCutLabel}" />
+                    <MenuItem Command="ApplicationCommands.Copy" Header="{DynamicResource EditCopyLabel}" />
+                    <MenuItem Command="ApplicationCommands.Paste" Header="{DynamicResource EditPasteLabel}" />
+                    <MenuItem Command="ApplicationCommands.SelectAll" Header="{DynamicResource EditSelectAllLabel}" />
+                </ContextMenu>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border
+                        Padding="{TemplateBinding Padding}"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                        <ScrollViewer x:Name="PART_ContentHost" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ContextMenu">
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="Background" Value="{DynamicResource QuietSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
+        <Setter Property="FontFamily" Value="Segoe UI" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border
+                        Padding="3"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                        <ItemsPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="Background" Value="{DynamicResource QuietSurface}" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter
+            Property="CommandTarget"
+            Value="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border
+                        x:Name="MenuSurface"
+                        Padding="{TemplateBinding Padding}"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="3">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                x:Name="Checkmark"
+                                Foreground="{DynamicResource QuietAccent}"
+                                Text="✓"
+                                Visibility="Collapsed" />
+                            <ContentPresenter
+                                Grid.Column="1"
+                                ContentSource="Header"
+                                RecognizesAccessKey="True" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Checkmark" Property="Visibility" Value="Visible" />
+                            <Setter Property="Background" Value="{DynamicResource QuietSelected}" />
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource QuietHover}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource QuietSelected}" />
+                            <Setter
+                                TargetName="MenuSurface"
+                                Property="BorderBrush"
+                                Value="{DynamicResource QuietFocus}" />
+                            <Setter TargetName="MenuSurface" Property="BorderThickness" Value="1" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource QuietDisabledText}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="Background" Value="{DynamicResource QuietSurface}" />
+        <Setter Property="Padding" Value="9,7" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource QuietSelected}" />
+                            <Setter Property="Foreground" Value="{DynamicResource QuietAccent}" />
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource QuietHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
+        <Setter Property="Background" Value="{DynamicResource QuietSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton
+                            Padding="9,6"
+                            HorizontalContentAlignment="Stretch"
+                            Focusable="False"
+                            IsChecked="{Binding IsDropDownOpen,
+                                RelativeSource={RelativeSource TemplatedParent},
+                                Mode=TwoWay}"
+                            Style="{StaticResource QuietToggle}">
+                            <DockPanel>
+                                <TextBlock
+                                    Margin="9,0,0,0"
+                                    DockPanel.Dock="Right"
+                                    Text="⌄" />
+                                <ContentPresenter
+                                    Content="{TemplateBinding SelectionBoxItem}"
+                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
+                            </DockPanel>
+                        </ToggleButton>
+                        <Border
+                            x:Name="FocusRing"
+                            Margin="2"
+                            BorderBrush="{DynamicResource QuietFocus}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed" />
+                        <Popup
+                            x:Name="PART_Popup"
+                            AllowsTransparency="True"
+                            Focusable="False"
+                            IsOpen="{TemplateBinding IsDropDownOpen}"
+                            Placement="Bottom">
+                            <Border
+                                MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                MaxHeight="280"
+                                Background="{DynamicResource QuietSurface}"
+                                BorderBrush="{DynamicResource QuietBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                                <ScrollViewer CanContentScroll="True">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource QuietDisabledText}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="QuietThumb" TargetType="Thumb">
+        <Setter Property="Background" Value="{DynamicResource QuietMuted}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border
+                        Margin="3"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="3" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource QuietAccent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="QuietScrollTrack" TargetType="RepeatButton">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="{DynamicResource QuietBackground}" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Track
+                            x:Name="PART_Track"
+                            IsDirectionReversed="True"
+                            Orientation="{TemplateBinding Orientation}">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton
+                                    x:Name="Decrease"
+                                    Command="ScrollBar.PageUpCommand"
+                                    Style="{StaticResource QuietScrollTrack}" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource QuietThumb}" />
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton
+                                    x:Name="Increase"
+                                    Command="ScrollBar.PageDownCommand"
+                                    Style="{StaticResource QuietScrollTrack}" />
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Orientation" Value="Horizontal">
+                            <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" />
+                            <Setter TargetName="Decrease" Property="Command" Value="ScrollBar.PageLeftCommand" />
+                            <Setter TargetName="Increase" Property="Command" Value="ScrollBar.PageRightCommand" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="Height" Value="12" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>

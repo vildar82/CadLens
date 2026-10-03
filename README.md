@@ -9,6 +9,7 @@ CAD Lens is a personal experiment in exploring AutoCAD drawings through game-ins
 - [Language](#language)
 - [Use the Layers lens](#use-the-layers-lens)
 - [Use the Object Types lens](#use-the-object-types-lens)
+- [Appearance](#appearance)
 - [Development](#development)
 - [Verification](#verification)
 - [Future ideas](#future-ideas)
@@ -94,6 +95,19 @@ CAD Lens uses one exploration session for the active drawing. Focus moves only t
 Press Objects to browse object types across all included layers in the current model or paper space and see their counts. Search the type names or sort by name/count, then browse Type → Object; each object shows its own layer and visibility details. A block insertion counts as one object. Nested block and external-reference contents are not traversed.
 
 Object Types shares the drawing controls and inclusion filters described above. Switching lenses clears the previous lens's selection/isolation and restores the destination lens's valid navigation and settings. Counts include off-screen objects and stay unchanged when panning or zooming. Use Refresh after drawing edits.
+
+## Appearance
+
+Open the gear button in the compact bar to choose a theme, surface palette, and accent color.
+Follow AutoCAD is the default: CAD Lens reads `COLORTHEME` when the panel opens and follows later
+host theme changes. Light and Dark override that preference for CAD Lens only. Quiet, Graphite,
+and Paper palettes each support both themes, with Mint, Blue, Violet, or Amber accents.
+
+Changes apply immediately to the bar, both lenses, and their controls. Restore defaults returns to
+Follow AutoCAD, Quiet, and Mint. Preferences are saved per Windows user in
+`%LOCALAPPDATA%\CadLens\appearance.json` and survive closing the panel or host. If the file is damaged,
+CAD Lens uses defaults; if it cannot be saved, the choices still work for the current session.
+Appearance changes do not change AutoCAD's theme, the drawing, navigation, or temporary effects.
 
 ## Development
 

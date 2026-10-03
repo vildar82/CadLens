@@ -51,3 +51,10 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    reopening should restore valid navigation/settings without moving the camera. Retry failed cleanup.
 6. Check keyboard use, narrow layouts, dragging/resizing, mixed-DPI monitors, and a large drawing.
    Compare geometry, entity/layer properties, cameras, and DBMOD before and after temporary effects.
+7. Open Appearance in the compact bar. With Follow AutoCAD selected, change `COLORTHEME` between
+   0 (Dark) and 1 (Light), then verify both lenses, search selection, menus, tooltips, dropdowns,
+   disabled controls, hover, and keyboard focus. Explicit Light/Dark should ignore later host theme
+   changes. Try all palettes and accents, including switching while the appearance popup is open.
+   Reopen the panel and restart the host to confirm preferences persist; Restore defaults should
+   return to Follow AutoCAD, Quiet, and Mint. Theme changes must preserve camera, selection, isolation,
+   active navigation, and drawing properties. Managed WPF renders do not verify native host styling.
