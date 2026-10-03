@@ -86,12 +86,12 @@
         x:Key="ModeAuto"
         BasedOn="{StaticResource ModeToggle}"
         TargetType="ToggleButton">
-        <Setter Property="Content" Value="Auto off" />
+        <Setter Property="Content" Value="{ui:Localize 'Auto off'}" />
         <Setter Property="FontSize" Value="11" />
         <Setter Property="Padding" Value="6,3" />
         <Style.Triggers>
             <Trigger Property="IsChecked" Value="True">
-                <Setter Property="Content" Value="✓ Auto on" />
+                <Setter Property="Content" Value="{ui:Localize '✓ Auto on'}" />
             </Trigger>
         </Style.Triggers>
     </Style>

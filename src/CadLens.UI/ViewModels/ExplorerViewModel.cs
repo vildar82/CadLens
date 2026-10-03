@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Windows;
 using Common;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,6 +17,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     private bool _hasDrawing = true;
     private bool _disposed;
     private int _contextVersion;
+    private UiMessage _status = new("Activate a lens to explore the drawing.");
 
     /// <summary>Creates toolbar controls from the scoped module registrations.</summary>
     /// <param name="lenses">Independent lens implementations in display order.</param>
@@ -29,7 +31,11 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         if (Lenses.Select(lens => lens.Descriptor.Id).Distinct(StringComparer.Ordinal).Count() != Lenses.Length)
             throw new InvalidOperationException("Registered lens identities must be unique.");
 
-        ToggleLensCommand = new AsyncRelayCommand<LensOption>(ToggleLensAsync, CanToggleLens, AsyncRelayCommandOptions.AllowConcurrentExecutions);
+        UiText.Current.PropertyChanged += OnLanguageChanged;
+        ToggleLensCommand = new AsyncRelayCommand<LensOption>(
+            ToggleLensAsync,
+            CanToggleLens,
+            AsyncRelayCommandOptions.AllowConcurrentExecutions);
     }
 
     /// <summary>Registered lens modules, without creating their views or reading a drawing.</summary>
@@ -56,11 +62,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Activation or cleanup status shown by the shared chrome.</summary>
-    public string Status
-    {
-        get;
-        private set => SetProperty(ref field, value);
-    } = "Activate a lens to explore the drawing.";
+    public string Status => _status.ToString();
 
     /// <summary>Forwards context invalidation to all modules, including inactive ones.</summary>
     /// <param name="hasDrawing">Whether drawing-dependent activation is available.</param>
@@ -80,7 +82,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             }
             catch (Exception exception)
             {
-                Status = $"{option.Descriptor.Label}: {exception.Message}";
+                SetStatus(new UiMessage("{0}: {1}", new UiMessage(option.Descriptor.Label), exception.Message));
             }
         }
 
@@ -97,6 +99,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         if (_disposed)
             return;
 
+        UiText.Current.PropertyChanged -= OnLanguageChanged;
         _disposed = true;
         _lifetime.Cancel();
 
@@ -146,7 +149,7 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         _activationRequest = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _selectedLens = option;
         option.IsActive = true;
-        Status = $"{option.Descriptor.Label} is active.";
+        SetStatus(new UiMessage("{0} is active.", new UiMessage(option.Descriptor.Label)));
         NotifyLensState();
 
         try
@@ -160,7 +163,11 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         catch (Exception exception)
         {
             if (!_disposed && version == _contextVersion)
-                Status = $"Unable to activate {option.Descriptor.Label}: {exception.Message}";
+                SetStatus(
+                    new UiMessage(
+                        "Unable to activate {0}: {1}",
+                        new UiMessage(option.Descriptor.Label),
+                        exception.Message));
         }
     }
 
@@ -171,9 +178,9 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
         var cancellationToken = _lifetime.Token;
         IsCleanupPending = true;
         option.IsActive = false;
-        // ReSharper disable once MethodHasAsyncOverload -- Cancel on the UI thread before publishing deactivation state.
+        // ReSharper disable once MethodHasAsyncOverload -- Cancel before publishing deactivation.
         _activationRequest?.Cancel();
-        Status = "Clearing lens effects… Waiting for AutoCAD.";
+        SetStatus("Clearing lens effects… Waiting for AutoCAD.");
         NotifyLensState();
 
         try
@@ -182,20 +189,21 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             var result = await option.Lens.DeactivateAsync(cancellationToken);
 
-            if (result is HostResult<bool>.Success { Value: true })
+            if (result is HostResult<bool>.Success {Value: true})
                 _selectedLens = null;
 
             if (!_disposed && version == _contextVersion)
-                Status = result.Match(
-                    cleared => cleared ? "Lens effects cleared." : "Cleanup did not complete.",
-                    reason => $"Cleanup unavailable: {reason}");
+                SetStatus(
+                    result.Match(
+                        cleared => new UiMessage(cleared ? "Lens effects cleared." : "Cleanup did not complete."),
+                        reason => new UiMessage("Cleanup unavailable: {0}", new UiMessage(reason))));
 
             return !_disposed && version == _contextVersion && _selectedLens is null;
         }
         catch (Exception exception)
         {
             if (!_disposed && version == _contextVersion)
-                Status = $"Cleanup did not complete: {exception.Message}";
+                SetStatus(new UiMessage("Cleanup did not complete: {0}", exception.Message));
 
             return false;
         }
@@ -205,6 +213,14 @@ public sealed class ExplorerViewModel : ObservableObject, IDisposable
             _activationRequest = null;
             IsCleanupPending = false;
         }
+    }
+
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(nameof(Status));
+
+    private void SetStatus(UiMessage message)
+    {
+        _status = message;
+        OnPropertyChanged(nameof(Status));
     }
 
     private void NotifyLensState()

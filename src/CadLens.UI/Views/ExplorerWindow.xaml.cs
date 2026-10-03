@@ -1,8 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Input;
+using System.Windows.Media;
 using JetBrains.Annotations;
 
 namespace CadLens.UI;
@@ -27,6 +30,10 @@ public partial class ExplorerWindow
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;
+        UiText.Current.PropertyChanged += OnLanguageChanged;
+        ApplyLocalizedAppearanceLabels();
+        viewModel.PropertyChanged += OnLocalizedViewChanged;
+        Closed += OnLanguageWindowClosed;
         viewModel.PropertyChanged += OnViewModelChanged;
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
@@ -52,6 +59,81 @@ public partial class ExplorerWindow
     private void OnSourceInitialized(object? sender, EventArgs args) => UpdateMode();
 
     private void OnClosed(object? sender, EventArgs args) => _viewModel.PropertyChanged -= OnViewModelChanged;
+
+    private void OnLanguageWindowClosed(object? sender, EventArgs args)
+    {
+        _viewModel.PropertyChanged -= OnLocalizedViewChanged;
+        UiText.Current.PropertyChanged -= OnLanguageChanged;
+        Closed -= OnLanguageWindowClosed;
+    }
+
+    private void OnLocalizedViewChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(ExplorerViewModel.ActiveView))
+            ApplyLocalizedAppearanceLabels();
+    }
+
+    private void LanguageClicked(object sender, RoutedEventArgs args)
+    {
+        var button = (Button) sender;
+        var menu = button.ContextMenu;
+
+        if (menu is null)
+            return;
+
+        menu.Resources = Resources;
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    private void LanguageSelected(object sender, RoutedEventArgs args)
+    {
+        if (Enum.TryParse<LanguagePreference>(((MenuItem) sender).Tag as string, out var preference))
+            UiText.Current.Select(preference);
+    }
+
+    private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args) => ApplyLocalizedAppearanceLabels();
+
+    private void ApplyLocalizedAppearanceLabels()
+    {
+        // Local resources override optional appearance-menu defaults when both features are installed.
+        var viewResources = _viewModel.ActiveView?.Resources;
+
+        foreach (var (key, english) in AppearanceLabels)
+        {
+            var translated = UiText.Current.Get(english);
+            Resources[key] = translated;
+
+            viewResources?[key] = translated;
+        }
+    }
+
+    private static readonly (string Key, string English)[] AppearanceLabels =
+    [
+        ("AppearanceLabel", "Appearance"),
+        ("AppearanceHelp", "Choose a theme, palette, and accent color."),
+        ("ThemeLabel", "Theme"),
+        ("FollowAutoCadLabel", "Follow AutoCAD"),
+        ("LightLabel", "Light"),
+        ("DarkLabel", "Dark"),
+        ("PaletteLabel", "Palette"),
+        ("QuietLabel", "Quiet"),
+        ("GraphiteLabel", "Graphite"),
+        ("PaperLabel", "Paper"),
+        ("AccentLabel", "Accent"),
+        ("MintLabel", "Mint"),
+        ("BlueLabel", "Blue"),
+        ("VioletLabel", "Violet"),
+        ("AmberLabel", "Amber"),
+        ("RestoreDefaultsLabel", "Restore defaults"),
+        ("AppearanceChangesApplied", "Changes apply immediately."),
+        ("EditCutLabel", "Cut"),
+        ("EditCopyLabel", "Copy"),
+        ("EditPasteLabel", "Paste"),
+        ("EditSelectAllLabel", "Select all"),
+        ("AppearanceSaveFailed", "Unable to save preferences. Changes apply for this session.")
+    ];
 
     private void UpdateMode()
     {
@@ -79,7 +161,7 @@ public partial class ExplorerWindow
 
             MinHeight = CompactHeight;
             Height = CompactHeight;
-            Width = MinimumPanelWidth;
+            Width = 340;
             ResizeMode = ResizeMode.NoResize;
         }
     }
@@ -87,12 +169,12 @@ public partial class ExplorerWindow
     private Rect GetMonitorWorkArea()
     {
         var handle = new WindowInteropHelper(this).Handle;
-        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        var info = new MonitorInfo {Size = Marshal.SizeOf<MonitorInfo>()};
 
         if (handle == IntPtr.Zero || !GetMonitorInfo(MonitorFromWindow(handle, NearestMonitor), ref info))
             return SystemParameters.WorkArea;
 
-        var transform = HwndSource.FromHwnd(handle)?.CompositionTarget?.TransformFromDevice ?? System.Windows.Media.Matrix.Identity;
+        var transform = HwndSource.FromHwnd(handle)?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
         var topLeft = transform.Transform(new Point(info.Work.Left, info.Work.Top));
         var bottomRight = transform.Transform(new Point(info.Work.Right, info.Work.Bottom));
 

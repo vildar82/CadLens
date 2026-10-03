@@ -20,6 +20,16 @@ insertion could be hidden by the visibility flag. Broader Isolate behavior, clea
 still need native checks. Do not transfer earlier Highlight results to Isolate or assume a running host
 has loaded rebuilt DLLs. Native AutoCAD/Civil 3D checks belong to the user.
 
+## Language
+
+Switch English/Russian/Use Windows language in compact and expanded states. Check both lenses,
+filters, search, object details, status messages, tooltips, and keyboard access at narrow widths.
+Changing language while Auto modes or isolation are active must preserve navigation, selection,
+camera, and isolation. Drawing layer/type/layout names and handles must remain unchanged.
+Reopen CAD Lens and restart the host to confirm persistence. Check Windows display-language
+detection with a different regional format and AutoCAD language; unsupported Windows languages
+should use English. Test a fresh bundle and a manual NETLOAD copy including the ru subdirectory.
+
 ## Native scenarios
 
 Load the rebuilt plugin in a fresh host session and record the host/version and relevant outcomes:

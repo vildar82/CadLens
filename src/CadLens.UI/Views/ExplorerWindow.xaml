@@ -6,7 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:CadLens.UI"
-    Width="300"
+    Width="340"
     Height="52"
     MinWidth="300"
     MinHeight="52"
@@ -54,6 +54,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel
                         Margin="0,0,8,0"
@@ -88,29 +89,92 @@
                                 <DataTemplate DataType="{x:Type local:LensOption}">
                                     <ToggleButton
                                         Padding="7,6"
-                                        AutomationProperties.HelpText="{Binding DataContext.Status, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        AutomationProperties.Name="{Binding Descriptor.Label}"
-                                        Command="{Binding DataContext.ToggleLensCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        AutomationProperties.HelpText="{Binding DataContext.Status,
+                                            RelativeSource={RelativeSource AncestorType=Window}}"
+                                        AutomationProperties.Name="{local:Localize Binding={Binding Descriptor.Label}}"
+                                        Command="{Binding DataContext.ToggleLensCommand,
+                                            RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding}"
-                                        Content="{Binding Descriptor.Label}"
+                                        Content="{local:Localize Binding={Binding Descriptor.Label}}"
                                         IsChecked="{Binding IsActive, Mode=OneWay}"
                                         Style="{StaticResource QuietToggle}"
-                                        ToolTip="{Binding DataContext.Status, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        ToolTip="{Binding DataContext.Status,
+                                            RelativeSource={RelativeSource AncestorType=Window}}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
                     <Button
+                        x:Name="LanguageButton"
                         Grid.Column="2"
+                        Width="32"
+                        Height="30"
+                        Margin="4,0,4,0"
+                        Padding="0"
+                        AutomationProperties.Name="{local:Localize 'Language'}"
+                        Click="LanguageClicked"
+                        Content="{Binding LanguageCode, Source={x:Static local:UiText.Current}}"
+                        Style="{StaticResource QuietButton}"
+                        ToolTip="{local:Localize 'Language'}"
+                        WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button.ContextMenu>
+                            <ContextMenu Background="{DynamicResource QuietSurface}"
+                                         Foreground="{DynamicResource QuietText}">
+                                <MenuItem
+                                    Header="{local:Localize 'Use Windows language'}"
+                                    IsCheckable="True"
+                                    IsChecked="{Binding IsWindowsLanguage,
+                                        Source={x:Static local:UiText.Current},
+                                        Mode=OneWay}"
+                                    Tag="Windows"
+                                    Click="LanguageSelected" />
+                                <Separator />
+                                <MenuItem
+                                    Header="English"
+                                    IsCheckable="True"
+                                    IsChecked="{Binding IsEnglishLanguage,
+                                        Source={x:Static local:UiText.Current},
+                                        Mode=OneWay}"
+                                    Tag="English"
+                                    Click="LanguageSelected" />
+                                <MenuItem
+                                    Header="Русский"
+                                    IsCheckable="True"
+                                    IsChecked="{Binding IsRussianLanguage,
+                                        Source={x:Static local:UiText.Current},
+                                        Mode=OneWay}"
+                                    Tag="Russian"
+                                    Click="LanguageSelected" />
+                                <Separator />
+                                <MenuItem IsEnabled="False"
+                                          Header="{Binding PreferenceError, Source={x:Static local:UiText.Current}}">
+                                    <MenuItem.Style>
+                                        <Style TargetType="MenuItem">
+                                            <Style.Triggers>
+                                                <DataTrigger
+                                                    Binding="{Binding PreferenceError,
+                                                        Source={x:Static local:UiText.Current}}"
+                                                    Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </MenuItem.Style>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button
+                        Grid.Column="3"
                         Width="30"
                         Height="30"
                         Padding="0"
-                        AutomationProperties.Name="Close CAD Lens"
+                        AutomationProperties.Name="{local:Localize 'Close CAD Lens'}"
                         Click="CloseClicked"
                         Content="×"
                         FontSize="18"
                         Style="{StaticResource QuietButton}"
-                        ToolTip="Close CAD Lens"
+                        ToolTip="{local:Localize 'Close CAD Lens'}"
                         WindowChrome.IsHitTestVisibleInChrome="True" />
                 </Grid>
             </Border>

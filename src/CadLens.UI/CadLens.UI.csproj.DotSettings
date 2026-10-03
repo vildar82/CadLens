@@ -8,4 +8,5 @@
     <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=lenses_005Cobjectexplorer_005Cabstractions/@EntryIndexedValue">True</s:Boolean>
     <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=lenses_005Cobjectexplorer_005Cviewmodels/@EntryIndexedValue">True</s:Boolean>
     <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=lenses_005Cobjectexplorer_005Cviews/@EntryIndexedValue">True</s:Boolean>
+    <s:Boolean x:Key="/Default/CodeInspection/NamespaceProvider/NamespaceFoldersToSkip/=localization/@EntryIndexedValue">True</s:Boolean>
 </wpf:ResourceDictionary>

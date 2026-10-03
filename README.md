@@ -6,6 +6,7 @@ CAD Lens is a personal experiment in exploring AutoCAD drawings through game-ins
 
 - [Overview](#overview)
 - [Install and run](#install-and-run)
+- [Language](#language)
 - [Use the Layers lens](#use-the-layers-lens)
 - [Use the Object Types lens](#use-the-object-types-lens)
 - [Development](#development)
@@ -44,7 +45,23 @@ Build the solution:
 dotnet build CadLens.slnx -c Debug
 ```
 
-Debug builds copy the plugin and its dependencies to `%APPDATA%\Autodesk\ApplicationPlugins\CadLens.bundle\Contents`. The entry assembly is `CadLens.AutoCAD.dll` in that directory. Library and test project outputs stay in their local build directories. If the build directory is not in `TRUSTEDPATHS`, copy all DLLs from that output directory into an existing trusted directory without disabling `SECURELOAD`. In AutoCAD, run `NETLOAD`, select `CadLens.AutoCAD.dll`, and enter `CADLENS`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
+Debug builds copy the plugin and its dependencies to `%APPDATA%\Autodesk\ApplicationPlugins\CadLens.bundle\Contents`. The entry assembly is `CadLens.AutoCAD.dll` in that directory. Library and test project outputs stay in their local build directories. If the build directory is not in `TRUSTEDPATHS`, copy the complete output directory, including its `ru` satellite-resource subdirectory, into an existing trusted directory without disabling `SECURELOAD`. In AutoCAD, run `NETLOAD`, select `CadLens.AutoCAD.dll`, and enter `CADLENS`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
+
+## Language
+
+CAD Lens starts with the current user's Windows display language: Russian for a Russian display language,
+English for English or any unsupported language. This is independent of Windows regional formatting
+and the AutoCAD interface language.
+
+Use the EN/RU button in the header to choose **Use Windows language**, **English**, or **Русский**.
+The change applies immediately, including tooltips, details, and status messages, while preserving
+navigation, inclusion filters, and drawing effects. Layer names, layout names, entity type names, and
+handles remain as supplied by the drawing. Third-party exception details remain in their original language.
+
+The preference is saved per Windows user in `%LOCALAPPDATA%\CadLens\language.json`. An absent or
+invalid file uses Windows mode; an unwritable file keeps the selected language for the current session
+and shows a save explanation in the menu. Windows mode reads the display language at startup and
+when selected again. A Windows display-language change usually also requires Windows sign-out.
 
 ## Use the Layers lens
 

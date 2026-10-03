@@ -16,7 +16,8 @@
 
 ## Language
 
-- Use English in project instructions, documentation, specifications, code comments, and user-facing text.
+- Use English in project instructions, documentation, specifications, and code comments.
+- Localize user-facing text in English and Russian; preserve drawing names and identifiers.
 - Use English for GitHub Issues, Projects, milestones, and pull requests for this repository.
 - Discuss this project in English, including voice conversations when voice chat is available.
 

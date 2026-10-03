@@ -1,11 +1,11 @@
-using CadLens.Lenses;
 using System.Collections.Immutable;
 using System.IO;
-using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Media;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Media;
+using System.Windows;
+using CadLens.Lenses;
 using Common;
 using Xunit;
 
@@ -40,7 +40,7 @@ public sealed class ExplorerViewModelTests
     [Fact]
     public async Task ContextChangeRejectsLateInventory()
     {
-        var actions = new Actions { DelayInventory = true };
+        var actions = new Actions {DelayInventory = true};
         using var viewModel = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
         var running = viewModel.ActivateAsync(CancellationToken.None);
         await viewModel.ResetContextAsync(false);
@@ -88,7 +88,7 @@ public sealed class ExplorerViewModelTests
                 if (details)
                     viewModel.EnterCommand.Execute(viewModel.Items[0]);
                 var window = new ExplorerWindow(shell);
-                var content = (FrameworkElement)window.Content;
+                var content = (FrameworkElement) window.Content;
                 content.Measure(new Size(width, height));
                 content.Arrange(new Rect(0, 0, width, height));
                 content.UpdateLayout();
@@ -97,7 +97,10 @@ public sealed class ExplorerViewModelTests
                 bitmap.Render(content);
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                using var output = File.Create(Path.Combine(AppContext.BaseDirectory, $"panel-{width}x{height}-{details}.png"));
+                using var output = File.Create(
+                    Path.Combine(
+                        AppContext.BaseDirectory,
+                        $"panel-{width}x{height}-{details}.png"));
                 encoder.Save(output);
                 window.Close();
             }
@@ -119,7 +122,7 @@ public sealed class ExplorerViewModelTests
         WpfTest.Run(() =>
         {
             using var model = new ExplorerViewModel([new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers)]);
-            var window = new ExplorerWindow(model) { Left = 20, Top = 20 };
+            var window = new ExplorerWindow(model) {Left = 20, Top = 20};
             Assert.Equal(52, window.Height);
             Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
             model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
@@ -129,7 +132,7 @@ public sealed class ExplorerViewModelTests
             window.Height = 700;
             model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
             Assert.Equal(52, window.Height);
-            Assert.Equal(300, window.Width);
+            Assert.Equal(340, window.Width);
             Assert.Equal(20, window.Left);
             Assert.Equal(20, window.Top);
             model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]).GetAwaiter().GetResult();
@@ -166,7 +169,8 @@ public sealed class ExplorerViewModelTests
                     actions.PendingCleanup = new TaskCompletionSource<HostResult<bool>>();
 
                     if (state == "failed")
-                        actions.PendingCleanup.SetResult(new HostResult<bool>.Unavailable("Fixture cleanup unavailable."));
+                        actions.PendingCleanup.SetResult(
+                            new HostResult<bool>.Unavailable("Fixture cleanup unavailable."));
 
                     _ = model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]);
                     break;
@@ -177,12 +181,12 @@ public sealed class ExplorerViewModelTests
             }
 
             var window = new ExplorerWindow(model);
-            var content = (FrameworkElement)window.Content;
+            var content = (FrameworkElement) window.Content;
             var size = new Size(window.Width, window.Height);
             content.Measure(size);
             content.Arrange(new Rect(size));
             content.UpdateLayout();
-            var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+            var bitmap = new RenderTargetBitmap((int) size.Width, (int) size.Height, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(content);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
@@ -200,26 +204,32 @@ public sealed class ExplorerViewModelTests
         WpfTest.Run(() =>
         {
             var counter = new CounterViewModel(new CounterService());
-            using var model = new ExplorerViewModel([
+            using var model = new ExplorerViewModel(
+            [
                 new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers),
                 new CounterLens(counter),
-                new CounterLens(new CounterViewModel(new CounterService()), "extra", "Extra module")]);
+                new CounterLens(new CounterViewModel(new CounterService()), "extra", "Extra module")
+            ]);
             var window = new ExplorerWindow(model);
-            var content = (FrameworkElement)window.Content;
+            var content = (FrameworkElement) window.Content;
             var size = new Size(window.Width, window.Height);
             content.Measure(size);
             content.Arrange(new Rect(size));
             content.UpdateLayout();
-            var buttons = WpfTest.Descendants(content).OfType<ToggleButton>()
-                .Where(button => ReferenceEquals(button.Command, model.ToggleLensCommand)).ToArray();
+            var toggleLensCommand = model.ToggleLensCommand;
+            ToggleButton[] buttons =
+            [
+                .. WpfTest.Descendants(content).OfType<ToggleButton>()
+                    .Where(button => ReferenceEquals(button.Command, toggleLensCommand))
+            ];
             Assert.Equal(3, buttons.Length);
-            Assert.Equal(model.Lenses, buttons.Select(button => (LensOption)button.CommandParameter));
+            Assert.Equal(model.Lenses, buttons.Select(button => (LensOption) button.CommandParameter));
             var scroller = WpfTest.Descendants(content).OfType<ScrollViewer>().First();
             Assert.True(scroller.ScrollableWidth > 0);
             scroller.ScrollToRightEnd();
             content.UpdateLayout();
             Assert.True(scroller.HorizontalOffset > 0);
-            var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+            var bitmap = new RenderTargetBitmap((int) size.Width, (int) size.Height, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(content);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
@@ -236,7 +246,12 @@ public sealed class ExplorerViewModelTests
             increment.Command.Execute(null);
             Assert.Equal(1, counter.Count);
             content.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
-            var counterBitmap = new RenderTargetBitmap((int)window.Width, (int)window.Height, 96, 96, PixelFormats.Pbgra32);
+            var counterBitmap = new RenderTargetBitmap(
+                (int) window.Width,
+                (int) window.Height,
+                96,
+                96,
+                PixelFormats.Pbgra32);
             counterBitmap.Render(content);
             var counterEncoder = new PngBitmapEncoder();
             counterEncoder.Frames.Add(BitmapFrame.Create(counterBitmap));
@@ -248,24 +263,48 @@ public sealed class ExplorerViewModelTests
 
     private static LensPresentation Presentation()
     {
-        var groups = Enumerable.Range(1, 24).Select(index => new LensNode(
-            index.ToString(),
-            index == 1 ? "Site — roads and pedestrian connections — existing conditions" : $"Drawing group {index:00}",
-            [new TestEntityId(index)],
-            [],
-            [new DetailField("Category", "Example category"), new DetailField("Visibility", "Hidden: frozen. Inclusion does not reveal this object.")],
-            [LensAction.Focus])).ToImmutableArray();
-        return new LensPresentation("Layers", "Model space", groups, [new BooleanFilter("frozen", "Include frozen", "Include hidden frozen objects", IconRole.Snowflake), new BooleanFilter("off", "Include off", "Include hidden switched-off objects", IconRole.Lightbulb)], "No objects.", "Layers", "Search layers", "layers");
+        ImmutableArray<LensNode> groups =
+        [
+            .. Enumerable.Range(1, 24).Select(index => new LensNode(
+                index.ToString(),
+                index == 1
+                    ? "Site — roads and pedestrian connections — existing conditions"
+                    : $"Drawing group {index:00}",
+                [new TestEntityId(index)],
+                [],
+                [
+                    new DetailField("Category", "Example category"),
+                    new DetailField("Visibility", "Hidden: frozen. Inclusion does not reveal this object.")
+                ],
+                [LensAction.Focus]))
+        ];
+        return new LensPresentation(
+            "Layers",
+            "Model space",
+            groups,
+            [
+                new BooleanFilter("frozen", "Include frozen", "Include hidden frozen objects", IconRole.Snowflake),
+                new BooleanFilter("off", "Include off", "Include hidden switched-off objects", IconRole.Lightbulb)
+            ],
+            "No objects.",
+            "Layers",
+            "Search layers",
+            "layers");
     }
 
     private sealed class Actions : IObjectExplorerActions
     {
-        public void ClearImmediately(bool hostTerminating) { }
+        public void ClearImmediately(bool hostTerminating)
+        {
+        }
 
-        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> SelectAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
+        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
+            ClearAsync(cancellationToken);
 
         internal TaskCompletionSource<HostResult<bool>>? PendingCleanup { get; set; }
         internal bool DelayInventory { get; init; }
@@ -278,13 +317,19 @@ public sealed class ExplorerViewModelTests
         internal TaskCompletionSource<HostResult<LensPresentation>> InventoryCompletion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) => DelayInventory
+        public Task<HostResult<LensPresentation>> ReadAsync(
+            DrawingGrouping grouping,
+            IReadOnlySet<string> enabledFilters,
+            CancellationToken cancellationToken) => DelayInventory
             ? InventoryCompletion.Task
             : Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(Presentation()));
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) => PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
+            PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken)
         {
             if (!DelayIsolation)
                 return Task.FromResult("Selection updated.");
