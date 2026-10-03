@@ -17,8 +17,8 @@ internal sealed class ExplorerOwner
     private readonly ServiceProvider _root = ExplorerComposition.Build(services =>
     {
         services.AddScoped<IHostTaskService, AutoCadTaskService>();
-        services.AddScoped<ILayersSnapshotSource, AutoCadLayersSnapshotSource>();
-        services.AddScoped<ILayersActions, LayersActions>();
+        services.AddScoped<IDrawingInventorySource, AutoCadDrawingInventorySource>();
+        services.AddScoped<IObjectExplorerActions, ObjectExplorerActions>();
         services.AddScoped<IEntityIsolationService, EntityIsolationService>();
         services.AddScoped<IEntityIsolationActions, EntityIsolationActions>();
         services.AddScoped<IObjectVisualizationService, AutoCadObjectVisualizationService>();

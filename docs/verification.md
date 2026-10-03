@@ -26,7 +26,9 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
 
 1. Load the bundle, run CADLENS with preselected objects, and confirm compact startup preserves them.
    Activate Layers, browse layer/type/object, Back, breadcrumbs, and Previous/Next. Repeated CADLENS
-   should bring the existing panel forward. Drawing edits should require Refresh.
+   should bring the existing panel forward. Activate Object Types and browse Type → Object across layers;
+   check per-object layer details, search, count sorting, inclusion filters, and switching between lenses.
+   Each lens should retain its own valid navigation and Auto settings. Drawing edits should require Refresh.
 2. Try Focus, Select, and Isolate independently. All Auto modes start off. Auto Select should follow
    navigation without moving the camera; Select should remain usable when a locked viewport blocks Focus.
 3. Isolate patterned/solid hatches, text, blocks with attributes/nested blocks, repeated insertions,

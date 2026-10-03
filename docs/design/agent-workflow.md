@@ -25,7 +25,7 @@ that fallback rather than claiming the custom role was automatically loaded.
 
 Read current AGENTS.md, README.md, and the source and tests relevant to the requested behavior.
 Verify facts against current source; screenshots can become stale. Begin with
-src/CadLens.UI/Views/ExplorerWindow.xaml and src/CadLens.UI/Lenses/Layers/Views/LayersView.xaml.
+src/CadLens.UI/Views/ExplorerWindow.xaml and src/CadLens.UI/Lenses/ObjectExplorer/Views/ObjectExplorerView.xaml.
 
 The current product is one movable window over an AutoCAD drawing, with a compact inactive lens bar
 and an expanded explorer. Preserve drawing space, readable CAD names, explicit Focus-only camera

@@ -6,7 +6,7 @@ namespace CadLens.Lenses;
 /// <param name="SpaceLabel">User-facing space description.</param>
 /// <param name="Layers">Layer metadata.</param>
 /// <param name="Entities">Direct active-space entities.</param>
-public sealed record LayersSnapshot(
+public sealed record DrawingInventory(
     string SpaceLabel,
     ImmutableArray<LayerSnapshot> Layers,
     ImmutableArray<EntitySnapshot> Entities);

@@ -12,6 +12,7 @@ using Xunit;
 namespace CadLens.UI.Tests;
 
 /// <summary>Toolkit command lifetime and standalone layout verification.</summary>
+[Collection("WPF")]
 public sealed class ExplorerViewModelTests
 {
     /// <summary>A pending action disables all commands and close rejects late results.</summary>
@@ -19,7 +20,7 @@ public sealed class ExplorerViewModelTests
     public async Task PendingCommandsAreDisabledAndLateResultsIgnored()
     {
         var actions = new Actions();
-        var viewModel = new LayersViewModel(actions);
+        var viewModel = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
         await viewModel.ActivateAsync(CancellationToken.None);
         await viewModel.EnterCommand.ExecuteAsync(viewModel.Items[0]);
         actions.DelayIsolation = true;
@@ -40,10 +41,10 @@ public sealed class ExplorerViewModelTests
     public async Task ContextChangeRejectsLateInventory()
     {
         var actions = new Actions { DelayInventory = true };
-        using var viewModel = new LayersViewModel(actions);
+        using var viewModel = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
         var running = viewModel.ActivateAsync(CancellationToken.None);
         await viewModel.ResetContextAsync(false);
-        actions.InventoryCompletion.SetResult(new HostResult<LayersPresentation>.Success(Presentation()));
+        actions.InventoryCompletion.SetResult(new HostResult<LensPresentation>.Success(Presentation()));
         await running;
         Assert.Empty(viewModel.Groups);
         Assert.Equal("No active drawing", viewModel.SpaceLabel);
@@ -54,7 +55,7 @@ public sealed class ExplorerViewModelTests
     public async Task FailuresAreShownAndCommandsRecover()
     {
         var actions = new Actions();
-        using var viewModel = new LayersViewModel(actions);
+        using var viewModel = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
         await viewModel.ActivateAsync(CancellationToken.None);
         await viewModel.EnterCommand.ExecuteAsync(viewModel.Items[0]);
         actions.DelayIsolation = true;
@@ -79,14 +80,13 @@ public sealed class ExplorerViewModelTests
         {
             try
             {
-                using var viewModel = new LayersViewModel(new Actions());
-                viewModel.ActivateAsync(CancellationToken.None).GetAwaiter().GetResult();
+                using var lens = new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers);
+                using var shell = new ExplorerViewModel([lens]);
+                shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
+                var viewModel = lens.ViewModel;
                 Assert.Equal(24, viewModel.GroupCount);
                 if (details)
                     viewModel.EnterCommand.Execute(viewModel.Items[0]);
-
-                using var shell = new ExplorerViewModel([new LayersLens(viewModel)]);
-                shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
                 var window = new ExplorerWindow(shell);
                 var content = (FrameworkElement)window.Content;
                 content.Measure(new Size(width, height));
@@ -116,9 +116,9 @@ public sealed class ExplorerViewModelTests
     [Fact]
     public void WindowRestoresExpandedDimensions()
     {
-        RunOnSta(() =>
+        WpfTest.Run(() =>
         {
-            using var model = new ExplorerViewModel([new LayersLens(new LayersViewModel(new Actions()))]);
+            using var model = new ExplorerViewModel([new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers)]);
             var window = new ExplorerWindow(model) { Left = 20, Top = 20 };
             Assert.Equal(52, window.Height);
             Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
@@ -154,10 +154,10 @@ public sealed class ExplorerViewModelTests
     [InlineData("failed")]
     public void RenderCompactStates(string state)
     {
-        RunOnSta(() =>
+        WpfTest.Run(() =>
         {
             var actions = new Actions();
-            using var model = new ExplorerViewModel([new LayersLens(new LayersViewModel(actions))]);
+            using var model = new ExplorerViewModel([new ObjectExplorerLens(actions, DrawingGrouping.Layers)]);
 
             switch (state)
             {
@@ -197,11 +197,11 @@ public sealed class ExplorerViewModelTests
     [Fact]
     public void RegisteredLensButtonsAreGeneratedAndScrollable()
     {
-        RunOnSta(() =>
+        WpfTest.Run(() =>
         {
             var counter = new CounterViewModel(new CounterService());
             using var model = new ExplorerViewModel([
-                new LayersLens(new LayersViewModel(new Actions())),
+                new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers),
                 new CounterLens(counter),
                 new CounterLens(new CounterViewModel(new CounterService()), "extra", "Extra module")]);
             var window = new ExplorerWindow(model);
@@ -210,11 +210,11 @@ public sealed class ExplorerViewModelTests
             content.Measure(size);
             content.Arrange(new Rect(size));
             content.UpdateLayout();
-            var buttons = Descendants(content).OfType<ToggleButton>()
+            var buttons = WpfTest.Descendants(content).OfType<ToggleButton>()
                 .Where(button => ReferenceEquals(button.Command, model.ToggleLensCommand)).ToArray();
             Assert.Equal(3, buttons.Length);
             Assert.Equal(model.Lenses, buttons.Select(button => (LensOption)button.CommandParameter));
-            var scroller = Descendants(content).OfType<ScrollViewer>().First();
+            var scroller = WpfTest.Descendants(content).OfType<ScrollViewer>().First();
             Assert.True(scroller.ScrollableWidth > 0);
             scroller.ScrollToRightEnd();
             content.UpdateLayout();
@@ -232,7 +232,7 @@ public sealed class ExplorerViewModelTests
             content.Measure(new Size(window.Width, window.Height));
             content.Arrange(new Rect(0, 0, window.Width, window.Height));
             content.UpdateLayout();
-            var increment = Descendants(model.ActiveView).OfType<Button>().Single();
+            var increment = WpfTest.Descendants(model.ActiveView).OfType<Button>().Single();
             increment.Command.Execute(null);
             Assert.Equal(1, counter.Count);
             content.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
@@ -246,39 +246,7 @@ public sealed class ExplorerViewModelTests
         });
     }
 
-    private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, index);
-            yield return child;
-
-            foreach (var descendant in Descendants(child))
-                yield return descendant;
-        }
-    }
-
-    private static void RunOnSta(Action action)
-    {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                action();
-            }
-            catch (Exception exception)
-            {
-                failure = exception;
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "WPF check did not finish.");
-        Assert.Null(failure);
-    }
-
-    private static LayersPresentation Presentation()
+    private static LensPresentation Presentation()
     {
         var groups = Enumerable.Range(1, 24).Select(index => new LensNode(
             index.ToString(),
@@ -287,10 +255,10 @@ public sealed class ExplorerViewModelTests
             [],
             [new DetailField("Category", "Example category"), new DetailField("Visibility", "Hidden: frozen. Inclusion does not reveal this object.")],
             [LensAction.Focus])).ToImmutableArray();
-        return new LayersPresentation("Layers", "Model space", groups, [new BooleanFilter("frozen", "Include frozen", "Include hidden frozen objects", IconRole.Snowflake), new BooleanFilter("off", "Include off", "Include hidden switched-off objects", IconRole.Lightbulb)], "No objects.");
+        return new LensPresentation("Layers", "Model space", groups, [new BooleanFilter("frozen", "Include frozen", "Include hidden frozen objects", IconRole.Snowflake), new BooleanFilter("off", "Include off", "Include hidden switched-off objects", IconRole.Lightbulb)], "No objects.", "Layers", "Search layers", "layers");
     }
 
-    private sealed class Actions : ILayersActions
+    private sealed class Actions : IObjectExplorerActions
     {
         public void ClearImmediately(bool hostTerminating) { }
 
@@ -307,12 +275,12 @@ public sealed class ExplorerViewModelTests
         internal TaskCompletionSource<string> Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        internal TaskCompletionSource<HostResult<LayersPresentation>> InventoryCompletion { get; } =
+        internal TaskCompletionSource<HostResult<LensPresentation>> InventoryCompletion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task<HostResult<LayersPresentation>> ReadAsync(IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) => DelayInventory
+        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken) => DelayInventory
             ? InventoryCompletion.Task
-            : Task.FromResult<HostResult<LayersPresentation>>(new HostResult<LayersPresentation>.Success(Presentation()));
+            : Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(Presentation()));
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) => PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 

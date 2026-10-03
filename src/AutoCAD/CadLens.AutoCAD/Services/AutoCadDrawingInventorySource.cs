@@ -7,12 +7,12 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace CadLens.AutoCAD;
 
-internal sealed class AutoCadLayersSnapshotSource(IHostTaskService hostTasks) : ILayersSnapshotSource
+internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) : IDrawingInventorySource
 {
-    public Task<HostResult<LayersSnapshot>> ReadAsync(CancellationToken cancellationToken) =>
+    public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
         hostTasks.RunAsync(Read, cancellationToken);
 
-    private static LayersSnapshot Read()
+    private static DrawingInventory Read()
     {
         var document = Application.DocumentManager.MdiActiveDocument;
         var database = document.Database;
@@ -37,7 +37,7 @@ internal sealed class AutoCadLayersSnapshotSource(IHostTaskService hostTasks) : 
 
         transaction.Commit();
 
-        return new LayersSnapshot(spaceLabel, layers, entities);
+        return new DrawingInventory(spaceLabel, layers, entities);
     }
 
     private static HashSet<ObjectId> ReadViewportFrozenLayers()

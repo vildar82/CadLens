@@ -3,17 +3,15 @@ using Common;
 
 namespace CadLens.Lenses;
 
-/// <summary>Builds the Layers lens from a host-independent inventory.</summary>
+/// <summary>Builds Layers and Object Types from one host-independent inventory.</summary>
 /// <param name="source">Detached snapshot source.</param>
-public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersProvider
+public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawingLensProvider
 {
     /// <summary>Option identity for globally or viewport-frozen layers.</summary>
     public const string IncludeFrozen = "include-frozen";
 
     /// <summary>Option identity for switched-off layers.</summary>
     public const string IncludeOff = "include-off";
-
-    private const string LensLabel = "Layers";
 
     private static readonly ImmutableArray<BooleanFilter> Filters =
     [
@@ -26,7 +24,8 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
     ];
 
     /// <inheritdoc />
-    public async Task<HostResult<LayersPresentation>> LoadAsync(
+    public async Task<HostResult<LensPresentation>> LoadAsync(
+        DrawingGrouping grouping,
         IReadOnlySet<string> enabledFilters,
         CancellationToken cancellationToken)
     {
@@ -37,45 +36,58 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
 
         return result.Bind(snapshot => BuildPresentation(
             snapshot,
+            grouping,
             includeFrozen,
             includeOff,
             cancellationToken));
     }
 
-    private static HostResult<LayersPresentation> BuildPresentation(
-        LayersSnapshot snapshot,
+    private static HostResult<LensPresentation> BuildPresentation(
+        DrawingInventory snapshot,
+        DrawingGrouping grouping,
         bool includeFrozen,
         bool includeOff,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var groups = CreateLayerGroups(snapshot, includeFrozen, includeOff, cancellationToken);
-        var presentation = new LayersPresentation(
-            LensLabel,
+        var layers = snapshot.Layers
+            .Where(layer => IsIncluded(layer, includeFrozen, includeOff))
+            .ToDictionary(layer => layer.Id);
+        var entities = snapshot.Entities.Where(entity => layers.ContainsKey(entity.LayerId)).ToList();
+        var groups = grouping switch
+        {
+            DrawingGrouping.Layers => CreateLayerGroups(entities, layers, cancellationToken),
+            DrawingGrouping.ObjectTypes => CreateTypeGroups(entities, layers, null, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(grouping), grouping, "Unknown drawing grouping.")
+        };
+        var isLayers = grouping == DrawingGrouping.Layers;
+        var presentation = new LensPresentation(
+            isLayers ? "Layers" : "Object Types",
             snapshot.SpaceLabel,
             groups,
             Filters,
-            "No layers contain included objects in the current space.");
+            isLayers
+                ? "No layers contain included objects in the current space."
+                : "No types contain included objects in the current space.",
+            isLayers ? "All layers" : "All types",
+            isLayers ? "Search layers" : "Search types",
+            isLayers ? "layers" : "types");
 
-        return new HostResult<LayersPresentation>.Success(presentation);
+        return new HostResult<LensPresentation>.Success(presentation);
     }
 
     private static ImmutableArray<LensNode> CreateLayerGroups(
-        LayersSnapshot snapshot,
-        bool includeFrozen,
-        bool includeOff,
+        IEnumerable<EntitySnapshot> entities,
+        Dictionary<ILayerId, LayerSnapshot> layers,
         CancellationToken cancellationToken)
     {
-        var entitiesByLayer = snapshot.Entities.ToLookup(entity => entity.LayerId);
-        var includedLayers = snapshot.Layers
-            .Where(layer => IsIncluded(layer, includeFrozen, includeOff))
-            .Where(layer => entitiesByLayer.Contains(layer.Id))
-            .OrderBy(layer => layer.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(layer => layer.Id.DisplayId, StringComparer.Ordinal);
+        var entitiesByLayer = entities.GroupBy(entity => entity.LayerId)
+            .OrderBy(group => layers[group.Key].Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(group => group.Key.DisplayId, StringComparer.Ordinal);
 
         return
-            [.. includedLayers.Select(layer => CreateLayerNode(layer, entitiesByLayer[layer.Id], cancellationToken))];
+            [.. entitiesByLayer.Select(group => CreateLayerNode(layers[group.Key], group, layers, cancellationToken))];
     }
 
     private static bool IsIncluded(LayerSnapshot layer, bool includeFrozen, bool includeOff)
@@ -91,15 +103,12 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
     private static LensNode CreateLayerNode(
         LayerSnapshot layer,
         IEnumerable<EntitySnapshot> entities,
+        Dictionary<ILayerId, LayerSnapshot> layers,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var types = entities.GroupBy(entity => entity.TypeKey, StringComparer.Ordinal)
-            .OrderBy(group => group.Key.GetTypeLabel(), StringComparer.OrdinalIgnoreCase)
-            .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .Select(group => CreateTypeNode(layer, group, cancellationToken))
-            .ToImmutableArray();
+        var types = CreateTypeGroups(entities, layers, layer, cancellationToken);
 
         return new LensNode(
             layer.Id.DisplayId,
@@ -110,14 +119,27 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
             [LensAction.Focus]);
     }
 
+    private static ImmutableArray<LensNode> CreateTypeGroups(
+        IEnumerable<EntitySnapshot> entities,
+        Dictionary<ILayerId, LayerSnapshot> layers,
+        LayerSnapshot? layer,
+        CancellationToken cancellationToken) =>
+    [
+        .. entities.GroupBy(entity => entity.TypeKey, StringComparer.Ordinal)
+            .OrderBy(group => group.Key.GetTypeLabel(), StringComparer.OrdinalIgnoreCase)
+            .ThenBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group => CreateTypeNode(group, layers, layer, cancellationToken))
+    ];
+
     private static LensNode CreateTypeNode(
-        LayerSnapshot layer,
         IGrouping<string, EntitySnapshot> entities,
+        Dictionary<ILayerId, LayerSnapshot> layers,
+        LayerSnapshot? layer,
         CancellationToken cancellationToken)
     {
         var label = entities.Key.GetTypeLabel();
         var objects = entities.OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal)
-            .Select(entity => CreateObjectNode(layer, entity, label, cancellationToken))
+            .Select(entity => CreateObjectNode(layers[entity.LayerId], entity, label, cancellationToken))
             .ToImmutableArray();
 
         return new LensNode(
@@ -125,7 +147,9 @@ public sealed class LayersLensProvider(ILayersSnapshotSource source) : ILayersPr
             label,
             [.. objects.SelectMany(node => node.Objects)],
             objects,
-            [new DetailField("Layer", layer.Name), new DetailField("Primitive type", label)],
+            layer is null
+                ? [new DetailField("Primitive type", label)]
+                : [new DetailField("Layer", layer.Name), new DetailField("Primitive type", label)],
             [LensAction.Focus]);
     }
 

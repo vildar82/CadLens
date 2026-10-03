@@ -56,7 +56,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel
-                        Margin="0,0,14,0"
+                        Margin="0,0,8,0"
                         VerticalAlignment="Center"
                         Orientation="Horizontal">
                         <Border
@@ -87,7 +87,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:LensOption}">
                                     <ToggleButton
-                                        Padding="12,6"
+                                        Padding="7,6"
                                         AutomationProperties.HelpText="{Binding DataContext.Status, RelativeSource={RelativeSource AncestorType=Window}}"
                                         AutomationProperties.Name="{Binding Descriptor.Label}"
                                         Command="{Binding DataContext.ToggleLensCommand, RelativeSource={RelativeSource AncestorType=Window}}"

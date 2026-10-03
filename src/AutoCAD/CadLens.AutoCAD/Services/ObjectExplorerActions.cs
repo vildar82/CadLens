@@ -7,11 +7,11 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace CadLens.AutoCAD;
 
-internal sealed class LayersActions(
-    ILayersProvider lens,
+internal sealed class ObjectExplorerActions(
+    IDrawingLensProvider lens,
     IEntityIsolationActions isolation,
     IEntityIsolationService graphics,
-    IObjectVisualizationService visualization) : ILayersActions
+    IObjectVisualizationService visualization) : IObjectExplorerActions
 {
     public void ClearImmediately(bool hostTerminating)
     {
@@ -31,10 +31,11 @@ internal sealed class LayersActions(
         CancellationToken cancellationToken) =>
         visualization.SelectAsync(objects, cancellationToken);
 
-    public Task<HostResult<LayersPresentation>> ReadAsync(
+    public Task<HostResult<LensPresentation>> ReadAsync(
+        DrawingGrouping grouping,
         IReadOnlySet<string> enabledFilters,
         CancellationToken cancellationToken) =>
-        lens.LoadAsync(enabledFilters, cancellationToken);
+        lens.LoadAsync(grouping, enabledFilters, cancellationToken);
 
     public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
         isolation.ClearAsync(cancellationToken);
