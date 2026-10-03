@@ -253,7 +253,7 @@ public sealed class ExplorerCompositionTests : IDisposable
 
         internal DrawingInventory Inventory { get; set; } = new("Model", [], []);
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(Inventory));
 
         public void Dispose() => DisposeCount++;
@@ -263,6 +263,9 @@ public sealed class ExplorerCompositionTests : IDisposable
 
     private sealed class Actions(IDrawingLensProvider provider) : IObjectExplorerActions
     {
+        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+
         public void ClearImmediately(bool hostTerminating)
         {
         }
@@ -278,8 +281,9 @@ public sealed class ExplorerCompositionTests : IDisposable
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken) =>
-            provider.LoadAsync(grouping, enabledFilters, cancellationToken);
+            provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
 
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,

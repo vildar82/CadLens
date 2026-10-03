@@ -222,11 +222,15 @@ public sealed class LensSettingsTests
         internal int IsolateCount { get; private set; }
         internal List<ImmutableHashSet<string>> Reads { get; } = [];
 
+        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+
         public void ClearImmediately(bool hostTerminating) => NativeCalls++;
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {
             NativeCalls++;

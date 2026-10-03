@@ -292,6 +292,30 @@
   <data name="Refresh active space" xml:space="preserve">
     <value>Обновить текущее пространство</value>
   </data>
+  <data name="All objects" xml:space="preserve">
+    <value>Все объекты</value>
+  </data>
+  <data name="Selected objects" xml:space="preserve">
+    <value>Выбранные объекты</value>
+  </data>
+  <data name="Browse all direct objects in the active drawing space" xml:space="preserve">
+    <value>Просмотр всех объектов текущего пространства чертежа</value>
+  </data>
+  <data name="Capture the current CAD selection. Refresh captures it again." xml:space="preserve">
+    <value>Показать текущий выбор в CAD. Обновление считывает выбор заново.</value>
+  </data>
+  <data name="No selected objects match the inclusion filters." xml:space="preserve">
+    <value>Нет выбранных объектов, соответствующих фильтрам.</value>
+  </data>
+  <data name="No selected objects in the active space. Select objects in CAD and refresh." xml:space="preserve">
+    <value>В текущем пространстве нет выбранных объектов. Выберите объекты в CAD и обновите.</value>
+  </data>
+  <data name="The active drawing space has changed. Refresh to try again." xml:space="preserve">
+    <value>Текущее пространство чертежа изменилось. Обновите для повторной попытки.</value>
+  </data>
+  <data name="Refresh selected objects" xml:space="preserve">
+    <value>Обновить выбранные объекты</value>
+  </data>
   <data name="Refresh to explore the active space." xml:space="preserve">
     <value>Обновите список для просмотра текущего пространства.</value>
   </data>

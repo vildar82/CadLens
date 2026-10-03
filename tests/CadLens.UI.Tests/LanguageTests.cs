@@ -328,7 +328,7 @@ public sealed partial class LanguageTests : IDisposable
 
     private sealed class Source(string spaceLabel) : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken)
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
         {
             var layer = new LayerId("1");
             var inventory = new DrawingInventory(
@@ -354,10 +354,11 @@ public sealed partial class LanguageTests : IDisposable
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {
             Calls++;
-            return _provider.LoadAsync(grouping, enabledFilters, cancellationToken);
+            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
         }
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
@@ -395,6 +396,9 @@ public sealed partial class LanguageTests : IDisposable
             Selected = objects;
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
+
+        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
 
         public void ClearImmediately(bool hostTerminating)
         {

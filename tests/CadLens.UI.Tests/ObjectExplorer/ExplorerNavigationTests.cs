@@ -905,6 +905,9 @@ public sealed class ExplorerNavigationTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+
         public void ClearImmediately(bool hostTerminating)
         {
             SelectionTargets = [];
@@ -949,7 +952,7 @@ public sealed class ExplorerNavigationTests
         internal TaskCompletionSource<string>? PendingFocus { get; init; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
 
-        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, CancellationToken cancellationToken)
+        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
         {
             ReadCount++;
             Enabled = enabledFilters;

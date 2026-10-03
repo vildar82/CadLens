@@ -70,6 +70,19 @@ A new `CADLENS` session opens as a compact bar with both lenses inactive. Press 
 
 ![CAD Lens Layers preview showing the drawing inventory and Isolate control](docs/images/layers-preview.png)
 
+### Object scope
+
+Both lenses start with **All objects**, which reads direct objects in the active model or paper space.
+To browse a subset, select objects in CAD and choose **Selected objects**. The lens captures the current
+CAD selection before cleanup; an empty selection shows an empty list. Only live direct objects in the
+active space are included. The existing off/frozen inclusion filters still apply.
+
+Navigation, grouping, inclusion-filter changes, Reset, and Select/Auto Select keep the captured inventory.
+Collapsing the panel or switching lenses also keeps each lens's selected inventory and navigation.
+**Refresh selected objects** captures the current CAD selection again and rereads its properties; it can
+replace the inventory with a selection made by Select/Auto Select. Switching drawings or spaces clears
+the old inventory. Each new panel session starts with All objects.
+
 ### Drawing controls
 
 | Action | Effect | Auto default |

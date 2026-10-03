@@ -379,7 +379,7 @@ public sealed class ObjectTypesTests
 
         internal CancellationToken Token { get; private set; }
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken)
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
         {
             Token = cancellationToken;
             return Pending?.Task ?? Task.FromResult(Result);
@@ -404,10 +404,11 @@ public sealed class ObjectTypesTests
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {
             ReadCount++;
-            return _provider.LoadAsync(grouping, enabledFilters, cancellationToken);
+            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
         }
 
         public Task<HostResult<bool>> SelectAsync(
@@ -445,6 +446,9 @@ public sealed class ObjectTypesTests
             Isolated = [];
             return PendingClear?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
+
+        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
 
         public void ClearImmediately(bool hostTerminating)
         {

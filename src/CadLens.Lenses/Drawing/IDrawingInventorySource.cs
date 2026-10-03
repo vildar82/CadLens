@@ -1,4 +1,5 @@
-﻿using Common;
+﻿using System.Collections.Immutable;
+using Common;
 
 namespace CadLens.Lenses;
 
@@ -6,6 +7,9 @@ namespace CadLens.Lenses;
 public interface IDrawingInventorySource
 {
     /// <summary>Reads the current layer and entity data.</summary>
+    /// <param name="selectedObjects">Captured selection, or null for all direct current-space objects.</param>
     /// <param name="cancellationToken">Request cancellation.</param>
-    Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken);
+    Task<HostResult<DrawingInventory>> ReadAsync(
+        ImmutableArray<IPlacedObjectId>? selectedObjects,
+        CancellationToken cancellationToken);
 }

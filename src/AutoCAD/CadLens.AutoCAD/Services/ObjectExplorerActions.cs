@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Autodesk.AutoCAD.EditorInput;
 using CadLens.Lenses;
 using CadLens.UI;
 using Common;
@@ -13,6 +14,28 @@ internal sealed class ObjectExplorerActions(
     IEntityIsolationService graphics,
     IObjectVisualizationService visualization) : IObjectExplorerActions
 {
+    public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects()
+    {
+        try
+        {
+            var document = Application.DocumentManager.MdiActiveDocument;
+
+            if (document is null)
+                return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable("The active drawing is no longer available.");
+
+            var selection = document.Editor.SelectImplied();
+            ImmutableArray<IPlacedObjectId> objects = selection.Status == PromptStatus.OK
+                ? [.. selection.Value.GetObjectIds().Select(id => (IPlacedObjectId) new EntityId(id))]
+                : [];
+
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(objects);
+        }
+        catch (Exception exception)
+        {
+            return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(exception.Message);
+        }
+    }
+
     public void ClearImmediately(bool hostTerminating)
     {
         try
@@ -34,8 +57,9 @@ internal sealed class ObjectExplorerActions(
     public Task<HostResult<LensPresentation>> ReadAsync(
         DrawingGrouping grouping,
         IReadOnlySet<string> enabledFilters,
+        ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken) =>
-        lens.LoadAsync(grouping, enabledFilters, cancellationToken);
+        lens.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
 
     public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
         isolation.ClearAsync(cancellationToken);

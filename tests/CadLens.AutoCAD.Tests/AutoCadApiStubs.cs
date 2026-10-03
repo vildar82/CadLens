@@ -6,6 +6,7 @@ namespace Autodesk.AutoCAD.ApplicationServices
     internal sealed class Document
     {
         internal Editor Editor { get; } = new();
+        internal DatabaseServices.Database Database { get; } = new();
         internal bool IsLocked { get; private set; }
 
         internal IDisposable LockDocument()
@@ -23,6 +24,9 @@ namespace Autodesk.AutoCAD.ApplicationServices
     internal sealed class Editor
     {
         internal bool IsQuiescent { get; set; } = true;
+        internal DatabaseServices.ObjectId CurrentViewportObjectId { get; set; }
+        internal DatabaseServices.ObjectId[] Selection { get; set; } = [];
+        internal EditorInput.PromptSelectionResult SelectImplied() => new(Selection);
     }
 
     internal sealed class DocumentCollection
@@ -89,6 +93,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     {
         internal bool IsValid => Database is not null && Database.Objects.ContainsKey(Value);
         internal bool IsErased => Database.Objects[Value].IsErased;
+        internal int Handle => Value;
 
         internal DBObject GetObject(OpenMode mode, bool openErased, bool forceOpenOnLockedLayer) =>
             Database.TransactionManager.TopTransaction!.GetObject(this, mode, openErased, forceOpenOnLockedLayer);
@@ -99,29 +104,39 @@ namespace Autodesk.AutoCAD.DatabaseServices
     public class DBObject
     {
         internal bool IsErased { get; init; }
+        internal ObjectId ObjectId { get; set; }
     }
 
     /// <summary>Test double for the native Database type.</summary>
     public sealed class Database
     {
         internal Dictionary<int, DBObject> Objects { get; } = [];
+        internal ObjectId CurrentSpaceId { get; set; }
+        internal ObjectId LayerTableId { get; set; }
+        internal bool TileMode => true;
+        internal int Luprec => 4;
+        internal int Auprec => 2;
         internal TransactionManager TransactionManager { get; } = new();
 
         internal ObjectId Add(DBObject value)
         {
             var id = Objects.Count + 1;
             Objects.Add(id, value);
-            return new ObjectId(id, this);
+            value.ObjectId = new ObjectId(id, this);
+            return value.ObjectId;
         }
     }
 
     internal sealed class TransactionManager
     {
         internal Transaction TopTransaction { get; } = new();
+        internal Transaction StartTransaction() => TopTransaction;
     }
 
-    internal sealed class Transaction
+    internal sealed class Transaction : IDisposable
     {
+        internal void Commit() { }
+        public void Dispose() { }
         internal List<(OpenMode Mode, bool OpenErased, bool ForceOpenOnLockedLayer)> OpenRequests { get; } = [];
 
         internal DBObject GetObject(
@@ -136,11 +151,15 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 
     /// <summary>Test double for the native Entity type.</summary>
-    public class Entity : DBObject;
+    public class Entity : DBObject
+    {
+        internal ObjectId OwnerId { get; init; }
+        internal ObjectId LayerId { get; init; }
+    }
 
     /// <summary>Test double for the native SymbolTable type.</summary>
     /// <param name="ids">Contained test identifiers.</param>
-    public sealed class SymbolTable(params ObjectId[] ids) : DBObject, IEnumerable
+    public class SymbolTable(params ObjectId[] ids) : DBObject, IEnumerable
     {
         /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
@@ -150,6 +169,9 @@ namespace Autodesk.AutoCAD.DatabaseServices
     /// <param name="ids">Contained test identifiers.</param>
     public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
+        internal ObjectId LayoutId { get; init; }
+        internal bool IsLayout => false;
+        internal string Name => "Model";
         /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
     }

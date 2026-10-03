@@ -294,6 +294,9 @@ public sealed class ExplorerViewModelTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public HostResult<ImmutableArray<IPlacedObjectId>> CaptureSelectedObjects() =>
+            new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]);
+
         public void ClearImmediately(bool hostTerminating)
         {
         }
@@ -320,6 +323,7 @@ public sealed class ExplorerViewModelTests
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlySet<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken) => DelayInventory
             ? InventoryCompletion.Task
             : Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(Presentation()));
