@@ -31,6 +31,8 @@ public partial class ExplorerWindow
         DataContext = viewModel;
         UiText.Current.PropertyChanged += OnLanguageChanged;
         ApplyLocalizedAppearanceLabels();
+        viewModel.PropertyChanged += OnLocalizedViewChanged;
+        Closed += OnLanguageWindowClosed;
         viewModel.PropertyChanged += OnViewModelChanged;
         SourceInitialized += OnSourceInitialized;
         Closed += OnClosed;
@@ -51,17 +53,23 @@ public partial class ExplorerWindow
     {
         if (args.PropertyName == nameof(ExplorerViewModel.IsLensActive))
             UpdateMode();
-
-        if (args.PropertyName == nameof(ExplorerViewModel.ActiveView))
-            ApplyLocalizedAppearanceLabels();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs args) => UpdateMode();
 
-    private void OnClosed(object? sender, EventArgs args)
+    private void OnClosed(object? sender, EventArgs args) => _viewModel.PropertyChanged -= OnViewModelChanged;
+
+    private void OnLanguageWindowClosed(object? sender, EventArgs args)
     {
-        _viewModel.PropertyChanged -= OnViewModelChanged;
+        _viewModel.PropertyChanged -= OnLocalizedViewChanged;
         UiText.Current.PropertyChanged -= OnLanguageChanged;
+        Closed -= OnLanguageWindowClosed;
+    }
+
+    private void OnLocalizedViewChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(ExplorerViewModel.ActiveView))
+            ApplyLocalizedAppearanceLabels();
     }
 
     private void LanguageClicked(object sender, RoutedEventArgs args)

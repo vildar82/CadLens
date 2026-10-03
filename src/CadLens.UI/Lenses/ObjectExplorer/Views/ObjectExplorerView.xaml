@@ -38,7 +38,7 @@
                         VerticalAlignment="Center"
                         DockPanel.Dock="Right"
                         FontSize="11"
-                        Foreground="{StaticResource QuietMuted}"
+                        Foreground="{DynamicResource QuietMuted}"
                         Text="{Binding DisplaySpaceLabel}"
                         TextTrimming="CharacterEllipsis"
                         ToolTip="{Binding DisplaySpaceLabel}" />
@@ -116,7 +116,7 @@
                     <TextBlock
                         DockPanel.Dock="Right"
                         FontSize="11"
-                        Foreground="{StaticResource QuietMuted}"
+                        Foreground="{DynamicResource QuietMuted}"
                         Text="{ui:Localize Binding={Binding ObjectCount}, Format='{}{0:N0} objects'}" />
                     <TextBlock
                         FontSize="11"
@@ -215,7 +215,7 @@
                         <TextBlock
                             Margin="0,2,0,0"
                             FontSize="11"
-                            Foreground="{StaticResource QuietAccent}"
+                            Foreground="{DynamicResource QuietAccent}"
                             Text="{ui:Localize Binding={Binding Current.Count}, Format='{}{0:N0} objects'}" />
                     </StackPanel>
                 </Border>
@@ -293,7 +293,7 @@
                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock
                                     VerticalAlignment="Center"
-                                    Foreground="{StaticResource QuietMuted}"
+                                    Foreground="{DynamicResource QuietMuted}"
                                     IsHitTestVisible="False"
                                     Text="{ui:Localize Binding={Binding SearchPlaceholder}}">
                                     <TextBlock.Style>
@@ -438,7 +438,7 @@
                                             <TextBlock
                                                 Margin="0,0,6,0"
                                                 FontSize="11"
-                                                Foreground="{StaticResource QuietMuted}"
+                                                Foreground="{DynamicResource QuietMuted}"
                                                 Text="{ui:Localize Binding={Binding Label}}" />
                                             <TextBlock
                                                 Grid.Column="1"
@@ -586,7 +586,7 @@
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"
                         FontSize="10"
-                        Foreground="{StaticResource QuietMuted}"
+                        Foreground="{DynamicResource QuietMuted}"
                         Text="{ui:Localize 'Auto off · camera kept'}" />
                 </DockPanel>
                 <TextBlock
