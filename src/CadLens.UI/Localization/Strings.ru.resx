@@ -449,4 +449,151 @@
   <data name="Select all" xml:space="preserve">
     <value>Выбрать всё</value>
   </data>
+  <data name="Group by properties" xml:space="preserve">
+    <value>Группировать по свойствам</value>
+  </data>
+  <data name="Choose properties to combine into one group" xml:space="preserve">
+    <value>Выберите свойства для объединения в одну группу</value>
+  </data>
+  <data name="Group by" xml:space="preserve">
+    <value>Группировать по</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>Нет</value>
+  </data>
+  <data name="Grouping unavailable." xml:space="preserve">
+    <value>Группировка недоступна.</value>
+  </data>
+  <data name="Grouping updated." xml:space="preserve">
+    <value>Группировка обновлена.</value>
+  </data>
+  <data name="ByLayer" xml:space="preserve">
+    <value>По слою</value>
+  </data>
+  <data name="ByBlock" xml:space="preserve">
+    <value>По блоку</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>По умолчанию</value>
+  </data>
+  <data name="Other" xml:space="preserve">
+    <value>Другой</value>
+  </data>
+  <data name="{0:0.00} mm" xml:space="preserve">
+    <value>{0:0.00} мм</value>
+  </data>
+  <data name="Color" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="Linetype" xml:space="preserve">
+    <value>Тип линии</value>
+  </data>
+  <data name="Lineweight" xml:space="preserve">
+    <value>Вес линии</value>
+  </data>
+  <data name="Linetype scale" xml:space="preserve">
+    <value>Масштаб типа линии</value>
+  </data>
+  <data name="Transparency" xml:space="preserve">
+    <value>Прозрачность</value>
+  </data>
+  <data name="Vertices" xml:space="preserve">
+    <value>Вершины</value>
+  </data>
+  <data name="Closed" xml:space="preserve">
+    <value>Замкнута</value>
+  </data>
+  <data name="Length" xml:space="preserve">
+    <value>Длина</value>
+  </data>
+  <data name="Constant width" xml:space="preserve">
+    <value>Постоянная ширина</value>
+  </data>
+  <data name="Extrusion thickness" xml:space="preserve">
+    <value>Высота выдавливания</value>
+  </data>
+  <data name="Definition entities" xml:space="preserve">
+    <value>Объекты определения</value>
+  </data>
+  <data name="Block name" xml:space="preserve">
+    <value>Имя блока</value>
+  </data>
+  <data name="Attributes" xml:space="preserve">
+    <value>Атрибуты</value>
+  </data>
+  <data name="Dynamic" xml:space="preserve">
+    <value>Динамический</value>
+  </data>
+  <data name="External reference" xml:space="preserve">
+    <value>Внешняя ссылка</value>
+  </data>
+  <data name="Boundary loops" xml:space="preserve">
+    <value>Контуры</value>
+  </data>
+  <data name="Fill kind" xml:space="preserve">
+    <value>Тип заливки</value>
+  </data>
+  <data name="Pattern" xml:space="preserve">
+    <value>Образец</value>
+  </data>
+  <data name="Pattern angle" xml:space="preserve">
+    <value>Угол образца</value>
+  </data>
+  <data name="Pattern scale" xml:space="preserve">
+    <value>Масштаб образца</value>
+  </data>
+  <data name="Pattern type" xml:space="preserve">
+    <value>Тип образца</value>
+  </data>
+  <data name="Gradient" xml:space="preserve">
+    <value>Градиент</value>
+  </data>
+  <data name="Control points" xml:space="preserve">
+    <value>Управляющие точки</value>
+  </data>
+  <data name="Fit points" xml:space="preserve">
+    <value>Определяющие точки</value>
+  </data>
+  <data name="Radius" xml:space="preserve">
+    <value>Радиус</value>
+  </data>
+  <data name="Start angle" xml:space="preserve">
+    <value>Начальный угол</value>
+  </data>
+  <data name="End angle" xml:space="preserve">
+    <value>Конечный угол</value>
+  </data>
+  <data name="Text height" xml:space="preserve">
+    <value>Высота текста</value>
+  </data>
+  <data name="Text content" xml:space="preserve">
+    <value>Содержимое текста</value>
+  </data>
+  <data name="Text style" xml:space="preserve">
+    <value>Стиль текста</value>
+  </data>
+  <data name="Solid" xml:space="preserve">
+    <value>Сплошная</value>
+  </data>
+  <data name="PreDefined" xml:space="preserve">
+    <value>Стандартный</value>
+  </data>
+  <data name="UserDefined" xml:space="preserve">
+    <value>Пользовательский</value>
+  </data>
+  <data name="CustomDefined" xml:space="preserve">
+    <value>Из файла</value>
+  </data>
+  <data name="Sort by name" xml:space="preserve">
+    <value>Сортировать по имени</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Подробности</value>
+  </data>
+  <data name="Show property" xml:space="preserve">
+    <value>Показать свойство</value>
+  </data>
+  <data name="Choose the property shown in object rows" xml:space="preserve">
+    <value>Выберите свойство для отображения в строках объектов</value>
+  </data>
 </root>

@@ -42,6 +42,9 @@ public sealed class LocalizeExtension : MarkupExtension
         binding.Bindings.Add(Binding ?? new Binding {Source = Text});
         binding.Bindings.Add(new Binding(nameof(UiText.Culture)) {Source = UiText.Current});
 
+        if (DetailValue)
+            binding.Bindings.Add(DrawingValueFormatter.PrecisionBinding());
+
         return binding.ProvideValue(serviceProvider);
     }
 
@@ -55,7 +58,7 @@ public sealed class LocalizeExtension : MarkupExtension
                 return "";
 
             if (detailValue && value is DetailField field)
-                return field.Label is "Visibility" or "Locked" ? UiText.Current.Get(field.Value) : field.Value;
+                return DrawingValueFormatter.FormatDetail(field, values[2] as DrawingPrecision);
 
             return format is not null
                 ? string.Format(UiText.Current.Culture, UiText.Current.Get(format), value)

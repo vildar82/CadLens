@@ -10,4 +10,7 @@ public partial class ObjectExplorerView
         InitializeComponent();
         DataContext = viewModel;
     }
+
+    private void DisplayPropertyClicked(object _, System.Windows.RoutedEventArgs __) =>
+        DisplayPropertyPopup.IsOpen = false;
 }

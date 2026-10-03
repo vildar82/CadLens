@@ -10,10 +10,12 @@ namespace CadLens.AutoCAD;
 internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) : IDrawingInventorySource
 {
     public Task<HostResult<DrawingInventory>> ReadAsync(CancellationToken cancellationToken) =>
-        hostTasks.RunAsync(Read, cancellationToken);
+        hostTasks.RunAsync(() => Read(cancellationToken), cancellationToken);
 
-    private static DrawingInventory Read()
+    private static DrawingInventory Read(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var document = Application.DocumentManager.MdiActiveDocument;
         var database = document.Database;
 
@@ -21,23 +23,36 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
 
         var space = database.GetActiveSpace();
         var frozenLayers = ReadViewportFrozenLayers();
-        var layers = database.LayerTableId.GetObject<LayerTable>()!
-            .GetObjects<LayerTableRecord>()
-            .Select(layer => ReadLayer(layer, frozenLayers))
-            .ToImmutableArray();
+        var layers = ReadLayers(database, frozenLayers, cancellationToken);
+        var reader = new AutoCadEntitySnapshotReader(cancellationToken);
 
         var entities = space.GetObjects<Entity>()
-            .Select(entity => new EntitySnapshot(
-                new EntityId(entity.ObjectId),
-                new LayerId(entity.LayerId),
-                entity.GetRXClass().Name))
+            .Select(reader.Read)
             .ToImmutableArray();
 
         var spaceLabel = space.IsLayout ? space.LayoutId.GetObject<Layout>()!.LayoutName : space.Name;
+        var precision = new DrawingPrecision(database.Luprec, database.Auprec);
 
+        cancellationToken.ThrowIfCancellationRequested();
         transaction.Commit();
 
-        return new DrawingInventory(spaceLabel, layers, entities);
+        return new DrawingInventory(spaceLabel, layers, entities, Precision: precision);
+    }
+
+    private static ImmutableArray<LayerSnapshot> ReadLayers(
+        Database database,
+        HashSet<ObjectId> frozenLayers,
+        CancellationToken cancellationToken)
+    {
+        var layers = new List<LayerSnapshot>();
+
+        foreach (var layer in database.LayerTableId.GetObject<LayerTable>()!.GetObjects<LayerTableRecord>())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            layers.Add(ReadLayer(layer, frozenLayers));
+        }
+
+        return [.. layers];
     }
 
     private static HashSet<ObjectId> ReadViewportFrozenLayers()

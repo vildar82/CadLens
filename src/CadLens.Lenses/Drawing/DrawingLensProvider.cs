@@ -1,5 +1,8 @@
 ﻿using System.Collections.Immutable;
 using Common;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CadLens.Lenses;
 
@@ -34,19 +37,34 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         var includeOff = enabledFilters.Contains(IncludeOff);
         var result = await source.ReadAsync(cancellationToken).ConfigureAwait(false);
 
-        return result.Bind(snapshot => BuildPresentation(
-            snapshot,
-            grouping,
-            includeFrozen,
-            includeOff,
-            cancellationToken));
+        return result.Bind(snapshot => new HostResult<LensPresentation>.Success(
+            Build(snapshot, grouping, includeFrozen, includeOff, null, cancellationToken)));
     }
 
-    private static HostResult<LensPresentation> BuildPresentation(
+    /// <summary>Rebuilds a drawing lens from detached facts without performing another host read.</summary>
+    /// <param name="snapshot">Retained active-space facts.</param>
+    /// <param name="grouping">Root grouping of the lens.</param>
+    /// <param name="enabledFilters">Current visibility inclusion choices.</param>
+    /// <param name="propertyGrouping">Selected combined properties for each runtime type.</param>
+    public static LensPresentation Build(
+        DrawingInventory snapshot,
+        DrawingGrouping grouping,
+        IReadOnlySet<string> enabledFilters,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping = null) =>
+        Build(
+            snapshot,
+            grouping,
+            enabledFilters.Contains(IncludeFrozen),
+            enabledFilters.Contains(IncludeOff),
+            propertyGrouping,
+            CancellationToken.None);
+
+    private static LensPresentation Build(
         DrawingInventory snapshot,
         DrawingGrouping grouping,
         bool includeFrozen,
         bool includeOff,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -57,8 +75,13 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         var entities = snapshot.Entities.Where(entity => layers.ContainsKey(entity.LayerId)).ToList();
         var groups = grouping switch
         {
-            DrawingGrouping.Layers => CreateLayerGroups(entities, layers, cancellationToken),
-            DrawingGrouping.ObjectTypes => CreateTypeGroups(entities, layers, null, cancellationToken),
+            DrawingGrouping.Layers => CreateLayerGroups(entities, layers, propertyGrouping, cancellationToken),
+            DrawingGrouping.ObjectTypes => CreateTypeGroups(
+                entities,
+                layers,
+                null,
+                propertyGrouping,
+                cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(grouping), grouping, "Unknown drawing grouping.")
         };
         var isLayers = grouping == DrawingGrouping.Layers;
@@ -72,14 +95,17 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 : "No types contain included objects in the current space.",
             isLayers ? "All layers" : "All types",
             isLayers ? "Search layers" : "Search types",
-            isLayers ? "layers" : "types");
+            isLayers ? "layers" : "types",
+            snapshot,
+            snapshot.Precision);
 
-        return new HostResult<LensPresentation>.Success(presentation);
+        return presentation;
     }
 
     private static ImmutableArray<LensNode> CreateLayerGroups(
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
         CancellationToken cancellationToken)
     {
         var entitiesByLayer = entities.GroupBy(entity => entity.LayerId)
@@ -87,7 +113,14 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             .ThenBy(group => group.Key.DisplayId, StringComparer.Ordinal);
 
         return
-            [.. entitiesByLayer.Select(group => CreateLayerNode(layers[group.Key], group, layers, cancellationToken))];
+        [
+            .. entitiesByLayer.Select(group => CreateLayerNode(
+                layers[group.Key],
+                group,
+                layers,
+                propertyGrouping,
+                cancellationToken))
+        ];
     }
 
     private static bool IsIncluded(LayerSnapshot layer, bool includeFrozen, bool includeOff)
@@ -104,11 +137,12 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         LayerSnapshot layer,
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var types = CreateTypeGroups(entities, layers, layer, cancellationToken);
+        var types = CreateTypeGroups(entities, layers, layer, propertyGrouping, cancellationToken);
 
         return new LensNode(
             layer.Id.DisplayId,
@@ -116,41 +150,51 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             [.. types.SelectMany(type => type.Objects)],
             types,
             CreateLayerDetails(layer),
-            [LensAction.Focus]);
+            [LensAction.Focus],
+            LensNodeKind.Layer);
     }
 
     private static ImmutableArray<LensNode> CreateTypeGroups(
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
         LayerSnapshot? layer,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
         CancellationToken cancellationToken) =>
     [
         .. entities.GroupBy(entity => entity.TypeKey, StringComparer.Ordinal)
             .OrderBy(group => group.Key.GetTypeLabel(), StringComparer.OrdinalIgnoreCase)
             .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .Select(group => CreateTypeNode(group, layers, layer, cancellationToken))
+            .Select(group => CreateTypeNode(group, layers, layer, propertyGrouping, cancellationToken))
     ];
 
     private static LensNode CreateTypeNode(
         IGrouping<string, EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
         LayerSnapshot? layer,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
         CancellationToken cancellationToken)
     {
         var label = entities.Key.GetTypeLabel();
-        var objects = entities.OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal)
+        var orderedEntities = entities.OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal).ToList();
+        var objects = orderedEntities
             .Select(entity => CreateObjectNode(layers[entity.LayerId], entity, label, cancellationToken))
             .ToImmutableArray();
+        var fields = GetGroupingFields(orderedEntities, propertyGrouping);
+        var children = fields.IsEmpty ? objects : CreatePropertyGroups(orderedEntities, objects, layers, fields);
+        var metric = GetCommonMetric(objects);
 
         return new LensNode(
             entities.Key,
             label,
             [.. objects.SelectMany(node => node.Objects)],
-            objects,
+            children,
             layer is null
-                ? [new DetailField("Primitive type", label)]
-                : [new DetailField("Layer", layer.Name), new DetailField("Primitive type", label)],
-            [LensAction.Focus]);
+                ? [CreatePrimitiveTypeField(entities.Key)]
+                : [new DetailField("Layer", layer.Name), CreatePrimitiveTypeField(entities.Key)],
+            [LensAction.Focus],
+            LensNodeKind.Type,
+            entities.Key,
+            RowMetric: metric);
     }
 
     private static LensNode CreateObjectNode(
@@ -163,19 +207,172 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
         return new LensNode(
             entity.Id.DisplayId,
-            $"{typeLabel} {entity.Id.DisplayId}",
+            DrawingProperties.GetValue(entity, layer, DrawingPropertyId.BlockName) is DrawingTextValue
+            {
+                Text.Length: > 0
+            } blockName
+                ? $"{blockName.Text} {entity.Id.DisplayId}"
+                : $"{typeLabel} {entity.Id.DisplayId}",
             [entity.Id],
             [],
-            [.. CreateLayerDetails(layer), new DetailField("Primitive type", typeLabel)],
-            [LensAction.Focus]);
+            [
+                .. CreateLayerDetails(layer),
+                CreatePrimitiveTypeField(entity.TypeKey),
+                .. DrawingProperties.GetDetails(entity, layer)
+            ],
+            [LensAction.Focus],
+            LensNodeKind.Object,
+            entity.TypeKey,
+            [
+                .. DrawingProperties.GetAvailableFields([entity]).Select(id =>
+                    new DrawingProperty(id, DrawingProperties.GetValue(entity, layer, id)))
+            ],
+            RowMetric: DrawingProperties.GetPrimaryMetric(entity));
     }
 
     private static ImmutableArray<DetailField> CreateLayerDetails(LayerSnapshot layer) =>
     [
         new("Layer", layer.Name),
-        new("Visibility", DescribeVisibility(layer)),
-        new("Locked", layer.IsLocked ? "Yes" : "No")
+        new("Visibility", DescribeVisibility(layer), DetailValueKind.LayerVisibility),
+        new("Locked", layer.IsLocked ? "Yes" : "No", DetailValueKind.ApplicationText)
     ];
+
+    private static DetailField CreatePrimitiveTypeField(string typeKey)
+    {
+        var label = typeKey.GetTypeLabel();
+
+        return new DetailField(
+            "Primitive type",
+            label,
+            DetailValueKind.PrimitiveType,
+            new DrawingTextValue(label, label != typeKey));
+    }
+
+    private static ImmutableArray<DrawingPropertyId> GetGroupingFields(
+        List<EntitySnapshot> entities,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping)
+    {
+        if (propertyGrouping is null || !propertyGrouping.TryGetValue(entities[0].TypeKey, out var selected) ||
+            selected.IsDefaultOrEmpty)
+            return [];
+
+        var available = DrawingProperties.GetAvailableFields(entities);
+
+        return [.. selected.Where(available.Contains).Distinct().OrderBy(id => id)];
+    }
+
+    private static ImmutableArray<LensNode> CreatePropertyGroups(
+        List<EntitySnapshot> entities,
+        ImmutableArray<LensNode> objects,
+        Dictionary<ILayerId, LayerSnapshot> layers,
+        ImmutableArray<DrawingPropertyId> fields)
+    {
+        var groups = new Dictionary<PropertyGroupKey, List<LensNode>>();
+
+        for (var index = 0; index < entities.Count; index++)
+        {
+            var entity = entities[index];
+            var key = new PropertyGroupKey(
+            [
+                .. fields.Select(id => new DrawingProperty(
+                    id,
+                    DrawingProperties.GetValue(entity, layers[entity.LayerId], id)))
+            ]);
+
+            if (!groups.TryGetValue(key, out var members))
+            {
+                members = [];
+                groups.Add(key, members);
+            }
+
+            members.Add(objects[index]);
+        }
+
+        return
+        [
+            .. groups.Select(group => CreatePropertyNode(group.Key, group.Value))
+                .OrderBy(node => node.Id, StringComparer.Ordinal)
+        ];
+    }
+
+    private static LensNode CreatePropertyNode(PropertyGroupKey key, List<LensNode> objects)
+    {
+        var first = objects[0];
+
+        return new LensNode(
+            key.GetIdentity(),
+            string.Empty,
+            [.. objects.SelectMany(node => node.Objects)],
+            [.. objects],
+            [
+                .. key.Properties.Select(property => new DetailField(
+                    DrawingProperties.GetLabel(property.Id),
+                    string.Empty,
+                    DetailValueKind.TypedValue,
+                    property.Value))
+            ],
+            [LensAction.Focus],
+            LensNodeKind.PropertyGroup,
+            first.TypeKey,
+            key.Properties,
+            GetCommonMetric(objects));
+    }
+
+    private static DrawingMetric? GetCommonMetric(IEnumerable<LensNode> objects)
+    {
+        var ids = objects.Select(node => node.RowMetric?.Id).Where(id => id is not null).Distinct().ToList();
+
+        return ids.Count == 1 ? new DrawingMetric(ids[0]!.Value, null) : null;
+    }
+
+    private sealed class PropertyGroupKey(ImmutableArray<DrawingProperty> properties) : IEquatable<PropertyGroupKey>
+    {
+        public ImmutableArray<DrawingProperty> Properties { get; } = properties;
+
+        public bool Equals(PropertyGroupKey? other) => other is not null && Properties.SequenceEqual(other.Properties);
+
+        public override bool Equals(object? obj) => obj is PropertyGroupKey other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+
+            foreach (var property in Properties)
+                hash.Add(property);
+
+            return hash.ToHashCode();
+        }
+
+        public string GetIdentity()
+        {
+            var identity = string.Join(
+                ";",
+                Properties.Select(property => $"{(int) property.Id}:{Serialize(property.Value)}"));
+
+            return $"properties:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)))}";
+        }
+
+        private static string Serialize(DrawingValue? value) => value switch
+        {
+            null => "missing",
+            DrawingTextValue text => $"text:{text.IsApplicationText}:{Encode(text.Text)}",
+            DrawingNumberValue number =>
+                $"number:{(int) number.Unit}:{number.Value.ToString("R", CultureInfo.InvariantCulture)}",
+            DrawingBooleanValue boolean => $"bool:{boolean.Value}",
+            DrawingLayerValue layer => $"layer:{Encode(layer.Id.DisplayId)}",
+            DrawingColorValue color =>
+                $"color:{(int) color.Color.Kind}:{color.Color.Value}:{EncodeOptional(color.Color.Name)}:{EncodeOptional(color.Color.BookName)}",
+            DrawingLineweightValue lineweight =>
+                $"lineweight:{(int) lineweight.Lineweight.Kind}:{lineweight.Lineweight.HundredthsOfMillimeter}",
+            DrawingTransparencyValue transparency =>
+                $"transparency:{(int) transparency.Transparency.Kind}:{transparency.Transparency.Alpha}",
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown drawing value.")
+        };
+
+        private static string Encode(string value) => Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+
+        private static string EncodeOptional(string? value) => value is null ? "null" : $"value:{Encode(value)}";
+    }
 
     private static string DescribeVisibility(LayerSnapshot layer)
     {

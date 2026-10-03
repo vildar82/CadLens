@@ -108,6 +108,35 @@ Press Objects to browse object types across all included layers in the current m
 
 Object Types shares the drawing controls and inclusion filters described above. Switching lenses clears the previous lens's selection/isolation and restores the destination lens's valid navigation and settings. Counts include off-screen objects and stay unchanged when panning or zooming. Use Refresh after drawing edits.
 
+Within a primitive type in either lens, object rows show a useful measurement: vertices for polylines,
+direct definition entities for blocks, boundary loops for hatches, control points for splines, length for
+lines, radius for circles/arcs, and height for text. Use **Show property** to choose which observed property
+appears beside each object and controls value sorting. Numeric values sort numerically; text and assigned
+properties use their typed values. Click the value column header to reverse the order; Previous/Next
+follows the displayed order. Unavailable values display a dash and sort last. Geometry distances use
+drawing units; assigned lineweights use millimeters. The displayed property is saved per lens and type.
+
+Decimal measurements display up to the drawing's `LUPREC` digits, and angles use `AUPREC` in degrees.
+Trailing zeros are omitted. Counts remain integers, and assigned lineweights retain their millimeter
+precision. Refresh applies changed drawing precision to rows, group captions, details, and tooltips;
+grouping and sorting continue to compare the exact stored values.
+
+Use **Group by** to combine properties such as Color + Linetype + Lineweight, or hatch Pattern + Angle.
+Each distinct combination creates one subgroup with its own object count and drawing controls. Clear the
+checkboxes to return to individual objects. Grouping choices are saved separately per lens and primitive
+type. Grouping and sorting use the last inventory; Refresh rereads changed drawing properties.
+
+The dropdown lists the properties observed on objects of the current type, including measurements.
+
+Grouping compares assigned values, preserving ByLayer, ByBlock, indexed colors, true colors, and named
+color-book entries. Numeric grouping uses exact stored values, independently of rounded or localized
+captions. Lineweight, constant polyline width, and extrusion thickness are separate properties.
+
+A block insertion remains one drawing target. Its structural measurement counts live direct entities in
+the referenced definition, including attribute definitions; a nested insertion counts once. Attached
+insertion attributes are reported separately. Dynamic blocks use their original name and the referenced
+definition's count. This does not promise a visible-geometry count. Xref contents are not counted.
+
 ## Appearance
 
 Open the gear button in the compact bar to choose a theme, surface palette, and accent color.
@@ -132,6 +161,15 @@ Appearance changes do not change AutoCAD's theme, the drawing, navigation, or te
 - `CadLens.AutoCAD` connects the UI to AutoCAD and owns plugin and panel lifetime.
 
 Both lenses use `ObjectExplorerViewModel` and `ObjectExplorerView`. A refresh requests its grouping through `IObjectExplorerActions`; the AutoCAD adapter invokes `DrawingLensProvider`, which reads a detached `DrawingInventory` and builds either Layer → Type → Object or Type → Object groups. Drawing actions use the same `IObjectVisualizationService`. Analysis runs over ordinary .NET models after the inventory is read in the proper document context.
+
+All objects use the same `EntitySnapshot` model with a property dictionary and an optional primary row
+measurement. Native extraction lives in `AutoCadEntitySnapshotReader`; `DrawingProperties` provides shared
+property access, and `DrawingLensProvider` builds both exploration trees. Details, combined grouping,
+and numeric sorting use these same detached values. A new primitive reader does not require a new UI
+model or a separate grouping implementation.
+
+Drawing precision is read once with the inventory. `DrawingValueFormatter` applies it at the shared
+presentation boundary, keeping raw property values available for grouping and sorting.
 
 ### Host and lens lifetime
 

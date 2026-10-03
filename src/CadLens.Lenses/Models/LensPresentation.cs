@@ -11,6 +11,8 @@ namespace CadLens.Lenses;
 /// <param name="RootLabel">Root breadcrumb label.</param>
 /// <param name="SearchPlaceholder">Root search prompt.</param>
 /// <param name="GroupLabel">Root group name used in counts.</param>
+/// <param name="Inventory">Retained detached facts for local grouping changes.</param>
+/// <param name="Precision">Drawing display precision for measurement formatting.</param>
 public sealed record LensPresentation(
     string Label,
     string SpaceLabel,
@@ -19,4 +21,6 @@ public sealed record LensPresentation(
     string EmptyMessage,
     string RootLabel,
     string SearchPlaceholder,
-    string GroupLabel);
+    string GroupLabel,
+    DrawingInventory? Inventory = null,
+    DrawingPrecision? Precision = null);

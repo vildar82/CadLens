@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:system="clr-namespace:System;assembly=System.Runtime">
     <BooleanToVisibilityConverter x:Key="BooleanVisibility" />
+    <system:Double x:Key="{x:Static SystemParameters.VerticalScrollBarWidthKey}">8</system:Double>
+    <system:Double x:Key="{x:Static SystemParameters.HorizontalScrollBarHeightKey}">8</system:Double>
     <system:String x:Key="AppearanceLabel">Appearance</system:String>
     <system:String x:Key="AppearanceHelp">Theme, palette, and accent color</system:String>
     <system:String x:Key="ThemeLabel">Theme</system:String>
@@ -84,6 +86,95 @@
                                 Property="Background"
                                 Value="{DynamicResource QuietDisabledSurface}" />
                             <Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style
+        x:Key="QuietCheckBox"
+        BasedOn="{StaticResource QuietControl}"
+        TargetType="CheckBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="4,3" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid>
+                        <Border
+                            x:Name="Surface"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="3">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border
+                                    x:Name="GlyphBorder"
+                                    Width="14"
+                                    Height="14"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource QuietHeader}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="3">
+                                    <Path
+                                        x:Name="CheckGlyph"
+                                        Width="10"
+                                        Height="9"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Data="M 1,4 L 4,7 L 9,1"
+                                        Stroke="{DynamicResource QuietAccent}"
+                                        StrokeEndLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        StrokeStartLineCap="Round"
+                                        StrokeThickness="1.5"
+                                        Visibility="Collapsed" />
+                                </Border>
+                                <ContentPresenter
+                                    x:Name="LabelHost"
+                                    Grid.Column="2"
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    RecognizesAccessKey="True" />
+                            </Grid>
+                        </Border>
+                        <Border
+                            x:Name="FocusRing"
+                            BorderBrush="{DynamicResource QuietFocus}"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="CheckGlyph" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="GlyphBorder" Property="Background" Value="{DynamicResource QuietSelected}" />
+                            <Setter TargetName="GlyphBorder" Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Surface" Property="Background" Value="{DynamicResource QuietHover}" />
+                            <Setter TargetName="GlyphBorder" Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource QuietDisabledText}" />
+                            <Setter TargetName="Surface" Property="Background" Value="Transparent" />
+                            <Setter TargetName="GlyphBorder" Property="Background" Value="{DynamicResource QuietDisabledSurface}" />
+                            <Setter TargetName="GlyphBorder" Property="BorderBrush" Value="{DynamicResource QuietBorder}" />
+                            <Setter TargetName="CheckGlyph" Property="Stroke" Value="{DynamicResource QuietDisabledText}" />
                             <Setter TargetName="FocusRing" Property="Visibility" Value="Collapsed" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -382,7 +473,7 @@
     </Style>
     <Style TargetType="ScrollBar">
         <Setter Property="Background" Value="{DynamicResource QuietBackground}" />
-        <Setter Property="Width" Value="12" />
+        <Setter Property="Width" Value="8" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ScrollBar">
@@ -430,7 +521,7 @@
         <Style.Triggers>
             <Trigger Property="Orientation" Value="Horizontal">
                 <Setter Property="Width" Value="Auto" />
-                <Setter Property="Height" Value="12" />
+                <Setter Property="Height" Value="8" />
             </Trigger>
         </Style.Triggers>
     </Style>
