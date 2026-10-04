@@ -39,7 +39,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         var result = await source.ReadAsync(selectedObjects, cancellationToken).ConfigureAwait(false);
 
         return result.Bind(snapshot => new HostResult<LensPresentation>.Success(
-            Build(snapshot, grouping, includeFrozen, includeOff, null, cancellationToken)));
+            Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken)));
     }
 
     /// <summary>Rebuilds a drawing lens from detached facts without performing another host read.</summary>
@@ -47,17 +47,20 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     /// <param name="grouping">Root grouping of the lens.</param>
     /// <param name="enabledFilters">Current visibility inclusion choices.</param>
     /// <param name="propertyGrouping">Selected combined properties for each runtime type.</param>
+    /// <param name="propertyFilters">Optional property condition for each runtime type.</param>
     public static LensPresentation Build(
         DrawingInventory snapshot,
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping = null) =>
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping = null,
+        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters = null) =>
         Build(
             snapshot,
             grouping,
             enabledFilters.Contains(IncludeFrozen),
             enabledFilters.Contains(IncludeOff),
             propertyGrouping,
+            propertyFilters,
             CancellationToken.None);
 
     private static LensPresentation Build(
@@ -66,6 +69,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         bool includeFrozen,
         bool includeOff,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,12 +80,18 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         var entities = snapshot.Entities.Where(entity => layers.ContainsKey(entity.LayerId)).ToList();
         var groups = grouping switch
         {
-            DrawingGrouping.Layers => CreateLayerGroups(entities, layers, propertyGrouping, cancellationToken),
+            DrawingGrouping.Layers => CreateLayerGroups(
+                entities,
+                layers,
+                propertyGrouping,
+                propertyFilters,
+                cancellationToken),
             DrawingGrouping.ObjectTypes => CreateTypeGroups(
                 entities,
                 layers,
                 null,
                 propertyGrouping,
+                propertyFilters,
                 cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(grouping), grouping, "Unknown drawing grouping.")
         };
@@ -107,6 +117,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
         var entitiesByLayer = entities.GroupBy(entity => entity.LayerId)
@@ -120,6 +131,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 group,
                 layers,
                 propertyGrouping,
+                propertyFilters,
                 cancellationToken))
         ];
     }
@@ -139,11 +151,12 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var types = CreateTypeGroups(entities, layers, layer, propertyGrouping, cancellationToken);
+        var types = CreateTypeGroups(entities, layers, layer, propertyGrouping, propertyFilters, cancellationToken);
 
         return new LensNode(
             layer.Id.DisplayId,
@@ -160,12 +173,13 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         Dictionary<ILayerId, LayerSnapshot> layers,
         LayerSnapshot? layer,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken) =>
     [
         .. entities.GroupBy(entity => entity.TypeKey, StringComparer.Ordinal)
             .OrderBy(group => group.Key.GetTypeLabel(), StringComparer.OrdinalIgnoreCase)
             .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .Select(group => CreateTypeNode(group, layers, layer, propertyGrouping, cancellationToken))
+            .Select(group => CreateTypeNode(group, layers, layer, propertyGrouping, propertyFilters, cancellationToken))
     ];
 
     private static LensNode CreateTypeNode(
@@ -173,10 +187,15 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         Dictionary<ILayerId, LayerSnapshot> layers,
         LayerSnapshot? layer,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
         var label = entities.Key.GetTypeLabel();
-        var orderedEntities = entities.OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal).ToList();
+        var filter = propertyFilters?.TryGetValue(entities.Key, out var selectedFilter) == true ? selectedFilter : null;
+        var orderedEntities = entities
+            .Where(entity => filter is null || filter.Matches(entity, layers[entity.LayerId]))
+            .OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal)
+            .ToList();
         var objects = orderedEntities
             .Select(entity => CreateObjectNode(layers[entity.LayerId], entity, label, cancellationToken))
             .ToImmutableArray();
@@ -253,7 +272,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         List<EntitySnapshot> entities,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping)
     {
-        if (propertyGrouping is null || !propertyGrouping.TryGetValue(entities[0].TypeKey, out var selected) ||
+        if (entities.Count == 0 || propertyGrouping is null ||
+            !propertyGrouping.TryGetValue(entities[0].TypeKey, out var selected) ||
             selected.IsDefaultOrEmpty)
             return [];
 

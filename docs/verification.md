@@ -119,3 +119,11 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    Change `LUPREC` and `AUPREC`, then Refresh. Check rounded rows, group captions, details, and tooltips
    in English and Russian. Values that round to the same caption should keep their distinct groups
    and exact numeric sort order. Check themed grouping checkboxes and centered labels in Light/Dark.
+10. In both lenses, filter a primitive type by length, vertex count, closed state, text, and assigned color.
+    Apply and clear conditions while viewing a type, subgroup, and individual object. Check that counts
+    and Focus/Select/Isolate use exactly the matching targets. Test zero matches with all Auto modes on:
+    selection and isolation must clear, the camera must stay unchanged, and the filter must remain editable.
+    Invalid input must preserve the previous result and effects. Combine a filter with property grouping,
+    off/frozen inclusion, and selected-object scope. Check refresh after edits, repeated selected-scope
+    capture, independent filters in each lens, and reset on drawing/layout changes. Check English/Russian
+    decimal input, degree input, popup controls, keyboard access, and minimum panel width in both themes.

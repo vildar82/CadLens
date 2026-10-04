@@ -193,6 +193,8 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="6" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="54" />
                     </Grid.ColumnDefinitions>
                     <ToggleButton
                         x:Name="GroupingAction"
@@ -212,7 +214,8 @@
                                 <TextBlock
                                     FontSize="10"
                                     Foreground="{DynamicResource QuietMuted}"
-                                    Text="{ui:Localize 'Group by'}" />
+                                    Text="{ui:Localize 'Group by'}"
+                                    TextTrimming="CharacterEllipsis" />
                                 <TextBlock
                                     Text="{Binding GroupingSummary}"
                                     TextTrimming="CharacterEllipsis"
@@ -275,7 +278,8 @@
                                 <TextBlock
                                     FontSize="10"
                                     Foreground="{DynamicResource QuietMuted}"
-                                    Text="{ui:Localize 'Show property'}" />
+                                    Text="{ui:Localize 'Show property'}"
+                                    TextTrimming="CharacterEllipsis" />
                                 <TextBlock
                                     Text="{Binding DisplayPropertyLabel}"
                                     TextTrimming="CharacterEllipsis"
@@ -330,6 +334,134 @@
                             </ScrollViewer>
                         </Border>
                     </Popup>
+                    <ToggleButton
+                        x:Name="PropertyFilterAction"
+                        Grid.Column="4"
+                        Padding="4,5"
+                        HorizontalContentAlignment="Stretch"
+                        AutomationProperties.Name="{ui:Localize 'Filter by property'}"
+                        FontSize="11"
+                        Style="{StaticResource ModeToggle}"
+                        ToolTip="{Binding PropertyFilterSummary}">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="10"
+                                Foreground="{DynamicResource QuietMuted}"
+                                Text="{ui:Localize 'Filter'}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Foreground="{DynamicResource QuietAccent}"
+                                Text="{Binding PropertyFilterCount}"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </ToggleButton>
+                    <Popup
+                        x:Name="PropertyFilterPopup"
+                        Grid.Column="4"
+                        AllowsTransparency="True"
+                        DataContext="{Binding DataContext, ElementName=PropertyFilterAction}"
+                        IsOpen="{Binding IsChecked, ElementName=PropertyFilterAction, Mode=TwoWay}"
+                        Placement="Bottom"
+                        PlacementTarget="{Binding ElementName=PropertyFilterAction}"
+                        StaysOpen="False">
+                        <Border
+                            Width="{Binding ActualWidth, ElementName=PropertyFilterAction}"
+                            MinWidth="250"
+                            MaxWidth="360"
+                            Padding="10"
+                            Background="{DynamicResource QuietSurface}"
+                            BorderBrush="{DynamicResource QuietBorder}"
+                            BorderThickness="1"
+                            CornerRadius="5">
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,8"
+                                    Foreground="{DynamicResource QuietAccent}"
+                                    Text="{Binding PropertyFilterSummary}"
+                                    TextWrapping="Wrap" />
+                                <TextBlock Margin="0,0,0,4" Text="{ui:Localize 'Property'}" />
+                                <ComboBox
+                                    x:Name="PropertyFilterProperty"
+                                    AutomationProperties.Name="{ui:Localize 'Property'}"
+                                    ItemsSource="{Binding PropertyFilter.PropertyOptions}"
+                                    SelectedValue="{Binding PropertyFilter.PropertyId}"
+                                    SelectedValuePath="Id">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{ui:Localize Binding={Binding Label}}" TextTrimming="CharacterEllipsis" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBlock Margin="0,8,0,4" Text="{ui:Localize 'Comparison'}" />
+                                <ComboBox
+                                    x:Name="PropertyFilterOperator"
+                                    AutomationProperties.Name="{ui:Localize 'Comparison'}"
+                                    ItemsSource="{Binding PropertyFilter.OperatorOptions}"
+                                    SelectedValue="{Binding PropertyFilter.Operator}"
+                                    SelectedValuePath="Value">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <DockPanel>
+                                                <TextBlock
+                                                    Width="18"
+                                                    Margin="0,0,7,0"
+                                                    DockPanel.Dock="Left"
+                                                    Foreground="{DynamicResource QuietAccent}"
+                                                    Text="{Binding Symbol}"
+                                                    TextAlignment="Center" />
+                                                <TextBlock Text="{ui:Localize Binding={Binding Label}}" TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBlock Margin="0,8,0,4" Text="{ui:Localize 'Value'}" />
+                                <TextBox
+                                    x:Name="PropertyFilterInput"
+                                    AutomationProperties.Name="{ui:Localize 'Value'}"
+                                    Text="{Binding PropertyFilter.InputText, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding PropertyFilter.UsesTextInput, Converter={StaticResource BooleanVisibility}}" />
+                                <ComboBox
+                                    x:Name="PropertyFilterValue"
+                                    AutomationProperties.Name="{ui:Localize 'Value'}"
+                                    ItemsSource="{Binding PropertyFilter.ValueOptions}"
+                                    SelectedValue="{Binding PropertyFilter.SelectedValue}"
+                                    SelectedValuePath="Value"
+                                    Visibility="{Binding PropertyFilter.UsesValueOptions, Converter={StaticResource BooleanVisibility}}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock
+                                                Text="{Binding Label}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    FontSize="10"
+                                    Foreground="{DynamicResource QuietMuted}"
+                                    Text="{Binding PropertyFilter.InputHint}"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Foreground="{DynamicResource QuietAccent}"
+                                    Text="{Binding PropertyFilter.Error}"
+                                    TextWrapping="Wrap" />
+                                <UniformGrid Margin="0,8,0,0" Columns="2">
+                                    <Button
+                                        Margin="0,0,3,0"
+                                        Command="{Binding ApplyPropertyFilterCommand}"
+                                        Content="{ui:Localize 'Apply'}"
+                                        Style="{StaticResource ModeButton}" />
+                                    <Button
+                                        Margin="3,0,0,0"
+                                        Command="{Binding ClearPropertyFilterCommand}"
+                                        Content="{ui:Localize 'Clear filter'}"
+                                        Style="{StaticResource ModeButton}" />
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
                 </Grid>
                 <Border
                     Grid.Row="1"
@@ -347,6 +479,7 @@
                                     <MultiDataTrigger.Conditions>
                                         <Condition Binding="{Binding HasCurrent}" Value="True" />
                                         <Condition Binding="{Binding IsObject}" Value="False" />
+                                        <Condition Binding="{Binding CanGroup}" Value="False" />
                                     </MultiDataTrigger.Conditions>
                                     <Setter Property="Visibility" Value="Visible" />
                                 </MultiDataTrigger>

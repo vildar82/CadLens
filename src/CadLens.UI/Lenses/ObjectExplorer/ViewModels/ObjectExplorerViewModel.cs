@@ -19,10 +19,13 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         new(StringComparer.Ordinal);
 
     private readonly Dictionary<string, DrawingPropertyId> _displayProperties = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DrawingPropertyFilter> _propertyFilters = new(StringComparer.Ordinal);
 
     private readonly NavigationState _navigation = new();
     private DrawingInventory? _inventory;
+    private ImmutableArray<LensNode> _unfilteredGroups = [];
     private LensNode? _propertyOptionsType;
+    private LensNode? _filterOptionsType;
     private string _searchText = "";
     private ImmutableHashSet<string> _enabledFilters = [];
     private CancellationToken _activationToken;
@@ -100,6 +103,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         SelectDisplayPropertyCommand = new RelayCommand<GroupingOption>(
             SelectDisplayProperty,
             option => CanRun() && CanGroup && option is not null && DisplayPropertyOptions.Contains(option));
+        ApplyPropertyFilterCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(ApplyPropertyFilterAsync),
+            () => CanRun() && CanGroup);
+        ClearPropertyFilterCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(ClearPropertyFilterAsync),
+            () => CanRun() && AppliedPropertyFilter is not null);
         ToggleAutoIsolationCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(ToggleAutoIsolationAsync),
             CanRun);
@@ -241,11 +250,41 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     /// <summary>Whether properties of the current primitive type can be combined.</summary>
     public bool CanGroup => _inventory is not null && GroupingTypeKey is not null;
 
+    /// <summary>Draft property condition, independent of the current result.</summary>
+    public PropertyFilterEditor PropertyFilter { get; } = new();
+
+    /// <summary>Applies a valid typed condition to the current type without rereading CAD.</summary>
+    public IAsyncRelayCommand ApplyPropertyFilterCommand { get; }
+
+    /// <summary>Removes the current type's applied condition.</summary>
+    public IAsyncRelayCommand ClearPropertyFilterCommand { get; }
+
+    /// <summary>Condition applied to this type in the current lens session.</summary>
+    public DrawingPropertyFilter? AppliedPropertyFilter =>
+        GroupingTypeKey is { } key && _propertyFilters.TryGetValue(key, out var filter) ? filter : null;
+
+    /// <summary>Readable condition for the compact filter control.</summary>
+    public string PropertyFilterSummary => AppliedPropertyFilter is { } filter
+        ? $"{UiText.Current.Get(DrawingProperties.GetLabel(filter.PropertyId))} {FilterOperatorLabel(filter.Operator)} {DrawingValueFormatter.FormatValue(filter.Value, Precision)}"
+        : UiText.Current.Get("None");
+
+    /// <summary>Matching objects and the included type count before property filtering.</summary>
+    public string PropertyFilterCount => new UiMessage(
+        "{0} of {1}",
+        GroupingType?.Count ?? 0,
+        UnfilteredType?.Count ?? 0).ToString();
+
+    private LensNode? UnfilteredType => GroupingType is { } type
+        ? (_grouping == DrawingGrouping.Layers
+            ? _unfilteredGroups.FirstOrDefault(layer => layer.Id == _navigation.Path[0].Id)?.Children ?? []
+            : _unfilteredGroups).FirstOrDefault(node => node.Id == type.Id)
+        : null;
+
     private ImmutableArray<DrawingPropertyId> AvailableProperties
     {
         get
         {
-            if (_inventory is null || GroupingType is not { } type)
+            if (_inventory is null || UnfilteredType is not { } type)
             {
                 _propertyOptionsType = null;
                 field = [];
@@ -420,10 +459,13 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Whether the current result has no root groups.</summary>
-    public bool IsEmpty => Current is null && _visibleGroups.IsEmpty;
+    public bool IsEmpty => Current is {Kind: LensNodeKind.Type, Objects.IsEmpty: true} ||
+                           Current is null && _visibleGroups.IsEmpty;
 
     /// <summary>Lens-provided explanation for an empty inventory.</summary>
-    public string EmptyMessage => !Groups.IsEmpty && _visibleGroups.IsEmpty
+    public string EmptyMessage => Current is {Kind: LensNodeKind.Type, Objects.IsEmpty: true}
+        ? UiText.Current.Get("No objects match the property filter.")
+        : !Groups.IsEmpty && _visibleGroups.IsEmpty
         ? UiText.Current.Get(
             _grouping == DrawingGrouping.Layers
                 ? "No layers match your search."
@@ -515,6 +557,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
         IsSelectedObjectsOnly = false;
+        _propertyFilters.Clear();
+        _unfilteredGroups = [];
         _inventory = null;
         Precision = DrawingPrecision.Default;
         Groups = [];
@@ -787,6 +831,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         ToggleFilterCommand.NotifyCanExecuteChanged();
         ToggleGroupingCommand.NotifyCanExecuteChanged();
         SelectDisplayPropertyCommand.NotifyCanExecuteChanged();
+        ApplyPropertyFilterCommand.NotifyCanExecuteChanged();
+        ClearPropertyFilterCommand.NotifyCanExecuteChanged();
         ToggleAutoIsolationCommand.NotifyCanExecuteChanged();
         ToggleAutoSelectCommand.NotifyCanExecuteChanged();
         ToggleAutoFocusCommand.NotifyCanExecuteChanged();
@@ -864,7 +910,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             return DescribeCleanup(cleared);
 
         return await ApplyPresentationAsync(
-            DrawingLensProvider.Build(inventory, _grouping, _enabledFilters, _propertyGrouping),
+            DrawingLensProvider.Build(inventory, _grouping, _enabledFilters, _propertyGrouping, _propertyFilters),
             cancellationToken);
     }
 
@@ -882,8 +928,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         GroupLabel = presentation.GroupLabel;
         _inventory = presentation.Inventory;
         Precision = presentation.Precision ?? _inventory?.Precision ?? DrawingPrecision.Default;
-        Groups = _inventory is not null && _propertyGrouping.Values.Any(fields => !fields.IsDefaultOrEmpty)
-            ? DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping).Groups
+        _unfilteredGroups = _inventory is not null
+            ? DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters).Groups
+            : [];
+        Groups = _inventory is not null &&
+                 (_propertyFilters.Count != 0 || _propertyGrouping.Values.Any(fields => !fields.IsDefaultOrEmpty))
+            ? DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping, _propertyFilters).Groups
             : presentation.Groups;
         _emptyMessage = IsSelectedObjectsOnly
             ? _inventory is {Entities.IsEmpty: false}
@@ -915,7 +965,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         IsAutoIsolation = !IsAutoIsolation;
         SavePreferences();
 
-        if (IsAutoIsolation && Current is not null)
+        if (IsAutoIsolation && Current is {Objects.IsEmpty: false})
             return await _actions.IsolateObjectsAsync(Current.Objects, cancellationToken);
 
         return await ClearIsolationAsync(cancellationToken);
@@ -967,6 +1017,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     private async Task<UiMessage> ApplySelectionAndIsolationAsync(CancellationToken cancellationToken)
     {
+        if (Current is {Objects.IsEmpty: true})
+            return await ClearEffectsAsync(cancellationToken);
+
         List<UiMessage> messages = [];
 
         if (IsAutoSelect)
@@ -989,7 +1042,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         var message = await ApplySelectionAndIsolationAsync(token);
 
-        if (!IsAutoFocus)
+        if (!IsAutoFocus || Current.Objects.IsEmpty)
             return message;
 
         token.ThrowIfCancellationRequested();
@@ -1048,6 +1101,14 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     private void NotifyNavigation()
     {
+        var type = UnfilteredType;
+
+        if (!ReferenceEquals(type, _filterOptionsType))
+        {
+            _filterOptionsType = type;
+            PropertyFilter.Load(type?.Children ?? [], AppliedPropertyFilter);
+        }
+
         OnPropertyChanged(nameof(Items));
         OnPropertyChanged(nameof(Current));
         OnPropertyChanged(nameof(Breadcrumbs));
@@ -1055,6 +1116,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsObject));
         OnPropertyChanged(nameof(ObjectPosition));
         OnPropertyChanged(nameof(IsEmpty));
+        OnPropertyChanged(nameof(EmptyMessage));
         OnPropertyChanged(nameof(SortByCountLabel));
         OnPropertyChanged(nameof(SortByNameLabel));
         OnPropertyChanged(nameof(CanGroup));
@@ -1063,6 +1125,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(DisplayPropertyId));
         OnPropertyChanged(nameof(DisplayPropertyLabel));
         OnPropertyChanged(nameof(DisplayPropertyOptions));
+        OnPropertyChanged(nameof(AppliedPropertyFilter));
+        OnPropertyChanged(nameof(PropertyFilterSummary));
+        OnPropertyChanged(nameof(PropertyFilterCount));
         NotifyCommands();
     }
 
@@ -1097,13 +1162,16 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             ? selected.Remove(option.Id)
             : [.. selected.Add(option.Id).Distinct().OrderBy(item => item)];
         var previousTargets = Current?.Objects ?? [];
-        Groups = DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping).Groups;
+        Groups = DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping, _propertyFilters).Groups;
         _navigation.Reset(Groups, true);
         NotifyNavigation();
         SavePreferences();
 
         if (Current is null || previousTargets.SequenceEqual(Current.Objects))
             return "Grouping updated.";
+
+        if (Current.Objects.IsEmpty)
+            return await ClearEffectsAsync(cancellationToken);
 
         List<UiMessage> messages = [];
 
@@ -1122,6 +1190,65 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
         return messages.Count == 0 ? "Grouping updated." : new UiMessage("{0}", string.Join(" ", messages));
     }
+
+    private Task<UiMessage> ApplyPropertyFilterAsync(CancellationToken cancellationToken)
+    {
+        if (GroupingTypeKey is not { } key || PropertyFilter.CreateFilter() is not { } filter)
+            return Task.FromResult<UiMessage>("Enter a valid filter value.");
+
+        _propertyFilters[key] = filter;
+        return RebuildPropertyFilterAsync(cancellationToken);
+    }
+
+    private Task<UiMessage> ClearPropertyFilterAsync(CancellationToken cancellationToken)
+    {
+        if (GroupingTypeKey is { } key)
+            _propertyFilters.Remove(key);
+
+        return RebuildPropertyFilterAsync(cancellationToken);
+    }
+
+    private async Task<UiMessage> RebuildPropertyFilterAsync(CancellationToken cancellationToken)
+    {
+        if (_inventory is null)
+            return "Property filter updated.";
+
+        var previousTargets = Current?.Objects ?? [];
+        var wasObject = IsObject;
+        Groups = DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping, _propertyFilters).Groups;
+        _navigation.Reset(Groups, true);
+
+        if (wasObject && !IsObject)
+            _navigation.GoBackTo(_grouping == DrawingGrouping.Layers ? 2 : 1);
+
+        PropertyFilter.Load(UnfilteredType?.Children ?? [], AppliedPropertyFilter);
+        NotifyNavigation();
+
+        if (Current is null || Current.Objects.IsEmpty)
+            return await ClearEffectsAsync(cancellationToken);
+
+        if (previousTargets.SequenceEqual(Current.Objects))
+            return "Property filter updated.";
+
+        var message = await ApplySelectionAndIsolationAsync(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return IsAutoFocus
+            ? new UiMessage("{0} {1}", await FocusCurrentAsync(cancellationToken), message)
+            : message;
+    }
+
+    private static string FilterOperatorLabel(DrawingFilterOperator comparison) => comparison switch
+    {
+        DrawingFilterOperator.Equal => "=",
+        DrawingFilterOperator.NotEqual => "≠",
+        DrawingFilterOperator.LessThan => "<",
+        DrawingFilterOperator.LessThanOrEqual => "≤",
+        DrawingFilterOperator.GreaterThan => ">",
+        DrawingFilterOperator.GreaterThanOrEqual => "≥",
+        DrawingFilterOperator.Contains => UiText.Current.Get("Contains"),
+        _ => ""
+    };
 
     private Task ExecuteActionAsync(Func<CancellationToken, Task<UiMessage>> action)
     {
@@ -1166,6 +1293,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     private void OnLanguageChanged(object? sender, PropertyChangedEventArgs args)
     {
+        PropertyFilter.RefreshLanguage();
         UpdateVisibleGroups();
         OnPropertyChanged(string.Empty);
         NotifyCommands();

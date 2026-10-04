@@ -177,6 +177,21 @@ type. Grouping and sorting use the last inventory; Refresh rereads changed drawi
 
 The dropdown lists the properties observed on objects of the current type, including measurements.
 
+Use **Filter** inside a primitive type to choose one property, comparison, and value, then press **Apply**.
+For example, find open polylines, lengths below a threshold, or objects with a particular assigned color.
+Numeric comparisons use exact stored values; enter distances in drawing units and angles in degrees.
+Text comparisons ignore case. Unavailable values do not match, including a not-equal condition.
+Invalid input keeps the previous result. **Clear** removes the condition, including when no objects match.
+
+Each lens keeps one filter per primitive type for the current panel session. In Layers, a type's filter
+also applies to that type in other layers. Counts, property groups, and drawing actions use the matching
+objects. Changing a filter uses the captured inventory; Refresh rereads the drawing. Filters survive
+navigation and lens switching, and clear when the drawing or space changes. Named saved filters are not
+part of this feature.
+When matching targets change, enabled Auto modes follow the result and manual isolation clears.
+Manual CAD selection stays until explicitly replaced or cleared; a zero-match result clears selection
+and isolation while keeping the camera.
+
 Grouping compares assigned values, preserving ByLayer, ByBlock, indexed colors, true colors, and named
 color-book entries. Numeric grouping uses exact stored values, independently of rounded or localized
 captions. Lineweight, constant polyline width, and extrusion thickness are separate properties.
