@@ -20,6 +20,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
 
         var properties = new Dictionary<DrawingPropertyId, DrawingValue?>();
         ReadAppearance(entity, properties);
+        ReadArea(entity, properties);
         var metric = ReadPrimitiveProperties(entity, properties);
 
         return new EntitySnapshot(
@@ -101,6 +102,31 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
                 : new AssignedTransparency(AssignedTransparencyKind.Explicit, transparency.Alpha);
 
         return new DrawingTransparencyValue(value);
+    }
+
+    private static void ReadArea(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    {
+        Func<double>? getArea = entity switch
+        {
+            Curve curve => () => curve.Area,
+            Hatch hatch => () => hatch.Area,
+            _ => null
+        };
+
+        if (getArea is not null)
+            properties[DrawingPropertyId.Area] = ReadArea(getArea);
+    }
+
+    private static DrawingNumberValue? ReadArea(Func<double> getter)
+    {
+        try
+        {
+            return ReadNumber(getter, DrawingUnit.Area);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     private DrawingPropertyId? ReadPrimitiveProperties(

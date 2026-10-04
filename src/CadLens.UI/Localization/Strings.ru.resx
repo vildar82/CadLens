@@ -560,6 +560,12 @@
   <data name="Length" xml:space="preserve">
     <value>Длина</value>
   </data>
+  <data name="Area" xml:space="preserve">
+    <value>Площадь</value>
+  </data>
+  <data name="Enter square drawing units without digit grouping." xml:space="preserve">
+    <value>Введите квадратные единицы чертежа без разделителей разрядов.</value>
+  </data>
   <data name="Constant width" xml:space="preserve">
     <value>Постоянная ширина</value>
   </data>

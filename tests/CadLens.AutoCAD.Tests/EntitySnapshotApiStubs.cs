@@ -7,7 +7,8 @@ namespace Autodesk.AutoCAD.Runtime
 {
     internal enum ErrorStatus
     {
-        NotApplicable, NotImplementedYet, InvalidInput, DegenerateGeometry, NullExtents, InvalidExtents
+        NotApplicable, NotImplementedYet, InvalidInput, DegenerateGeometry, NullExtents, InvalidExtents,
+        GeneralModelingFailure
     }
 
     internal sealed class Exception(ErrorStatus errorStatus) : System.Exception
@@ -64,9 +65,13 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     internal class Curve : Entity
     {
+        internal Func<double> ReadArea { get; init; } = () => 0;
+        internal double Area => ReadArea();
         internal double Length { get; init; }
         internal bool Closed { get; init; }
     }
+
+    internal sealed class Ellipse : Curve;
 
     internal sealed class Polyline : Curve
     {
@@ -107,6 +112,8 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     internal sealed class Hatch : Entity
     {
+        internal Func<double> ReadArea { get; init; } = () => 0;
+        internal double Area => ReadArea();
         internal int NumberOfLoops { get; init; }
         internal bool IsGradient { get; init; }
         internal bool IsSolidFill { get; init; }

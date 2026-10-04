@@ -165,6 +165,12 @@ properties use their typed values. Click the value column header to reverse the 
 follows the displayed order. Unavailable values display a dash and sort last. Geometry distances use
 drawing units; assigned lineweights use millimeters. The displayed property is saved per lens and type.
 
+**Area** is available for every curve and hatch in details, **Show property**, and **Group by**; values
+that AutoCAD can calculate also support numeric filtering. Area uses square drawing units and `LUPREC`
+display precision. Open planar curves use AutoCAD's area with the endpoints joined by a straight segment.
+If the native area is unavailable, including unsupported or nonplanar curves and failed hatch calculations,
+CAD Lens shows a dash rather than substituting zero. A valid native zero remains zero.
+
 Decimal measurements display up to the drawing's `LUPREC` digits, and angles use `AUPREC` in degrees.
 Trailing zeros are omitted. Counts remain integers, and assigned lineweights retain their millimeter
 precision. Refresh applies changed drawing precision to rows, group captions, details, and tooltips;

@@ -339,10 +339,11 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
             return
             [
-                .. AvailableProperties.Select(id => new GroupingOption(
-                    id,
-                    DrawingProperties.GetLabel(id),
-                    id == selected))
+                .. AvailableProperties
+                    .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), id == selected))
+                    .OrderBy(
+                        option => UiText.Current.Get(option.Label),
+                        StringComparer.Create(UiText.Current.Culture, true))
             ];
         }
     }
@@ -362,6 +363,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             [
                 .. AvailableProperties
                     .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), selected.Contains(id)))
+                    .OrderBy(
+                        option => UiText.Current.Get(option.Label),
+                        StringComparer.Create(UiText.Current.Culture, true))
             ];
         }
     }
@@ -424,6 +428,22 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     /// <summary>Current group or object details.</summary>
     public LensNode? Current => _navigation.Current;
+
+    /// <summary>Alphabetical properties within the current detail sections.</summary>
+    public ImmutableArray<DetailField> CurrentFields
+    {
+        get
+        {
+            var fields = Current?.Fields ?? [];
+            var properties = new Queue<DetailField>(fields
+                .Where(detail => detail.ValueKind == DetailValueKind.TypedValue)
+                .OrderBy(
+                    detail => UiText.Current.Get(detail.Label),
+                    StringComparer.Create(UiText.Current.Culture, true)));
+
+            return [.. fields.Select(detail => detail.ValueKind == DetailValueKind.TypedValue ? properties.Dequeue() : detail)];
+        }
+    }
 
     /// <summary>Selected ancestors including the current node.</summary>
     public IReadOnlyList<LensNode> Breadcrumbs => _navigation.Path;
@@ -1124,6 +1144,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         OnPropertyChanged(nameof(Items));
         OnPropertyChanged(nameof(Current));
+        OnPropertyChanged(nameof(CurrentFields));
         OnPropertyChanged(nameof(Breadcrumbs));
         OnPropertyChanged(nameof(HasCurrent));
         OnPropertyChanged(nameof(IsObject));

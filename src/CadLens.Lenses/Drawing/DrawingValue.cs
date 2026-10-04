@@ -54,7 +54,9 @@ public enum DrawingUnit
     /// <summary>An angle stored in radians.</summary>
     Angle,
     /// <summary>A dimensionless factor.</summary>
-    Scale
+    Scale,
+    /// <summary>An area in square drawing units.</summary>
+    Area
 }
 
 /// <summary>A selected property and its available value.</summary>

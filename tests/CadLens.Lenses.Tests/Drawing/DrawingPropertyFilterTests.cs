@@ -8,6 +8,25 @@ public sealed class DrawingPropertyFilterTests
 {
     private const string PolylineType = "AcDbPolyline";
 
+    /// <summary>Area comparisons use square drawing units and do not treat missing geometry as zero.</summary>
+    [Fact]
+    public void AreaFilteringKeepsExactValuesAndUnits()
+    {
+        var filter = new DrawingPropertyFilter(
+            DrawingPropertyId.Area,
+            DrawingFilterOperator.GreaterThan,
+            new DrawingNumberValue(12.3451, DrawingUnit.Area));
+
+        Assert.True(filter.Matches(new DrawingNumberValue(12.3452, DrawingUnit.Area)));
+        Assert.False(filter.Matches(new DrawingNumberValue(12.3451, DrawingUnit.Area)));
+        Assert.False(filter.Matches(new DrawingNumberValue(12.3452, DrawingUnit.Distance)));
+        Assert.False(filter.Matches(null));
+
+        var zero = filter with {Operator = DrawingFilterOperator.Equal, Value = new DrawingNumberValue(0, DrawingUnit.Area)};
+        Assert.True(zero.Matches(new DrawingNumberValue(0, DrawingUnit.Area)));
+        Assert.False(zero.Matches(null));
+    }
+
     /// <summary>Comparisons use the original value, including differences below display precision.</summary>
     [Theory]
     [InlineData(DrawingFilterOperator.Equal, 12.3451, true)]
@@ -170,13 +189,13 @@ public sealed class DrawingPropertyFilterTests
         var polylines = GetTypes(presentation, grouping).Where(type => type.TypeKey == PolylineType).ToList();
 
         Assert.NotEmpty(polylines);
-        Assert.All(polylines, type =>
+        foreach (var type in polylines)
         {
             Assert.Equal(0, type.Count);
             Assert.Empty(type.Objects);
             Assert.Empty(type.Children);
             Assert.Null(type.RowMetric);
-        });
+        }
         Assert.Equal(1, presentation.Groups.Sum(group => group.Count));
         Assert.Equal("5", Assert.Single(presentation.Groups.SelectMany(group => group.Objects)).DisplayId);
 

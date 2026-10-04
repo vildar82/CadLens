@@ -10,6 +10,81 @@ namespace CadLens.UI.Tests;
 [Collection("WPF")]
 public sealed class ObjectPropertiesTests
 {
+    /// <summary>Curve and hatch areas share localized display, exact grouping, sorting, and numeric filtering.</summary>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers, LanguagePreference.English, "AcDbEllipse", "Area", "12.35", "12.3451")]
+    [InlineData(DrawingGrouping.Layers, LanguagePreference.Russian, "AcDbHatch", "Площадь", "12,35", "12,3451")]
+    [InlineData(DrawingGrouping.ObjectTypes, LanguagePreference.English, "AcDbHatch", "Area", "12.35", "12.3451")]
+    [InlineData(DrawingGrouping.ObjectTypes, LanguagePreference.Russian, "AcDbEllipse", "Площадь", "12,35", "12,3451")]
+    public async Task AreasUseSharedPropertyExploration(
+        DrawingGrouping grouping,
+        LanguagePreference language,
+        string typeKey,
+        string label,
+        string rounded,
+        string threshold)
+    {
+        var previous = UiText.Current.Preference;
+
+        try
+        {
+            UiText.Current.Select(language, persist: false);
+            var layer = new LayerId("Roads");
+            var inventory = new DrawingInventory(
+                "Model",
+                [new LayerSnapshot(layer, "Roads", false, false, false, false)],
+                [Entity(1, 12.3451), Entity(2, 12.3452), Entity(3, null), Entity(4, 0)],
+                new DrawingPrecision(2));
+            var actions = new Actions(inventory);
+            using var model = new ObjectExplorerViewModel(actions, grouping);
+            await model.ActivateAsync(CancellationToken.None);
+
+            if (grouping == DrawingGrouping.Layers)
+                await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+
+            await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+            ShowProperty(model, DrawingPropertyId.Area);
+            Assert.Equal(label, UiText.Current.Get(model.SortByCountLabel));
+            Assert.Equal(["4", "1", "2", "3"], model.Items.Select(node => node.Id));
+            var displayProperty = model.DisplayPropertyId;
+            var precision = model.Precision;
+            Assert.Equal(
+                ["0", rounded, rounded, "—"],
+                model.Items.Select(node => DrawingValueFormatter.FormatMetric(node, displayProperty, precision)));
+            var detail = Assert.Single(model.Items[1].Fields, field => field.Label == "Area");
+            Assert.Equal(new DrawingNumberValue(12.3451, DrawingUnit.Area), detail.TypedValue);
+            Assert.Equal(rounded, DrawingValueFormatter.FormatDetail(detail, model.Precision));
+
+            await Toggle(model, DrawingPropertyId.Area);
+            Assert.Equal(4, model.Items.Length);
+            Assert.Equal(2, model.Items.Count(node => DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: {rounded}"));
+            model.PropertyFilter.PropertyId = DrawingPropertyId.Area;
+            Assert.Equal(
+                UiText.Current.Get("Enter square drawing units without digit grouping."),
+                model.PropertyFilter.InputHint);
+            model.PropertyFilter.Operator = DrawingFilterOperator.GreaterThan;
+            model.PropertyFilter.InputText = threshold;
+            await model.ApplyPropertyFilterCommand.ExecuteAsync(null);
+
+            Assert.Equal(new DrawingNumberValue(12.3451, DrawingUnit.Area), model.AppliedPropertyFilter!.Value);
+            Assert.Equal(["2"], model.Current!.Objects.Select(id => id.DisplayId));
+            Assert.Single(model.Items);
+            Assert.Equal(1, actions.ReadCount);
+
+            EntitySnapshot Entity(int id, double? area) => new(
+                new TestEntityId(id),
+                layer,
+                typeKey,
+                ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
+                    DrawingPropertyId.Area,
+                    area is { } value ? new DrawingNumberValue(value, DrawingUnit.Area) : null));
+        }
+        finally
+        {
+            UiText.Current.Select(previous, persist: false);
+        }
+    }
+
     /// <summary>The displayed metric order is also the Previous/Next order, with unavailable values last.</summary>
     [Theory]
     [InlineData(DrawingGrouping.Layers)]
@@ -259,9 +334,13 @@ public sealed class ObjectPropertiesTests
     public async Task InvalidSavedGroupingFieldsAreIgnored()
     {
         using var file = new SettingsFile();
-        File.WriteAllText(
-            Path.Combine(file.Directory, "lens-object-types.json"),
-            """{"PropertyGrouping":{"AcDbPolyline":["Color","Color","RemovedProperty","9999"]},"DisplayProperties":{"AcDbPolyline":"9999"}}""");
+        var path = Path.Combine(file.Directory, "lens-object-types.json");
+        const string settings = """{"PropertyGrouping":{"AcDbPolyline":["Color","Color","RemovedProperty","9999"]},"DisplayProperties":{"AcDbPolyline":"9999"}}""";
+#if NETFRAMEWORK
+        File.WriteAllText(path, settings);
+#else
+        await File.WriteAllTextAsync(path, settings);
+#endif
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.ObjectTypes, file.Service);
         Assert.Equal(0, actions.ReadCount);
