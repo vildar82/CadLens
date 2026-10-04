@@ -9,9 +9,11 @@ namespace CadLens.Lenses;
 /// <param name="TypeKey">Runtime type used for grouping.</param>
 /// <param name="Properties">Observed primitive properties; a present null value means unavailable.</param>
 /// <param name="PrimaryMetric">Property used as the meaningful row measurement, when supported.</param>
+/// <param name="BlockAttributes">Attached insertion attributes; default means unavailable or not a block.</param>
 public sealed record EntitySnapshot(
     IPlacedObjectId Id,
     ILayerId LayerId,
     string TypeKey,
     ImmutableDictionary<DrawingPropertyId, DrawingValue?>? Properties = null,
-    DrawingPropertyId? PrimaryMetric = null);
+    DrawingPropertyId? PrimaryMetric = null,
+    ImmutableArray<BlockAttributeSnapshot> BlockAttributes = default);

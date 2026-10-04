@@ -57,8 +57,10 @@ public sealed class LocalizeExtension : MarkupExtension
             if (value == DependencyProperty.UnsetValue || value is null)
                 return "";
 
-            if (detailValue && value is DetailField field)
-                return DrawingValueFormatter.FormatDetail(field, values[2] as DrawingPrecision);
+            if (value is DetailField field)
+                return detailValue
+                    ? DrawingValueFormatter.FormatDetail(field, values[2] as DrawingPrecision)
+                    : field.IsLabelRaw ? field.Label : UiText.Current.Get(field.Label);
 
             return format is not null
                 ? string.Format(UiText.Current.Culture, UiText.Current.Get(format), value)

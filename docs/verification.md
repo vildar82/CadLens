@@ -127,3 +127,9 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
     off/frozen inclusion, and selected-object scope. Check refresh after edits, repeated selected-scope
     capture, independent filters in each lens, and reset on drawing/layout changes. Check English/Russian
     decimal input, degree input, popup controls, keyboard access, and minimum panel width in both themes.
+11. Open ordinary and dynamic block insertions with attached attributes in both lenses. Compare repeated
+    insertions of the same definition with different values. Check exact tags, blank and unavailable values,
+    long tags and multiline text at minimum panel width in English and Russian. Blocks without attributes
+    should show an empty state. Edit a value in CAD: browsing keeps the captured value until Refresh.
+    Focus/Select/Isolate must still target the whole insertion. Check that browsing does not change DBMOD;
+    attribute-definition counts remain separate and no nested block or xref attributes are traversed.

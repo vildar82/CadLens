@@ -1,8 +1,7 @@
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
-using System.Collections.Immutable;
 using Autodesk.AutoCAD.DatabaseServices;
-using CadLens.Lenses;
+
+// ReSharper disable MemberCanBeMadeStatic.Global -- Native API doubles must preserve instance member signatures.
 
 namespace Autodesk.AutoCAD.EditorInput
 {
@@ -35,7 +34,6 @@ namespace Autodesk.AutoCAD.EditorInput
 namespace Autodesk.AutoCAD.DatabaseServices
 {
     internal sealed class LayerTable(params ObjectId[] ids) : SymbolTable(ids);
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class LayerTableRecord : DBObject
     {
         internal string Name => "Layer";
@@ -44,13 +42,11 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal bool IsLocked => false;
     }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Layout : DBObject
     {
         internal string LayoutName => "Model";
     }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Viewport : Entity
     {
         internal IEnumerable GetFrozenLayers() => Array.Empty<ObjectId>();
@@ -66,23 +62,5 @@ namespace CadLens.Common.AutoCAD
 
         internal static void SelectObjects(this Autodesk.AutoCAD.ApplicationServices.Editor editor, ObjectId[] objects) =>
             editor.Selection = objects;
-    }
-}
-
-namespace CadLens.AutoCAD
-{
-    // Inventory tests replace property extraction only; scope and native ID validation run production code.
-    internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellationToken)
-    {
-        internal EntitySnapshot Read(Entity entity)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            return new EntitySnapshot(
-                new CadLens.Common.AutoCAD.EntityId(entity.ObjectId),
-                new CadLens.Common.AutoCAD.LayerId(entity.LayerId),
-                "AcDbLine",
-                ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty);
-        }
     }
 }

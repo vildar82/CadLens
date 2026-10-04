@@ -746,4 +746,13 @@
   <data name="Saved filters could not be written. Try again." xml:space="preserve">
     <value>Не удалось записать фильтры. Повторите попытку.</value>
   </data>
+  <data name="Attribute values" xml:space="preserve">
+    <value>Значения атрибутов</value>
+  </data>
+  <data name="No attached attributes" xml:space="preserve">
+    <value>Нет присоединённых атрибутов</value>
+  </data>
+  <data name="(blank)" xml:space="preserve">
+    <value>(пусто)</value>
+  </data>
 </root>
