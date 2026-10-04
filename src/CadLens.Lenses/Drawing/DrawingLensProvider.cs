@@ -265,14 +265,13 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         if (attributes.IsDefaultOrEmpty)
             yield break;
 
-        foreach (var attribute in attributes)
+        foreach (var (tag, value) in attributes)
         {
-            var value = attribute.Value;
             yield return new DetailField(
-                attribute.Tag ?? "Unavailable",
+                tag ?? "Unavailable",
                 value is null ? "Unavailable" : value.Length == 0 ? "(blank)" : value,
                 string.IsNullOrEmpty(value) ? DetailValueKind.ApplicationText : DetailValueKind.RawText,
-                IsLabelRaw: attribute.Tag is not null);
+                IsLabelRaw: tag is not null);
         }
     }
 

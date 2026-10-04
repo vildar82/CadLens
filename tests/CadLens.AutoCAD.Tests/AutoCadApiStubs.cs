@@ -1,5 +1,6 @@
 ﻿using System.Collections;
-using System.Diagnostics.CodeAnalysis;
+
+// ReSharper disable MemberCanBeMadeStatic.Global -- Native API doubles must preserve instance member signatures.
 
 // Test doubles for native API boundaries; these do not certify behavior inside AutoCAD.
 namespace Autodesk.AutoCAD.ApplicationServices
@@ -123,7 +124,6 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 
     /// <summary>Test double for the native Database type.</summary>
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     public sealed class Database
     {
         internal Dictionary<int, DBObject> Objects { get; } = [];
@@ -149,7 +149,6 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal Transaction StartTransaction() => TopTransaction;
     }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Transaction : IDisposable
     {
         internal void Commit() { }
@@ -184,7 +183,6 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     /// <summary>Test double for the native BlockTableRecord type.</summary>
     /// <param name="ids">Contained test identifiers.</param>
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
         internal ObjectId LayoutId { get; init; }

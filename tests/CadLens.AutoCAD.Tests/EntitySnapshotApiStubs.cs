@@ -1,5 +1,6 @@
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
+
+// ReSharper disable MemberCanBeMadeStatic.Global -- Native API doubles must preserve instance member signatures.
 
 // These doubles let the production snapshot reader run without native AutoCAD binaries.
 namespace Autodesk.AutoCAD.Runtime
@@ -21,7 +22,6 @@ namespace Autodesk.AutoCAD.Colors
 {
     internal enum ColorMethod { ByLayer }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Color : IDisposable
     {
         internal bool IsByLayer => true;
@@ -39,7 +39,6 @@ namespace Autodesk.AutoCAD.Colors
         public void Dispose() { }
     }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal readonly struct Transparency
     {
         internal bool IsInvalid => false;
@@ -53,7 +52,6 @@ namespace Autodesk.AutoCAD.DatabaseServices
 {
     internal enum LineWeight { ByLayer, ByBlock, ByLineWeightDefault }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     public partial class Entity
     {
         internal Colors.Color Color => new();
@@ -98,11 +96,11 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal bool IsDynamicBlock { get; init; }
         internal ObjectId BlockTableRecord { get; init; }
         internal ObjectId DynamicBlockTableRecord { get; init; }
-        private readonly List<ObjectId> _attributes = [];
         internal Runtime.ErrorStatus? AttributesError { get; init; }
-        internal List<ObjectId> AttributeCollection => AttributesError is { } error
-            ? throw new Runtime.Exception(error)
-            : _attributes;
+        internal List<ObjectId> AttributeCollection
+        {
+            get => AttributesError is { } error ? throw new Runtime.Exception(error) : field;
+        } = [];
     }
 
     internal enum HatchPatternType { PreDefined }
@@ -155,25 +153,23 @@ namespace Autodesk.AutoCAD.DatabaseServices
     internal class DBText : Entity
     {
         internal double Height { get; init; }
-        private string _text = "";
         internal Runtime.ErrorStatus? TextError { get; init; }
         internal string TextString
         {
-            get => TextError is { } error ? throw new Runtime.Exception(error) : _text;
-            set => _text = value;
-        }
+            get => TextError is { } error ? throw new Runtime.Exception(error) : field;
+            set;
+        } = "";
         internal string TextStyleName { get; init; } = "";
     }
 
     internal sealed class AttributeReference : DBText
     {
-        private string _tag = "";
         internal Runtime.ErrorStatus? TagError { get; init; }
         internal string Tag
         {
-            get => TagError is { } error ? throw new Runtime.Exception(error) : _tag;
-            init => _tag = value;
-        }
+            get => TagError is { } error ? throw new Runtime.Exception(error) : field;
+            init;
+        } = "";
         internal bool IsMTextAttribute { get; init; }
         internal MText MTextAttribute { get; init; } = new();
     }

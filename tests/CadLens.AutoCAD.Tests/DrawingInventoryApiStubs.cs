@@ -1,6 +1,7 @@
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using Autodesk.AutoCAD.DatabaseServices;
+
+// ReSharper disable MemberCanBeMadeStatic.Global -- Native API doubles must preserve instance member signatures.
 
 namespace Autodesk.AutoCAD.EditorInput
 {
@@ -33,7 +34,6 @@ namespace Autodesk.AutoCAD.EditorInput
 namespace Autodesk.AutoCAD.DatabaseServices
 {
     internal sealed class LayerTable(params ObjectId[] ids) : SymbolTable(ids);
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class LayerTableRecord : DBObject
     {
         internal string Name => "Layer";
@@ -42,13 +42,11 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal bool IsLocked => false;
     }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Layout : DBObject
     {
         internal string LayoutName => "Model";
     }
 
-    [SuppressMessage("ReSharper", "MemberCanBeMadeStatic.Global", Justification = "Matches the native instance API.")]
     internal sealed class Viewport : Entity
     {
         internal IEnumerable GetFrozenLayers() => Array.Empty<ObjectId>();

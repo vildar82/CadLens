@@ -57,7 +57,12 @@ public sealed class BlockAttributeReaderTests
         var attributes = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).BlockAttributes;
 
         Assert.Equal<BlockAttributeSnapshot>(
-            [new("BLANK", ""), new("MISSING", null), new(null, "Read value"), new(null, null)],
+            [
+                new BlockAttributeSnapshot("BLANK", ""),
+                new BlockAttributeSnapshot("MISSING", null),
+                new BlockAttributeSnapshot(null, "Read value"),
+                new BlockAttributeSnapshot(null, null)
+            ],
             attributes);
     }
 

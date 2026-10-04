@@ -19,10 +19,10 @@ public sealed class BlockAttributeDetailsTests
     [InlineData(DrawingGrouping.ObjectTypes)]
     public async Task BrowsesCapturedAttributesAndRefreshesInsertionValues(DrawingGrouping grouping)
     {
-        var actions = new Actions(Inventory("P-01"));
+        var actions = new Actions(CreateInventory("P-01"));
         using var model = new ObjectExplorerViewModel(actions, grouping);
         await model.ActivateAsync(CancellationToken.None);
-        actions.Inventory = Inventory("Updated");
+        actions.Inventory = CreateInventory("Updated");
         await EnterBlock(model, grouping);
 
         Assert.Equal("P-01", Field(model, "MARK").Value);
@@ -63,7 +63,7 @@ public sealed class BlockAttributeDetailsTests
             WpfTest.Run(() =>
             {
                 using var file = new SettingsFile();
-                using var lens = new ObjectExplorerLens(new Actions(Inventory("P-01")), grouping);
+                using var lens = new ObjectExplorerLens(new Actions(CreateInventory("P-01")), grouping);
                 using var shell = new ExplorerViewModel([lens]);
                 shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
                 EnterBlock(lens.ViewModel, grouping).GetAwaiter().GetResult();
@@ -81,7 +81,7 @@ public sealed class BlockAttributeDetailsTests
                     Assert.Equal(300, window.ActualWidth);
                     var detail = Assert.IsType<ScrollViewer>(Assert.IsType<ObjectExplorerView>(lens.View).FindName("ObjectDetails"));
                     var blocks = WpfTest.Descendants(detail).OfType<TextBlock>().ToList();
-                    var tag = Assert.Single(blocks, block => block.DataContext is DetailField {IsLabelRaw: true, Label: "Layer"} && block.Text == "Layer");
+                    var tag = Assert.Single(blocks, block => block is {DataContext: DetailField {IsLabelRaw: true, Label: "Layer"}, Text: "Layer"});
                     var longValue = Assert.Single(blocks, block => block.Text == LongValue);
                     Assert.Equal(TextWrapping.Wrap, tag.TextWrapping);
                     Assert.Equal(TextWrapping.Wrap, longValue.TextWrapping);
@@ -118,7 +118,7 @@ public sealed class BlockAttributeDetailsTests
         try
         {
             UiText.Current.Select(language, persist: false);
-            var inventory = Inventory("P-01");
+            var inventory = CreateInventory("P-01");
             var block = inventory.Entities[0];
             var empty = block with {BlockAttributes = []};
             var unavailable = block with {BlockAttributes = default};
@@ -154,7 +154,7 @@ public sealed class BlockAttributeDetailsTests
         await model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Id == "1"));
     }
 
-    private static DrawingInventory Inventory(string mark) => new(
+    private static DrawingInventory CreateInventory(string mark) => new(
         "Model",
         [new LayerSnapshot(Layer, "Layer", false, false, false, false)],
         [Block(1, mark), Block(2, "P-02")]);
@@ -168,7 +168,14 @@ public sealed class BlockAttributeDetailsTests
             [DrawingPropertyId.BlockName] = new DrawingTextValue("Equipment"),
             [DrawingPropertyId.Attributes] = new DrawingNumberValue(5, DrawingUnit.Count)
         }.ToImmutableDictionary(),
-        BlockAttributes: [new("MARK", mark), new("Layer", "Layers"), new("BLANK", ""), new("MISSING", null), new("LONG_TAG_DESCRIPTION", LongValue)]);
+        BlockAttributes:
+        [
+            new BlockAttributeSnapshot("MARK", mark),
+            new BlockAttributeSnapshot("Layer", "Layers"),
+            new BlockAttributeSnapshot("BLANK", ""),
+            new BlockAttributeSnapshot("MISSING", null),
+            new BlockAttributeSnapshot("LONG_TAG_DESCRIPTION", LongValue)
+        ]);
 
     private sealed record LayerId(string DisplayId) : ILayerId;
 
