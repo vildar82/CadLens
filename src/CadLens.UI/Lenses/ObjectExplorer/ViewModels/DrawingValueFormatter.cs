@@ -50,8 +50,11 @@ public sealed class DrawingValueFormatter : MarkupExtension
         node is {Kind: LensNodeKind.PropertyGroup, Properties.IsDefaultOrEmpty: false}
             ? string.Join(
                 " · ",
-                node.Properties.Select(property =>
-                    $"{UiText.Current.Get(DrawingProperties.GetLabel(property.Id))}: {FormatValue(property.Value, precision)}"))
+                node.Properties
+                    .OrderBy(
+                        property => UiText.Current.Get(DrawingProperties.GetLabel(property.Id)),
+                        StringComparer.Create(UiText.Current.Culture, true))
+                    .Select(property => $"{UiText.Current.Get(DrawingProperties.GetLabel(property.Id))}: {FormatValue(property.Value, precision)}"))
             : node.Label;
 
     /// <summary>Formats a placed-object metric or the selectable group count.</summary>

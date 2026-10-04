@@ -759,7 +759,7 @@
                                 FontWeight="SemiBold"
                                 Text="{ui:DrawingValueFormatter Binding={Binding Current}}"
                                 TextWrapping="Wrap" />
-                            <ItemsControl ItemsSource="{Binding Current.Fields, FallbackValue={x:Null}}">
+                            <ItemsControl ItemsSource="{Binding CurrentFields}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type lenses:DetailField}">
                                         <Grid Margin="0,0,0,6">

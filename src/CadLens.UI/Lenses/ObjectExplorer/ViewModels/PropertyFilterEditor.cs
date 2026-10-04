@@ -10,13 +10,19 @@ namespace CadLens.UI;
 public sealed class PropertyFilterEditor : ObservableObject
 {
     private ImmutableArray<LensNode> _objects = [];
+    private ImmutableArray<GroupingOption> _propertyOptions = [];
     private string _error = "";
     private DrawingPropertyFilter? _loadedFilter;
     private string _loadedInputText = "";
     private CultureInfo _inputCulture = UiText.Current.Culture;
 
     /// <summary>Observed properties in the unfiltered, included type scope.</summary>
-    public ImmutableArray<GroupingOption> PropertyOptions { get; private set; } = [];
+    public ImmutableArray<GroupingOption> PropertyOptions =>
+    [
+        .. _propertyOptions.OrderBy(
+            option => UiText.Current.Get(option.Label),
+            StringComparer.Create(UiText.Current.Culture, true))
+    ];
 
     /// <summary>Property being edited.</summary>
     public DrawingPropertyId? PropertyId
@@ -116,7 +122,7 @@ public sealed class PropertyFilterEditor : ObservableObject
     {
         _objects = objects;
         _inputCulture = UiText.Current.Culture;
-        PropertyOptions =
+        _propertyOptions =
         [
             .. objects.SelectMany(node => node.Properties
                     .Where(property => DrawingProperties.GetValue(node, property.Id) is not null)
@@ -125,7 +131,7 @@ public sealed class PropertyFilterEditor : ObservableObject
                 .OrderBy(id => id)
                 .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), false))
         ];
-        PropertyId = applied?.PropertyId ?? PropertyOptions.FirstOrDefault()?.Id;
+        PropertyId = applied?.PropertyId ?? _propertyOptions.FirstOrDefault()?.Id;
         UpdateValueOptions();
         Operator = applied?.Operator ?? DrawingFilterOperator.Equal;
         InputText = applied?.Value switch
