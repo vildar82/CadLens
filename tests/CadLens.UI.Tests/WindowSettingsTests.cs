@@ -112,7 +112,7 @@ public sealed class WindowSettingsTests
             Assert.Equal((340, 52), (window.Width, window.Height));
             ToggleLens(model);
             Assert.Equal(
-                (Math.Clamp(370, window.MinWidth, window.MaxWidth), Math.Clamp(660, window.MinHeight, window.MaxHeight)),
+                (Math.Min(Math.Max(370, window.MinWidth), window.MaxWidth), Math.Min(Math.Max(660, window.MinHeight), window.MaxHeight)),
                 (window.Width, window.Height));
             window.Close();
         });
@@ -132,8 +132,8 @@ public sealed class WindowSettingsTests
             using var model = CreateModel();
             var window = windows.Track(new ExplorerWindow(model, settings: file.Service));
             ToggleLens(model);
-            Assert.Equal(Math.Clamp(width, window.MinWidth, window.MaxWidth), window.Width);
-            Assert.Equal(Math.Clamp(height, window.MinHeight, window.MaxHeight), window.Height);
+            Assert.Equal(Math.Min(Math.Max(width, window.MinWidth), window.MaxWidth), window.Width);
+            Assert.Equal(Math.Min(Math.Max(height, window.MinHeight), window.MaxHeight), window.Height);
             Assert.True(window.Width <= SystemParameters.WorkArea.Width);
             Assert.True(window.Height <= SystemParameters.WorkArea.Height);
             window.Close();
@@ -178,8 +178,8 @@ public sealed class WindowSettingsTests
 
     private static Size Resize(ExplorerWindow window, double width, double height)
     {
-        window.Width = Math.Clamp(width, window.MinWidth, window.MaxWidth);
-        window.Height = Math.Clamp(height, window.MinHeight, window.MaxHeight);
+        window.Width = Math.Min(Math.Max(width, window.MinWidth), window.MaxWidth);
+        window.Height = Math.Min(Math.Max(height, window.MinHeight), window.MaxHeight);
 
         return new Size(window.Width, window.Height);
     }

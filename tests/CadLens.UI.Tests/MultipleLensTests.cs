@@ -32,7 +32,7 @@ public sealed class MultipleLensTests
     [Fact]
     public async Task SwitchingOrdersActivationAndCleanup()
     {
-        var first = new Lens("first") { PendingActivation = new TaskCompletionSource(), PendingCleanup = new TaskCompletionSource<HostResult<bool>>() };
+        var first = new Lens("first") { PendingActivation = new TaskCompletionSource<bool>(), PendingCleanup = new TaskCompletionSource<HostResult<bool>>() };
         var second = new Lens("second");
         using var model = new ExplorerViewModel([first, second]);
         var activation = model.ToggleLensCommand.ExecuteAsync(model.Lenses[0]);
@@ -41,7 +41,7 @@ public sealed class MultipleLensTests
         Assert.False(model.IsLensActive);
         Assert.Equal(0, first.CleanupCount);
         Assert.Equal(0, second.ActivationCount);
-        first.PendingActivation.SetResult();
+        first.PendingActivation.SetResult(true);
         await activation;
         await first.CleanupStarted.Task;
         Assert.False(first.CleanupToken.IsCancellationRequested);
@@ -140,9 +140,9 @@ public sealed class MultipleLensTests
         internal bool CleanupThrows { get; set; }
         internal CancellationToken ActivationToken { get; private set; }
         internal CancellationToken CleanupToken { get; private set; }
-        internal TaskCompletionSource? PendingActivation { get; init; }
+        internal TaskCompletionSource<bool>? PendingActivation { get; init; }
         internal TaskCompletionSource<HostResult<bool>>? PendingCleanup { get; init; }
-        internal TaskCompletionSource CleanupStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource<bool> CleanupStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public Task ActivateAsync(CancellationToken cancellationToken)
         {
@@ -155,7 +155,7 @@ public sealed class MultipleLensTests
         {
             CleanupCount++;
             CleanupToken = cancellationToken;
-            CleanupStarted.TrySetResult();
+            CleanupStarted.TrySetResult(true);
 
             if (CleanupThrows)
                 throw new InvalidOperationException("Fixture failure.");

@@ -31,20 +31,24 @@ The panel opens as a compact bar over the drawing. Activate a lens to explore; c
 it clears temporary isolation and restores the ordinary display. Drag the empty space in the header
 to move the panel.
 
-The current bundle targets **64-bit Windows, AutoCAD 2025–2027, and Civil 3D 2025–2027**, using WPF.
+The current bundle targets **64-bit Windows, AutoCAD 2019–2027, and Civil 3D 2019–2027**, using WPF.
 It includes separate payloads selected automatically by the host:
 
 | Host version | AutoCAD series | Bundle payload |
 | --- | --- | --- |
+| AutoCAD / Civil 3D 2019–2020 | R23.0–R23.1 | `Contents/net47` |
+| AutoCAD / Civil 3D 2021–2024 | R24.0–R24.3 | `Contents/net48` |
 | AutoCAD / Civil 3D 2025 | R25.0 | `Contents/net8.0-windows` |
 | AutoCAD / Civil 3D 2026 | R25.1 | `Contents/net8.0-windows` |
 | AutoCAD / Civil 3D 2027 | R26.0 | `Contents/net10.0-windows` |
 
-The 2025 API is supported by AutoCAD 2026; AutoCAD 2027 requires the 2027 API and .NET 10.
+The 2019, 2021, and 2025 APIs cover their respective version ranges; AutoCAD 2027 uses the 2027 API and .NET 10.
 See Autodesk's [managed .NET compatibility table](https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-Customization/files/GUID-A6C680F2-DE2E-418A-A182-E4884073338A.htm).
+The 2019–2020 payload requires .NET Framework 4.7; the 2021–2024 payload requires .NET Framework 4.8.
+A compatible later .NET Framework 4.x runtime also satisfies these requirements; see Microsoft's
+[version and dependency guide](https://learn.microsoft.com/en-us/dotnet/framework/install/versions-and-dependencies).
 These are the intended hosts; native compatibility needs verification in each host/version and update.
-AutoCAD 2024 and earlier require a separate .NET Framework backport and are outside this bundle's scope.
-AutoCAD LT and macOS are also outside the current release scope.
+AutoCAD 2018 and earlier, AutoCAD LT, and macOS are outside the current release scope.
 
 The screenshots below show the production WPF interface with sample drawing data. They illustrate the
 interface and do not establish behavior inside AutoCAD or Civil 3D. See [Verification](#verification).
@@ -66,13 +70,14 @@ close the host and remove that directory. Do not replace plugin DLLs while the h
 
 ### Manual development load
 
-Install the .NET 8 and .NET 10 SDKs, then build the solution with the .NET 10 SDK:
+Install the .NET 8 and .NET 10 SDKs and the .NET Framework 4.8 or 4.8.1 runtime, then build with the .NET 10 SDK.
+The .NET Framework reference assemblies are restored through NuGet; a separate developer pack is not required:
 
 ```powershell
 dotnet build CadLens.slnx -c Debug
 ```
 
-Debug builds copy the plugin and its dependencies to `%APPDATA%\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\<TargetFramework>`. For manual `NETLOAD`, select `CadLens.AutoCAD.dll` from `net8.0-windows` for 2025/2026 or `net10.0-windows` for 2027, then enter `CADLENS`. Library and test project outputs stay in their local build directories. If the build directory is not in `TRUSTEDPATHS`, copy the complete matching output directory, including its `ru` satellite-resource subdirectory, into an existing trusted directory without disabling `SECURELOAD`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
+Debug builds copy the plugin and its dependencies to `%APPDATA%\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\<TargetFramework>`. For manual `NETLOAD`, select `CadLens.AutoCAD.dll` from `net47` for 2019–2020, `net48` for 2021–2024, `net8.0-windows` for 2025–2026, or `net10.0-windows` for 2027, then enter `CADLENS`. Library and test project outputs stay in their local build directories. If the build directory is not in `TRUSTEDPATHS`, copy the complete matching output directory, including its `ru` satellite-resource subdirectory, into an existing trusted directory without disabling `SECURELOAD`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
 
 ## Language
 
@@ -206,7 +211,7 @@ From the repository root, run:
 ./scripts/New-Bundle.ps1
 ```
 
-The script publishes both target frameworks, generates a version-specific `PackageContents.xml`, and creates
+The script publishes all four target frameworks, generates a version-specific `PackageContents.xml`, and creates
 `artifacts/bundle/CadLens.bundle.zip`. A successful GitHub Actions run also provides the ZIP as a
 build artifact; GitHub Releases provide the versioned download for users.
 
@@ -254,7 +259,7 @@ supports other modules.
 
 Current code and tests describe the supported behavior. Keep documentation for usage, important decisions, and host constraints; ordinary changes do not require separate planning artifacts.
 
-On every push, the Windows GitHub Actions workflow installs the .NET 8 and .NET 10 SDKs, restores dependencies, builds the solution, runs managed tests for both target runtimes, and uploads the bundle ZIP. Native AutoCAD rendering and lifecycle checks are separate.
+On every push, the Windows GitHub Actions workflow installs the .NET 8 and .NET 10 SDKs, restores dependencies, builds the solution, runs managed tests for all four target frameworks, packages the bundle, checks legacy dependency loading, and uploads the ZIP. Native AutoCAD rendering and lifecycle checks are separate.
 
 To publish a prerelease, update `Version` in `Directory.Build.props` and merge it into `main`. After a successful build, the workflow creates the `v<Version>` tag and attaches `CadLens.bundle.zip` to the GitHub Release. Runs with an existing release version leave that release unchanged. You can also start the workflow with **Run workflow** or `gh workflow run build.yml --ref main`.
 

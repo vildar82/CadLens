@@ -9,7 +9,7 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
 {
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
     private readonly Queue<Action> _requests = new();
-    private readonly TaskCompletionSource _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<bool> _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _stopping;
     private bool _running;
 
@@ -21,7 +21,11 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
     {
         var completion = new TaskCompletionSource<HostResult<T>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        await using var cancellation = cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken));
+#if NETFRAMEWORK
+        using var cancellation = cancellationToken.Register(() => CancelRequest(completion, cancellationToken));
+#else
+        await using var cancellation = cancellationToken.Register(() => CancelRequest(completion, cancellationToken));
+#endif
 
         await _dispatcher.InvokeAsync(() =>
         {
@@ -62,14 +66,15 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
         if (!_stopping && Convert.ToInt32(Application.GetSystemVariable("CMDACTIVE")) != 0)
             return;
 
-        if (_requests.TryDequeue(out var request))
+        if (_requests.Count != 0)
         {
+            var request = _requests.Dequeue();
             _running = true;
             request();
         }
         else if (_stopping)
         {
-            _stopped.TrySetResult();
+            _stopped.TrySetResult(true);
         }
     }
 
@@ -124,7 +129,7 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
         }
         catch (OperationCanceledException)
         {
-            completion.TrySetCanceled(cancellationToken);
+            CancelRequest(completion, cancellationToken);
         }
         catch (Exception exception)
         {
@@ -141,8 +146,19 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
         _running = false;
 
         if (_stopping && _requests.Count == 0)
-            _stopped.TrySetResult();
+            _stopped.TrySetResult(true);
         else
             _dispatcher.BeginInvoke(ProcessNextRequest);
+    }
+
+    private static void CancelRequest<T>(
+        TaskCompletionSource<HostResult<T>> completion,
+        CancellationToken cancellationToken)
+    {
+#if NETFRAMEWORK
+        completion.TrySetException(new OperationCanceledException(cancellationToken));
+#else
+        completion.TrySetCanceled(cancellationToken);
+#endif
     }
 }

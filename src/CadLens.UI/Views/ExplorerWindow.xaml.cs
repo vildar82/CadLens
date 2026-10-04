@@ -8,6 +8,7 @@ using System.Windows.Interop;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
+using Common;
 using JetBrains.Annotations;
 
 namespace CadLens.UI;
@@ -237,15 +238,15 @@ public partial class ExplorerWindow
             MaxHeight = workArea.Height;
             MinWidth = Math.Min(MinimumPanelWidth, workArea.Width);
             MinHeight = Math.Min(ExpandedMinimumHeight, workArea.Height);
-            Width = Math.Clamp(_expandedSize.Width, MinWidth, MaxWidth);
-            Height = Math.Clamp(_expandedSize.Height, MinHeight, MaxHeight);
+            Width = Math.Min(Math.Max(_expandedSize.Width, MinWidth), MaxWidth);
+            Height = Math.Min(Math.Max(_expandedSize.Height, MinHeight), MaxHeight);
             ResizeMode = ResizeMode.CanResizeWithGrip;
 
             if (!double.IsNaN(Left))
-                Left = Math.Clamp(Left, workArea.Left, workArea.Right - Width);
+                Left = Math.Min(Math.Max(Left, workArea.Left), workArea.Right - Width);
 
             if (!double.IsNaN(Top))
-                Top = Math.Clamp(Top, workArea.Top, workArea.Bottom - Height);
+                Top = Math.Min(Math.Max(Top, workArea.Top), workArea.Bottom - Height);
         }
         else
         {
@@ -262,8 +263,8 @@ public partial class ExplorerWindow
     {
         var dimensions = _settings.Load<WindowDimensions>("window-size.json");
 
-        if (dimensions is not null && double.IsFinite(dimensions.Width) && dimensions.Width > 0 &&
-            double.IsFinite(dimensions.Height) && dimensions.Height > 0)
+        if (dimensions is not null && dimensions.Width.IsFinite() && dimensions.Width > 0 &&
+            dimensions.Height.IsFinite() && dimensions.Height > 0)
             _expandedSize = new Size(dimensions.Width, dimensions.Height);
     }
 
@@ -295,12 +296,21 @@ public partial class ExplorerWindow
 
     private void CloseClicked(object sender, RoutedEventArgs e) => Close();
 
+#if NETFRAMEWORK
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
+
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+#else
     [LibraryImport("user32.dll")]
     private static partial IntPtr MonitorFromWindow(IntPtr window, uint flags);
 
     [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+#endif
 
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     [StructLayout(LayoutKind.Sequential)]

@@ -97,7 +97,7 @@ public sealed class WindowDraggingTests
     {
         var screen = window.PointToScreen(point);
         var coordinates = ((int) screen.Y & 0xffff) << 16 | ((int) screen.X & 0xffff);
-        return SendMessage(new WindowInteropHelper(window).Handle, NonClientHitTest, nint.Zero, coordinates);
+        return SendMessage(new WindowInteropHelper(window).Handle, NonClientHitTest, IntPtr.Zero, coordinates);
     }
 
     [DllImport("user32.dll", EntryPoint = "SendMessageW")]

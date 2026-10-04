@@ -30,8 +30,8 @@ src/CadLens.UI/Views/ExplorerWindow.xaml and src/CadLens.UI/Lenses/ObjectExplore
 The current product is one movable window over an AutoCAD drawing, with a compact inactive lens bar
 and an expanded explorer. Preserve drawing space, readable CAD names, explicit Focus-only camera
 movement, inclusion-only filters, and temporary effects that clean up across lifecycle transitions.
-Use the existing WPF-UI implementation as the technical baseline. Product changes require explicit
-agreement; visual alternatives may vary hierarchy, spacing, typography, and placement.
+Use the existing standard WPF controls and local themes as the technical baseline. Product changes
+require explicit agreement; visual alternatives may vary hierarchy, spacing, typography, and placement.
 
 ## Roles
 

@@ -145,7 +145,7 @@ internal sealed class ObjectExplorerActions(
 
     public Task<HostResult<LensPresentation>> ReadAsync(
         DrawingGrouping grouping,
-        IReadOnlySet<string> enabledFilters,
+        IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken) =>
         lens.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);

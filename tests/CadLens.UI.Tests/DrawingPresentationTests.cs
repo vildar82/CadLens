@@ -503,7 +503,7 @@ public sealed class DrawingPresentationTests
     {
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
-            IReadOnlySet<string> enabledFilters,
+            IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<LensPresentation>>(

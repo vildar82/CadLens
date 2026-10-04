@@ -179,7 +179,7 @@ public sealed class ObjectPropertiesTests
         Assert.Equal(calls, actions.EffectCalls);
         Assert.Equal(3, model.Items.Length);
         Assert.Equal(
-            model.Items.Select(DrawingValueFormatter.FormatLabel).Order(StringComparer.OrdinalIgnoreCase),
+            model.Items.Select(DrawingValueFormatter.FormatLabel).OrderBy(item => item, StringComparer.OrdinalIgnoreCase),
             model.Items.Select(DrawingValueFormatter.FormatLabel));
         Assert.Equal(targets.Length, model.Items.Sum(node => node.Count));
         Assert.Equal(
@@ -259,7 +259,7 @@ public sealed class ObjectPropertiesTests
     public async Task InvalidSavedGroupingFieldsAreIgnored()
     {
         using var file = new SettingsFile();
-        await File.WriteAllTextAsync(
+        File.WriteAllText(
             Path.Combine(file.Directory, "lens-object-types.json"),
             """{"PropertyGrouping":{"AcDbPolyline":["Color","Color","RemovedProperty","9999"]},"DisplayProperties":{"AcDbPolyline":"9999"}}""");
         var actions = new Actions();
@@ -350,7 +350,7 @@ public sealed class ObjectPropertiesTests
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
-            IReadOnlySet<string> enabledFilters,
+            IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {

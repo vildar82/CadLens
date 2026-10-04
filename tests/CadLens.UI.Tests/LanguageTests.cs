@@ -115,8 +115,8 @@ public sealed partial class LanguageTests : IDisposable
         var resources = new ResourceManager("CadLens.UI.Localization.Strings", typeof(UiText).Assembly);
         var english = resources.GetResourceSet(CultureInfo.InvariantCulture, true, false)!;
         var translated = resources.GetResourceSet(russian, true, false)!;
-        string[] englishKeys = [.. english.Cast<DictionaryEntry>().Select(entry => (string) entry.Key).Order()];
-        string[] russianKeys = [.. translated.Cast<DictionaryEntry>().Select(entry => (string) entry.Key).Order()];
+        string[] englishKeys = [.. english.Cast<DictionaryEntry>().Select(entry => (string) entry.Key).OrderBy(item => item)];
+        string[] russianKeys = [.. translated.Cast<DictionaryEntry>().Select(entry => (string) entry.Key).OrderBy(item => item)];
         Assert.Equal(englishKeys, russianKeys);
 
         foreach (var key in englishKeys)
@@ -286,10 +286,16 @@ public sealed partial class LanguageTests : IDisposable
     private string PreferencePath => Path.Combine(_file.Directory, "language.json");
 
     private static string[] FormatArguments(string text) =>
-        [.. FormatArgumentPattern().Matches(text).Select(match => match.Value).Order()];
+        [.. FormatArgumentPattern().Matches(text).Cast<Match>().Select(match => match.Value).OrderBy(item => item)];
 
+#if NETFRAMEWORK
+    private static readonly Regex ArgumentPattern = new(@"\{\d+(?:[^}]*)\}");
+
+    private static Regex FormatArgumentPattern() => ArgumentPattern;
+#else
     [GeneratedRegex(@"\{\d+(?:[^}]*)\}")]
     private static partial Regex FormatArgumentPattern();
+#endif
 
     private static void Layout(FrameworkElement content, int width, int height)
     {
@@ -355,7 +361,7 @@ public sealed partial class LanguageTests : IDisposable
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
-            IReadOnlySet<string> enabledFilters,
+            IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {

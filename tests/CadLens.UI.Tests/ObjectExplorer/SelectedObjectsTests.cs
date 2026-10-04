@@ -203,7 +203,7 @@ public sealed class SelectedObjectsTests
         Assert.Equal(2, model.ObjectCount);
         Assert.Equal(reads, actions.ReadCount);
         Assert.Equal(requests, actions.RequestCount);
-        Assert.Equal(["1", "3"], model.Groups.SelectMany(group => group.Objects).Select(id => id.DisplayId).Order());
+        Assert.Equal(["1", "3"], model.Groups.SelectMany(group => group.Objects).Select(id => id.DisplayId).OrderBy(item => item));
 
         actions.NativeSelection = [new TestEntityId(2)];
         await model.ReadCommand.ExecuteAsync(null);
@@ -520,7 +520,7 @@ public sealed class SelectedObjectsTests
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
-            IReadOnlySet<string> enabledFilters,
+            IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {

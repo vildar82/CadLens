@@ -106,8 +106,10 @@ public sealed class AutoCadTaskServiceTests
         var request = service.RunAsync(() => called = true, cancellation.Token);
 
         await Dispatcher.Yield();
-        await cancellation.CancelAsync();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        cancellation.Cancel();
+        var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
+        Assert.True(request.IsCanceled);
         await service.StopAsync();
 
         Assert.False(called);
@@ -168,7 +170,7 @@ public sealed class AutoCadTaskServiceTests
 
     internal static Task OnUiThread(Func<Task> test)
     {
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
         {
             var dispatcher = Dispatcher.CurrentDispatcher;
@@ -179,7 +181,7 @@ public sealed class AutoCadTaskServiceTests
                 try
                 {
                     await test();
-                    completion.TrySetResult();
+                    completion.TrySetResult(true);
                 }
                 catch (Exception exception)
                 {
@@ -196,6 +198,12 @@ public sealed class AutoCadTaskServiceTests
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
 
-        return completion.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        return WaitForCompletionAsync(completion.Task);
+    }
+
+    private static async Task WaitForCompletionAsync(Task task)
+    {
+        Assert.Same(task, await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(15))));
+        await task;
     }
 }

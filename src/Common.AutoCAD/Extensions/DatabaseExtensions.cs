@@ -52,7 +52,7 @@ public static class DatabaseExtensions
     }
 
     private static bool HasUsableBounds(Extents3d bounds) =>
-        double.IsFinite(bounds.MinPoint.X) && double.IsFinite(bounds.MinPoint.Y) && double.IsFinite(bounds.MinPoint.Z) &&
-        double.IsFinite(bounds.MaxPoint.X) && double.IsFinite(bounds.MaxPoint.Y) && double.IsFinite(bounds.MaxPoint.Z) &&
+        bounds.MinPoint.X.IsFinite() && bounds.MinPoint.Y.IsFinite() && bounds.MinPoint.Z.IsFinite() &&
+        bounds.MaxPoint.X.IsFinite() && bounds.MaxPoint.Y.IsFinite() && bounds.MaxPoint.Z.IsFinite() &&
         bounds.MinPoint.X <= bounds.MaxPoint.X && bounds.MinPoint.Y <= bounds.MaxPoint.Y && bounds.MinPoint.Z <= bounds.MaxPoint.Z;
 }

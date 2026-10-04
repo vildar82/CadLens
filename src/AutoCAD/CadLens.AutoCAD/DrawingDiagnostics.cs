@@ -43,11 +43,15 @@ internal static class DrawingDiagnostics
                             continue;
 
                         var type = $"{id.ObjectClass.DxfName} ({entity.GetType().FullName})";
-                        types[type] = types.GetValueOrDefault(type) + 1;
+                        types.TryGetValue(type, out var typeCount);
+                        types[type] = typeCount + 1;
                         layerIds.Add(entity.LayerId);
 
                         if (owner.ObjectId == space.ObjectId)
-                            activeSpaceTypes[type] = activeSpaceTypes.GetValueOrDefault(type) + 1;
+                        {
+                            activeSpaceTypes.TryGetValue(type, out var activeCount);
+                            activeSpaceTypes[type] = activeCount + 1;
+                        }
 
                         if (types[type] <= 3 ||
                             owner.ObjectId == space.ObjectId && activeSpaceTypes[type] <= 3)
@@ -136,7 +140,11 @@ internal static class DrawingDiagnostics
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         var path = Path.Combine(desktop, $"cadlens-diagnostics-{DateTime.Now:yyyyMMdd-HHmmss-fff}.json");
 
+#if NETFRAMEWORK
+        using var stream = File.Create(path);
+#else
         await using var stream = File.Create(path);
+#endif
         await JsonSerializer.SerializeAsync(stream, snapshot, JsonOptions);
 
         return path;

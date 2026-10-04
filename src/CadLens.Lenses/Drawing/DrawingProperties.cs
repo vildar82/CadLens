@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Common;
 
 namespace CadLens.Lenses;
 
@@ -10,7 +11,7 @@ public static class DrawingProperties
     public static ImmutableArray<DrawingPropertyId> GetAvailableFields(IEnumerable<EntitySnapshot> entities) =>
     [
         .. entities.SelectMany(entity => entity.Properties?.Keys ?? [])
-            .Append(DrawingPropertyId.Layer)
+            .Concat([DrawingPropertyId.Layer])
             .Distinct()
             .OrderBy(id => id)
     ];
@@ -143,8 +144,8 @@ public static class DrawingProperties
 
     private static DrawingValue? Normalize(DrawingValue? value) => value switch
     {
-        DrawingNumberValue number when !double.IsFinite(number.Value) => null,
-        DrawingNumberValue {Value: 0} number when double.IsNegative(number.Value) => number with
+        DrawingNumberValue number when !number.Value.IsFinite() => null,
+        DrawingNumberValue {Value: 0} number when BitConverter.DoubleToInt64Bits(number.Value) < 0 => number with
         {
             Value = 0
         },

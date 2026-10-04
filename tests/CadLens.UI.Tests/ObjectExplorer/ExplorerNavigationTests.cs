@@ -528,7 +528,7 @@ public sealed class ExplorerNavigationTests
         await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         actions.PendingIsolation = new TaskCompletionSource<string>();
         actions.PendingClear = new TaskCompletionSource<HostResult<bool>>();
-        actions.ClearStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        actions.ClearStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var isolation = model.EnterCommand.ExecuteAsync(model.Items[0]);
         var collapse = ToggleAsync(model);
         Assert.False(model.IsLensActive);
@@ -931,14 +931,14 @@ public sealed class ExplorerNavigationTests
             return Task.FromResult(ClearResult);
         }
 
-        internal IReadOnlySet<string> Enabled { get; private set; } = new HashSet<string>();
+        internal IReadOnlyCollection<string> Enabled { get; private set; } = new HashSet<string>();
         internal int ReadCount { get; private set; }
         internal int ClearCount { get; private set; }
         internal int FocusCount { get; private set; }
         internal CancellationToken ClearToken { get; private set; }
         internal TaskCompletionSource<HostResult<bool>>? PendingClear { get; set; }
         internal HostResult<bool> ClearResult { get; set; } = new HostResult<bool>.Success(true);
-        internal TaskCompletionSource ClearStarted { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource<bool> ClearStarted { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal bool SingleObject { get; set; }
         internal bool Empty { get; init; }
         internal int HostCalls { get; private set; }
@@ -952,7 +952,7 @@ public sealed class ExplorerNavigationTests
         internal TaskCompletionSource<string>? PendingFocus { get; init; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
 
-        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlySet<string> enabledFilters, ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
+        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlyCollection<string> enabledFilters, ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
         {
             ReadCount++;
             Enabled = enabledFilters;
@@ -978,7 +978,7 @@ public sealed class ExplorerNavigationTests
                 IsolationTargets = [];
             }
 
-            ClearStarted.TrySetResult();
+            ClearStarted.TrySetResult(true);
             return PendingClear?.Task ?? Task.FromResult(ClearResult);
         }
 

@@ -17,7 +17,7 @@ if (Test-Path -LiteralPath $output) {
 
 New-Item -ItemType Directory -Path $contents -Force | Out-Null
 
-foreach ($framework in 'net8.0-windows', 'net10.0-windows') {
+foreach ($framework in 'net47', 'net48', 'net8.0-windows', 'net10.0-windows') {
     $frameworkContents = Join-Path $contents $framework
 
     dotnet publish $project `
@@ -46,6 +46,22 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($version)) {
 $manifest = @"
 <?xml version="1.0" encoding="utf-8"?>
 <ApplicationPackage SchemaVersion="1.0" AppVersion="$version" ProductCode="{F8CF54AC-12A7-4C35-BA1B-BF0AA4745431}" Name="CAD Lens" Description="Drawing exploration for AutoCAD" Icon="./Contents/CadLens.ico">
+  <Components>
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R23.0" SeriesMax="R23.1" />
+    <ComponentEntry AppName="CadLens" ModuleName="./Contents/net47/CadLens.AutoCAD.dll" LoadOnCommandInvocation="True">
+      <Commands GroupName="CadLens">
+        <Command Global="CADLENS" Local="CADLENS" />
+      </Commands>
+    </ComponentEntry>
+  </Components>
+  <Components>
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R24.0" SeriesMax="R24.3" />
+    <ComponentEntry AppName="CadLens" ModuleName="./Contents/net48/CadLens.AutoCAD.dll" LoadOnCommandInvocation="True">
+      <Commands GroupName="CadLens">
+        <Command Global="CADLENS" Local="CADLENS" />
+      </Commands>
+    </ComponentEntry>
+  </Components>
   <Components>
     <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R25.0" SeriesMax="R25.1" />
     <ComponentEntry AppName="CadLens" ModuleName="./Contents/net8.0-windows/CadLens.AutoCAD.dll" LoadOnCommandInvocation="True">

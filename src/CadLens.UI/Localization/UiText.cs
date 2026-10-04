@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 namespace CadLens.UI;
 
 /// <summary>App-local resources and language preference; never changes host or thread cultures.</summary>
+// ReSharper disable once PartialTypeWithSinglePart -- LibraryImport generates another part for modern targets.
 public sealed partial class UiText : INotifyPropertyChanged
 {
     private static readonly ResourceManager Resources = new("CadLens.UI.Localization.Strings", typeof(UiText).Assembly);
@@ -59,7 +60,7 @@ public sealed partial class UiText : INotifyPropertyChanged
     /// <param name="persist">Whether to save the user choice.</param>
     public void Select(LanguagePreference preference, bool persist = true)
     {
-        Preference = Enum.IsDefined(preference) ? preference : LanguagePreference.Windows;
+        Preference = IsValidPreference(preference) ? preference : LanguagePreference.Windows;
         Culture = ResolveCulture();
         PreferenceError = "";
 
@@ -69,10 +70,17 @@ public sealed partial class UiText : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null));
     }
 
+    private static bool IsValidPreference(LanguagePreference preference) =>
+#if NETFRAMEWORK
+        Enum.IsDefined(typeof(LanguagePreference), preference);
+#else
+        Enum.IsDefined(preference);
+#endif
+
     private LanguagePreference ReadPreference()
     {
         var value = _settings.Load<string>("language.json");
-        return Enum.TryParse<LanguagePreference>(value, out var preference) && Enum.IsDefined(preference)
+        return Enum.TryParse<LanguagePreference>(value, out var preference) && IsValidPreference(preference)
             ? preference
             : LanguagePreference.Windows;
     }
@@ -114,6 +122,15 @@ public sealed partial class UiText : INotifyPropertyChanged
         }
     }
 
+#if NETFRAMEWORK
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetUserPreferredUILanguages(
+        uint flags,
+        out uint languages,
+        IntPtr buffer,
+        ref uint length);
+#else
     [LibraryImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetUserPreferredUILanguages(
@@ -121,4 +138,5 @@ public sealed partial class UiText : INotifyPropertyChanged
         out uint languages,
         IntPtr buffer,
         ref uint length);
+#endif
 }

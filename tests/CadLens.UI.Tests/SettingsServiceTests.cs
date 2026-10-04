@@ -21,6 +21,35 @@ public sealed class SettingsServiceTests
         Assert.Empty(Directory.GetFiles(directory, "*.tmp"));
     }
 
+    /// <summary>Concurrent settings writers can create or replace the same file without losing a complete write.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConcurrentSavesKeepCompleteSettings(bool exists)
+    {
+        using var file = new SettingsFile();
+
+        if (exists)
+            Assert.True(file.Service.Save<int[]>("values.json", [0]));
+
+        using var start = new Barrier(2);
+        var first = Enumerable.Repeat(1, 4096).ToArray();
+        var second = Enumerable.Repeat(2, 4096).ToArray();
+        var writes = new[] {first, second}.Select(values => Task.Run(() =>
+        {
+            start.SignalAndWait();
+            return new SettingsService(file.Directory).Save("values.json", values);
+        })).ToArray();
+
+        var results = await Task.WhenAll(writes);
+        Assert.Contains(true, results);
+        var restored = Assert.IsType<int[]>(file.Service.Load<int[]>("values.json"));
+        Assert.True(
+            results[0] && restored.SequenceEqual(first) ||
+            results[1] && restored.SequenceEqual(second));
+        Assert.Empty(Directory.GetFiles(file.Directory, "*.tmp"));
+    }
+
     /// <summary>The existing appearance object and language JSON string remain unchanged.</summary>
     [Fact]
     public void AppearanceAndLanguageKeepExistingFormatsAndSeparateFiles()

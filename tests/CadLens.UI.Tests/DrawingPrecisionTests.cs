@@ -70,7 +70,7 @@ public sealed class DrawingPrecisionTests
     [InlineData(double.NegativeInfinity)]
     public void NonfiniteValuesDisplayAsUnavailable(double value)
     {
-        foreach (var unit in Enum.GetValues<DrawingUnit>())
+        foreach (var unit in Enum.GetValues(typeof(DrawingUnit)).Cast<DrawingUnit>())
             Assert.Equal("—", DrawingValueFormatter.FormatValue(new DrawingNumberValue(value, unit)));
     }
 
@@ -95,9 +95,9 @@ public sealed class DrawingPrecisionTests
         var value = new DrawingNumberValue(radians, DrawingUnit.Angle);
         var text = DrawingValueFormatter.FormatValue(value);
         Assert.EndsWith("°", text);
-        var displayed = double.Parse(text[..^1], NumberStyles.Float, UiText.Current.Culture);
+        var displayed = double.Parse(text.Substring(0, text.Length - 1), NumberStyles.Float, UiText.Current.Culture);
 
-        Assert.True(double.IsFinite(displayed));
+        Assert.True(displayed.IsFinite());
         Assert.InRange(Math.Abs((displayed - expectedDegrees) / expectedDegrees), 0, 1e-14);
         Assert.Equal(radians, value.Value);
     }
@@ -154,7 +154,7 @@ public sealed class DrawingPrecisionTests
                     .GetAwaiter().GetResult();
                 Layout(view);
                 Assert.Equal(2, model.Items.Length);
-                var identities = model.Items.Select(node => node.Id).Order(StringComparer.Ordinal).ToArray();
+                var identities = model.Items.Select(node => node.Id).OrderBy(item => item, StringComparer.Ordinal).ToArray();
                 var label = $"{UiText.Current.Get("Length")}: {rounded}";
                 Assert.Equal(2, Text(view).Count(text => text == label));
                 model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Objects.Contains(new TestEntityId(2))))
@@ -173,7 +173,7 @@ public sealed class DrawingPrecisionTests
                 Assert.Contains(refreshedAngle, Text(view));
                 model.BackCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 model.BackCommand.ExecuteAsync(null).GetAwaiter().GetResult();
-                Assert.Equal(identities, model.Items.Select(node => node.Id).Order(StringComparer.Ordinal));
+                Assert.Equal(identities, model.Items.Select(node => node.Id).OrderBy(item => item, StringComparer.Ordinal));
                 Assert.Equal(2, actions.ReadCount);
             });
         }
@@ -225,7 +225,7 @@ public sealed class DrawingPrecisionTests
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
-            IReadOnlySet<string> enabledFilters,
+            IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {

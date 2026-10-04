@@ -1,7 +1,7 @@
 ﻿<Project>
     <PropertyGroup>
-        <Version>0.2.0</Version>
-        <TargetFrameworks>net8.0-windows;net10.0-windows</TargetFrameworks>
+        <Version>0.3.0</Version>
+        <TargetFrameworks>net47;net48;net8.0-windows;net10.0-windows</TargetFrameworks>
         <Nullable>enable</Nullable>
         <LangVersion>14</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -12,18 +12,26 @@
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' and '$(MSBuildProjectName)' == 'CadLens.AutoCAD' ">
-        <OutputPath>$(AppData)\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\$(TargetFramework)\</OutputPath>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <OutputPath>$(AppData)\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\</OutputPath>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" PrivateAssets="all" ExcludeAssets="runtime"/>
+        <PackageReference Include="AutoCAD.NET" Version="23.0.0" ExcludeAssets="runtime" Condition="'$(UseAutocad)' == 'true' and '$(TargetFramework)' == 'net47'"/>
+        <PackageReference Include="AutoCAD.NET" Version="24.0.0" ExcludeAssets="runtime" Condition="'$(UseAutocad)' == 'true' and '$(TargetFramework)' == 'net48'"/>
         <PackageReference Include="AutoCAD.NET" Version="25.0.1" ExcludeAssets="runtime" Condition="'$(UseAutocad)' == 'true' and '$(TargetFramework)' == 'net8.0-windows'"/>
         <PackageReference Include="AutoCAD.NET" Version="26.0.0" ExcludeAssets="runtime" Condition="'$(UseAutocad)' == 'true' and '$(TargetFramework)' == 'net10.0-windows'"/>
-        <PackageReference Include="WPF-UI" Version="4.3.0" Condition="'$(UseUi)' == 'true'"/>
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" Condition="'$(UseUi)' == 'true'"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" Condition="'$(UseDi)' == 'true'"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net47' or '$(TargetFramework)' == 'net48'">
+        <Reference Include="Microsoft.CSharp"/>
+        <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all"/>
+        <PackageReference Include="PolySharp" Version="1.16.0" PrivateAssets="all"/>
+        <PackageReference Include="System.Collections.Immutable" Version="8.0.0"/>
+        <PackageReference Include="System.Text.Json" Version="8.0.6" Condition="'$(UseJson)' == 'true'"/>
     </ItemGroup>
 
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
