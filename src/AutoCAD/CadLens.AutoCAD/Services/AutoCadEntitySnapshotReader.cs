@@ -106,15 +106,15 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
 
     private static void ReadArea(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
     {
-        switch (entity)
+        Func<double>? getArea = entity switch
         {
-            case Curve curve:
-                properties[DrawingPropertyId.Area] = ReadArea(() => curve.Area);
-                break;
-            case Hatch hatch:
-                properties[DrawingPropertyId.Area] = ReadArea(() => hatch.Area);
-                break;
-        }
+            Curve curve => () => curve.Area,
+            Hatch hatch => () => hatch.Area,
+            _ => null
+        };
+
+        if (getArea is not null)
+            properties[DrawingPropertyId.Area] = ReadArea(getArea);
     }
 
     private static DrawingNumberValue? ReadArea(Func<double> getter)

@@ -189,13 +189,13 @@ public sealed class DrawingPropertyFilterTests
         var polylines = GetTypes(presentation, grouping).Where(type => type.TypeKey == PolylineType).ToList();
 
         Assert.NotEmpty(polylines);
-        Assert.All(polylines, type =>
+        foreach (var type in polylines)
         {
             Assert.Equal(0, type.Count);
             Assert.Empty(type.Objects);
             Assert.Empty(type.Children);
             Assert.Null(type.RowMetric);
-        });
+        }
         Assert.Equal(1, presentation.Groups.Sum(group => group.Count));
         Assert.Equal("5", Assert.Single(presentation.Groups.SelectMany(group => group.Objects)).DisplayId);
 

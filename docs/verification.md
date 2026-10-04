@@ -133,3 +133,8 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
     should show an empty state. Edit a value in CAD: browsing keeps the captured value until Refresh.
     Focus/Select/Isolate must still target the whole insertion. Check that browsing does not change DBMOD;
     attribute-definition counts remain separate and no nested block or xref attributes are traversed.
+12. Check Area on closed and open planar curves, ellipses, splines, 2D/3D polylines, and hatches.
+    Compare values with the host's native area, including unsupported/nonplanar cases that should show
+    unavailable values. Area is in square drawing units and uses drawing precision. In both lenses,
+    display, group, filter, and save an area condition; reuse it in another drawing, then edit geometry
+    and Refresh. Check that ordinary length metrics and Focus/Select/Isolate targets remain correct.

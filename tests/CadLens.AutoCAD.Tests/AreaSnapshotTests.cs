@@ -62,7 +62,12 @@ public sealed class AreaSnapshotTests
     [Fact]
     public void NativeAreaFailuresDoNotRemoveTheEntityOrInventZero()
     {
-        foreach (var status in Enum.GetValues(typeof(ErrorStatus)).Cast<ErrorStatus>())
+#if NETFRAMEWORK
+        var statuses = Enum.GetValues(typeof(ErrorStatus)).Cast<ErrorStatus>();
+#else
+        var statuses = Enum.GetValues<ErrorStatus>();
+#endif
+        foreach (var status in statuses)
         {
             Func<double> unavailable = () => throw new Exception(status);
             var curve = Read(new Line {ReadArea = unavailable, Length = 17});
@@ -84,7 +89,7 @@ public sealed class AreaSnapshotTests
     [InlineData(0)]
     public void NativeAreasKeepFiniteValuesOnly(double area)
     {
-        DrawingNumberValue? expected = area == 0 ? new DrawingNumberValue(0, DrawingUnit.Area) : null;
+        var expected = area == 0 ? new DrawingNumberValue(0, DrawingUnit.Area) : null;
 
         Assert.Equal(expected, Read(new Ellipse {ReadArea = () => area}).Properties![DrawingPropertyId.Area]);
         Assert.Equal(expected, Read(new Hatch {ReadArea = () => area}).Properties![DrawingPropertyId.Area]);

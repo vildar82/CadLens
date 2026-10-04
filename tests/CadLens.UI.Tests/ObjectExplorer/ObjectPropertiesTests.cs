@@ -46,9 +46,11 @@ public sealed class ObjectPropertiesTests
             ShowProperty(model, DrawingPropertyId.Area);
             Assert.Equal(label, UiText.Current.Get(model.SortByCountLabel));
             Assert.Equal(["4", "1", "2", "3"], model.Items.Select(node => node.Id));
+            var displayProperty = model.DisplayPropertyId;
+            var precision = model.Precision;
             Assert.Equal(
                 ["0", rounded, rounded, "—"],
-                model.Items.Select(node => DrawingValueFormatter.FormatMetric(node, model.DisplayPropertyId, model.Precision)));
+                model.Items.Select(node => DrawingValueFormatter.FormatMetric(node, displayProperty, precision)));
             var detail = Assert.Single(model.Items[1].Fields, field => field.Label == "Area");
             Assert.Equal(new DrawingNumberValue(12.3451, DrawingUnit.Area), detail.TypedValue);
             Assert.Equal(rounded, DrawingValueFormatter.FormatDetail(detail, model.Precision));
@@ -332,9 +334,13 @@ public sealed class ObjectPropertiesTests
     public async Task InvalidSavedGroupingFieldsAreIgnored()
     {
         using var file = new SettingsFile();
-        File.WriteAllText(
-            Path.Combine(file.Directory, "lens-object-types.json"),
-            """{"PropertyGrouping":{"AcDbPolyline":["Color","Color","RemovedProperty","9999"]},"DisplayProperties":{"AcDbPolyline":"9999"}}""");
+        var path = Path.Combine(file.Directory, "lens-object-types.json");
+        const string settings = """{"PropertyGrouping":{"AcDbPolyline":["Color","Color","RemovedProperty","9999"]},"DisplayProperties":{"AcDbPolyline":"9999"}}""";
+#if NETFRAMEWORK
+        File.WriteAllText(path, settings);
+#else
+        await File.WriteAllTextAsync(path, settings);
+#endif
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.ObjectTypes, file.Service);
         Assert.Equal(0, actions.ReadCount);

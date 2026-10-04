@@ -53,6 +53,7 @@ public sealed class SavedPropertyFilterTests
     /// <summary>Typed settings round-trip without localized captions or precision loss.</summary>
     [Theory]
     [InlineData(DrawingPropertyId.Length)]
+    [InlineData(DrawingPropertyId.Area)]
     [InlineData(DrawingPropertyId.StartAngle)]
     [InlineData(DrawingPropertyId.Closed)]
     [InlineData(DrawingPropertyId.Linetype)]
@@ -258,7 +259,9 @@ public sealed class SavedPropertyFilterTests
 
     private static DrawingValue ValueFor(DrawingPropertyId property) => property switch
     {
-        DrawingPropertyId.Length => new DrawingNumberValue(1.123456789012345, DrawingUnit.Distance),
+        DrawingPropertyId.Length or DrawingPropertyId.Area => new DrawingNumberValue(
+            1.123456789012345,
+            property == DrawingPropertyId.Area ? DrawingUnit.Area : DrawingUnit.Distance),
         DrawingPropertyId.StartAngle => new DrawingNumberValue(17.123456789012345 * Math.PI / 180, DrawingUnit.Angle),
         DrawingPropertyId.Closed => new DrawingBooleanValue(true),
         DrawingPropertyId.Linetype => new DrawingTextValue("ByLayer", true),
