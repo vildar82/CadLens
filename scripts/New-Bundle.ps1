@@ -17,18 +17,24 @@ if (Test-Path -LiteralPath $output) {
 
 New-Item -ItemType Directory -Path $contents -Force | Out-Null
 
-dotnet publish $project `
-    --configuration Release `
-    --artifacts-path (Join-Path $output 'build') `
-    --output $contents `
-    --nologo `
-    -p:DebugType=None
+foreach ($framework in 'net8.0-windows', 'net10.0-windows') {
+    $frameworkContents = Join-Path $contents $framework
 
-if ($LASTEXITCODE -ne 0) {
-    throw 'Plugin publish failed.'
+    dotnet publish $project `
+        --configuration Release `
+        --framework $framework `
+        --artifacts-path (Join-Path $output 'build') `
+        --output $frameworkContents `
+        --nologo `
+        -p:DebugType=None
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Plugin publish failed for $framework."
+    }
+
+    Get-ChildItem -LiteralPath $frameworkContents -Filter '*.xml' | Remove-Item
 }
 
-Get-ChildItem -LiteralPath $contents -Filter '*.xml' | Remove-Item
 Copy-Item -LiteralPath (Join-Path $repository 'docs\images\cadlens.ico') -Destination (Join-Path $contents 'CadLens.ico')
 
 $version = dotnet msbuild $project -getProperty:Version -property:Configuration=Release
@@ -42,7 +48,15 @@ $manifest = @"
 <ApplicationPackage SchemaVersion="1.0" AppVersion="$version" ProductCode="{F8CF54AC-12A7-4C35-BA1B-BF0AA4745431}" Name="CAD Lens" Description="Drawing exploration for AutoCAD" Icon="./Contents/CadLens.ico">
   <Components>
     <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R25.0" SeriesMax="R25.1" />
-    <ComponentEntry AppName="CadLens" ModuleName="./Contents/CadLens.AutoCAD.dll" LoadOnCommandInvocation="True">
+    <ComponentEntry AppName="CadLens" ModuleName="./Contents/net8.0-windows/CadLens.AutoCAD.dll" LoadOnCommandInvocation="True">
+      <Commands GroupName="CadLens">
+        <Command Global="CADLENS" Local="CADLENS" />
+      </Commands>
+    </ComponentEntry>
+  </Components>
+  <Components>
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R26.0" SeriesMax="R26.0" />
+    <ComponentEntry AppName="CadLens" ModuleName="./Contents/net10.0-windows/CadLens.AutoCAD.dll" LoadOnCommandInvocation="True">
       <Commands GroupName="CadLens">
         <Command Global="CADLENS" Local="CADLENS" />
       </Commands>

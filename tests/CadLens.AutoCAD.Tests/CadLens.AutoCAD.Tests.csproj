@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net8.0-windows</TargetFramework>
         <UseWPF>true</UseWPF>
         <RootNamespace>CadLens.AutoCAD</RootNamespace>
         <IsTestProject>true</IsTestProject>
