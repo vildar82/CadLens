@@ -240,8 +240,14 @@
                         MaxHeight="48"
                         VerticalAlignment="Center"
                         HorizontalScrollBarVisibility="Auto"
-                        VerticalScrollBarVisibility="Disabled"
-                        WindowChrome.IsHitTestVisibleInChrome="True">
+                        VerticalScrollBarVisibility="Disabled">
+                        <ScrollViewer.Resources>
+                            <Style
+                                BasedOn="{StaticResource {x:Type ScrollBar}}"
+                                TargetType="ScrollBar">
+                                <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+                            </Style>
+                        </ScrollViewer.Resources>
                         <ItemsControl VerticalAlignment="Center" ItemsSource="{Binding Lenses}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -260,7 +266,8 @@
                                         CommandParameter="{Binding}"
                                         Content="{local:Localize Binding={Binding Descriptor.Label}}"
                                         IsChecked="{Binding IsActive, Mode=OneWay}"
-                                        Style="{StaticResource QuietToggle}">
+                                        Style="{StaticResource QuietToggle}"
+                                        WindowChrome.IsHitTestVisibleInChrome="True">
                                         <ToggleButton.ToolTip>
                                             <ToolTip>
                                                 <StackPanel>

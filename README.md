@@ -28,7 +28,8 @@ focus on, and temporarily isolate objects without changing stored DWG geometry o
 - **Preferences:** choose English or Russian, customize appearance, and keep separate settings for each lens.
 
 The panel opens as a compact bar over the drawing. Activate a lens to explore; collapsing or closing
-it clears temporary isolation and restores the ordinary display.
+it clears temporary isolation and restores the ordinary display. Drag the empty space in the header
+to move the panel.
 
 The current bundle targets **64-bit Windows, AutoCAD 2025–2026, and Civil 3D 2025–2026**, using .NET 8
 and WPF. These are the intended hosts; native compatibility needs verification in each host/version.
