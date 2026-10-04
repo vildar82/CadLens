@@ -48,7 +48,12 @@ internal sealed record SavedPropertyFilter(
                     ? new DrawingTransparencyValue(transparency)
                     : null,
                 _ when Enum.TryParse<DrawingUnit>(ValueKind, out var unit) &&
-                       Enum.IsDefined(typeof(DrawingUnit), unit) && Value.ValueKind == JsonValueKind.Number =>
+#if NETFRAMEWORK
+                       Enum.IsDefined(typeof(DrawingUnit), unit) &&
+#else
+                       Enum.IsDefined(unit) &&
+#endif
+                       Value.ValueKind == JsonValueKind.Number =>
                     new DrawingNumberValue(Value.GetDouble(), unit),
                 _ => null
             };

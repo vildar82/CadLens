@@ -59,11 +59,13 @@ public sealed partial class ObjectExplorerViewModel
 
     private void RefreshSavedFilters()
     {
-        _savedFilters = (_settings?.Load<List<SavedPropertyFilter?>>(SavedFiltersFileName) ?? [])
-            .OfType<SavedPropertyFilter>()
-            .Where(preset => !string.IsNullOrWhiteSpace(preset.Name) && !string.IsNullOrWhiteSpace(preset.TypeKey) &&
-                             preset.Value.ValueKind is not (System.Text.Json.JsonValueKind.Undefined or System.Text.Json.JsonValueKind.Null))
-            .ToList();
+        _savedFilters =
+        [
+            .. (_settings?.Load<List<SavedPropertyFilter?>>(SavedFiltersFileName) ?? [])
+                .OfType<SavedPropertyFilter>()
+                .Where(preset => !string.IsNullOrWhiteSpace(preset.Name) && !string.IsNullOrWhiteSpace(preset.TypeKey) &&
+                                 preset.Value.ValueKind is not (System.Text.Json.JsonValueKind.Undefined or System.Text.Json.JsonValueKind.Null))
+        ];
         SavedFilterNames =
         [
             .. _savedFilters.Where(preset => preset.TypeKey == GroupingTypeKey)

@@ -114,7 +114,11 @@ public sealed class SavedPropertyFilterTests
             first.SavePropertyFilterCommand.Execute(null);
         }
 
+#if NETFRAMEWORK
         var json = File.ReadAllText(Path.Combine(settings.Directory, "property-filters.json"));
+#else
+        var json = await File.ReadAllTextAsync(Path.Combine(settings.Directory, "property-filters.json"));
+#endif
         Assert.DoesNotContain("secret-layer-id", json);
         Assert.DoesNotContain("secret-object-id", json);
         var otherLayer = new LayerId("different-layer-id");
@@ -172,12 +176,17 @@ public sealed class SavedPropertyFilterTests
 
     /// <summary>Malformed settings recover; failed writes keep the explorer usable and report failure.</summary>
     [Fact]
+    [System.ComponentModel.Localizable(false)]
     public async Task InvalidOrUnwritableSettingsDoNotBreakTheExplorer()
     {
         using var language = new LanguageScope(LanguagePreference.English);
         using var settings = new SettingsFile();
         var path = Path.Combine(settings.Directory, "property-filters.json");
-        File.WriteAllText(path, "not JSON");
+#if NETFRAMEWORK
+        File.WriteAllText(path, "{");
+#else
+        await File.WriteAllTextAsync(path, "{");
+#endif
         using var model = new ObjectExplorerViewModel(new PropertyFilterTests.Actions(), DrawingGrouping.ObjectTypes, settings.Service);
         await EnterType(model);
         Assert.Empty(model.SavedFilterNames);
@@ -218,7 +227,11 @@ public sealed class SavedPropertyFilterTests
                 Value = "PAYLOAD"
             }
         }).Replace("\"PAYLOAD\"", valueJson);
+#if NETFRAMEWORK
         File.WriteAllText(Path.Combine(settings.Directory, "property-filters.json"), json);
+#else
+        await File.WriteAllTextAsync(Path.Combine(settings.Directory, "property-filters.json"), json);
+#endif
         var actions = new PropertyFilterTests.Actions();
         using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.ObjectTypes, settings.Service);
         await EnterType(model);
