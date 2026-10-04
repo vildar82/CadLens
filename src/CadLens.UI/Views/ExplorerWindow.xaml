@@ -46,7 +46,7 @@
                 <Border.Background>
                     <DynamicResource ResourceKey="QuietHeader" />
                 </Border.Background>
-                <Grid Margin="12,0,8,0">
+                <Grid Margin="8,0,8,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -55,15 +55,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel
-                        Margin="0,0,5,0"
                         VerticalAlignment="Center"
                         Orientation="Horizontal">
-                        <Border
-                            Width="3"
-                            Height="20"
-                            Margin="0,0,6,0"
-                            Background="{DynamicResource QuietAccent}"
-                            CornerRadius="2" />
                         <ToggleButton
                             x:Name="AboutButton"
                             MinHeight="28"
@@ -76,14 +69,7 @@
                             Style="{StaticResource QuietToggle}"
                             ToolTip="{local:Localize 'About CAD Lens'}"
                             WindowChrome.IsHitTestVisibleInChrome="True">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="CAD Lens" />
-                                <TextBlock
-                                    Margin="4,0,0,0"
-                                    FontWeight="Normal"
-                                    Foreground="{DynamicResource QuietMuted}"
-                                    Text="ⓘ" />
-                            </StackPanel>
+                            <TextBlock Text="CAD Lens" />
                         </ToggleButton>
                         <Popup
                             x:Name="AboutPopup"
@@ -101,11 +87,20 @@
                                 CornerRadius="8"
                                 TextElement.Foreground="{DynamicResource QuietText}">
                                 <StackPanel>
-                                    <TextBlock
+                                    <StackPanel
                                         Margin="0,0,0,8"
-                                        FontSize="14"
-                                        FontWeight="SemiBold"
-                                        Text="{local:Localize 'About CAD Lens'}" />
+                                        Orientation="Horizontal">
+                                        <Image
+                                            Width="36"
+                                            Height="36"
+                                            Margin="0,0,8,0"
+                                            Source="/CadLens.UI;component/Resources/CadLens.png" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Text="{local:Localize 'About CAD Lens'}" />
+                                    </StackPanel>
                                     <TextBlock
                                         Margin="0,0,0,10"
                                         Text="{local:Localize 'Explore drawing objects by layer or type in AutoCAD and Civil 3D.'}"

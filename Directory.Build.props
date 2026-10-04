@@ -1,6 +1,6 @@
 ﻿<Project>
     <PropertyGroup>
-        <version>0.1.0</version>
+        <Version>0.2.0</Version>
         <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0-windows</TargetFramework>
         <Nullable>enable</Nullable>
         <LangVersion>14</LangVersion>

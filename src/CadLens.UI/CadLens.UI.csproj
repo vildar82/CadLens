@@ -7,6 +7,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../CadLens.Lenses/CadLens.Lenses.csproj"/>
+        <Resource Include="Resources/CadLens.png"/>
     </ItemGroup>
 
 </Project>
