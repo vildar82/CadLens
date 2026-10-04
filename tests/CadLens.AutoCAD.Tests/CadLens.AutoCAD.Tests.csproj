@@ -8,6 +8,7 @@
     <ItemGroup>
         <ProjectReference Include="../../src/CadLens.Common/CadLens.Common.csproj" />
         <ProjectReference Include="../../src/CadLens.UI/CadLens.UI.csproj" />
+        <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Services/AutoCadEntitySnapshotReader.cs" Link="AutoCadEntitySnapshotReader.cs" />
         <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Services/AutoCadDrawingInventorySource.cs" Link="AutoCadDrawingInventorySource.cs" />
         <Compile Include="../../src/AutoCAD/CadLens.AutoCAD/Services/ObjectExplorerActions.cs" Link="ObjectExplorerActions.cs" />
         <Compile Include="../../src/CadLens.Common.AutoCAD/Models/EntityId.cs" Link="EntityId.cs" />

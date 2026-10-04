@@ -1,8 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Collections.Immutable;
 using Autodesk.AutoCAD.DatabaseServices;
-using CadLens.Lenses;
 
 namespace Autodesk.AutoCAD.EditorInput
 {
@@ -66,23 +64,5 @@ namespace CadLens.Common.AutoCAD
 
         internal static void SelectObjects(this Autodesk.AutoCAD.ApplicationServices.Editor editor, ObjectId[] objects) =>
             editor.Selection = objects;
-    }
-}
-
-namespace CadLens.AutoCAD
-{
-    // Inventory tests replace property extraction only; scope and native ID validation run production code.
-    internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellationToken)
-    {
-        internal EntitySnapshot Read(Entity entity)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            return new EntitySnapshot(
-                new CadLens.Common.AutoCAD.EntityId(entity.ObjectId),
-                new CadLens.Common.AutoCAD.LayerId(entity.LayerId),
-                "AcDbLine",
-                ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty);
-        }
     }
 }

@@ -168,7 +168,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 
     /// <summary>Test double for the native Entity type.</summary>
-    public class Entity : DBObject
+    public partial class Entity : DBObject
     {
         internal ObjectId OwnerId { get; init; }
         internal ObjectId LayerId { get; init; }
@@ -189,7 +189,9 @@ namespace Autodesk.AutoCAD.DatabaseServices
     {
         internal ObjectId LayoutId { get; init; }
         internal bool IsLayout => false;
-        internal string Name => "Model";
+        internal string Name { get; init; } = "Model";
+        internal bool IsFromExternalReference { get; init; }
+        internal bool IsFromOverlayReference { get; init; }
         /// <inheritdoc />
         public IEnumerator GetEnumerator() => ids.GetEnumerator();
     }
