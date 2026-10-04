@@ -29,7 +29,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     /// <inheritdoc />
     public async Task<HostResult<LensPresentation>> LoadAsync(
         DrawingGrouping grouping,
-        IReadOnlySet<string> enabledFilters,
+        IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken)
     {
@@ -50,7 +50,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     public static LensPresentation Build(
         DrawingInventory snapshot,
         DrawingGrouping grouping,
-        IReadOnlySet<string> enabledFilters,
+        IReadOnlyCollection<string> enabledFilters,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping = null) =>
         Build(
             snapshot,
@@ -334,15 +334,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
         public override bool Equals(object? obj) => obj is PropertyGroupKey other && Equals(other);
 
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-
-            foreach (var property in Properties)
-                hash.Add(property);
-
-            return hash.ToHashCode();
-        }
+        public override int GetHashCode() =>
+            Properties.Aggregate(17, (hash, property) => unchecked(hash * 31 + property.GetHashCode()));
 
         public string GetIdentity()
         {
@@ -350,7 +343,15 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 ";",
                 Properties.Select(property => $"{(int) property.Id}:{Serialize(property.Value)}"));
 
-            return $"properties:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)))}";
+            var bytes = Encoding.UTF8.GetBytes(identity);
+#if NETFRAMEWORK
+            using var sha = SHA256.Create();
+            var hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", string.Empty);
+#else
+            var hash = Convert.ToHexString(SHA256.HashData(bytes));
+#endif
+
+            return $"properties:{hash}";
         }
 
         private static string Serialize(DrawingValue? value) => value switch

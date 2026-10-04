@@ -2,7 +2,8 @@
 
 ## Managed checks
 
-Install the .NET 8 and .NET 10 SDKs. Run the existing checks relevant to the change.
+Install the .NET 8 and .NET 10 SDKs and the .NET Framework 4.8 or 4.8.1 runtime.
+The .NET Framework reference assemblies restore through NuGet. Run the existing checks relevant to the change.
 For solution-wide behavior or composition changes:
 
 ```powershell
@@ -12,7 +13,20 @@ dotnet test CadLens.slnx -c Release --no-build --no-restore
 
 Build with zero warnings and check Rider warnings separately. Managed tests cover detached models,
 UI orchestration, and host helpers using stubs; they do not prove native rendering or lifecycle behavior.
-All managed test projects run on .NET 8 and .NET 10; UI and host-stub tests use the Windows targets.
+All managed test projects run for `net47`, `net48`, .NET 8, and .NET 10; UI and host-stub tests use
+Windows targets for .NET 8 and .NET 10. Legacy tests on a newer .NET Framework 4.x runtime do not
+establish compatibility with the minimum 4.7/4.8 runtime or an installed CAD host.
+
+Build a fresh bundle and check its legacy dependencies without application configuration files:
+
+```powershell
+./scripts/New-Bundle.ps1
+./scripts/Test-LegacyDependencies.ps1
+```
+
+The check loads both published legacy payloads on .NET Framework and exercises JSON/settings,
+MVVM commands, DI async disposal, immutable collections, and dependency resolver scope. It is a managed
+loading check; AutoCAD/Civil 3D loading and behavior still require native validation.
 
 ## Native evidence limits
 
@@ -24,9 +38,11 @@ has loaded rebuilt DLLs. Native AutoCAD/Civil 3D checks belong to the user.
 
 ## Host compatibility
 
-Build a fresh bundle with `./scripts/New-Bundle.ps1`. In fresh AutoCAD and Civil 3D sessions for
-2025, 2026, and 2027, check command-triggered bundle loading and manual `NETLOAD` with the matching
-payload: `Contents/net8.0-windows` for R25.0/R25.1 and `Contents/net10.0-windows` for R26.0.
+Build a fresh bundle with `./scripts/New-Bundle.ps1`. In fresh AutoCAD and Civil 3D sessions for each
+intended version from 2019 through 2027, check command-triggered bundle loading and manual `NETLOAD`
+with the matching payload: `Contents/net47` for R23.0–R23.1, `Contents/net48` for R24.0–R24.3,
+`Contents/net8.0-windows` for R25.0–R25.1, and `Contents/net10.0-windows` for R26.0.
+Legacy hosts require .NET Framework 4.7 (2019–2020) or 4.8 (2021–2024), or a compatible later 4.x runtime.
 Run `CADLENS`, activate both lenses, try Focus/Select/Isolate, close the panel, and switch drawings.
 Record the exact host product, version/update, bundle version, loaded DLL path, and observed outcomes.
 

@@ -2,6 +2,7 @@
     <PropertyGroup>
         <UseWPF>true</UseWPF>
         <UseUi>true</UseUi>
+        <UseJson>true</UseJson>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 

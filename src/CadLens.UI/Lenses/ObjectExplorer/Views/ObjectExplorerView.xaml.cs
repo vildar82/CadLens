@@ -8,6 +8,11 @@ public partial class ObjectExplorerView
     public ObjectExplorerView(ObjectExplorerViewModel viewModel)
     {
         InitializeComponent();
+#if !NET47
+        System.Windows.Automation.AutomationProperties.SetLiveSetting(
+            StatusText,
+            System.Windows.Automation.AutomationLiveSetting.Polite);
+#endif
         DataContext = viewModel;
     }
 

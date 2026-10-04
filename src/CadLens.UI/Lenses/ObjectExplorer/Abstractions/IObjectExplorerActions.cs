@@ -28,7 +28,7 @@ public interface IObjectExplorerActions
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     Task<HostResult<LensPresentation>> ReadAsync(
         DrawingGrouping grouping,
-        IReadOnlySet<string> enabledFilters,
+        IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken);
 

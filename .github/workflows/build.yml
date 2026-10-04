@@ -37,6 +37,10 @@ jobs:
         shell: pwsh
         run: ./scripts/New-Bundle.ps1
 
+      - name: Check legacy bundle dependencies
+        shell: powershell
+        run: ./scripts/Test-LegacyDependencies.ps1
+
       - name: Upload AutoCAD bundle
         uses: actions/upload-artifact@v7
         with:

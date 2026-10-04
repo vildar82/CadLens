@@ -13,7 +13,7 @@ public interface IDrawingLensProvider
     /// <param name="cancellationToken">Cancellation of managed work.</param>
     Task<HostResult<LensPresentation>> LoadAsync(
         DrawingGrouping grouping,
-        IReadOnlySet<string> enabledFilters,
+        IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken);
 }

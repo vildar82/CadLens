@@ -4,6 +4,7 @@
         <UseAutocad>true</UseAutocad>
         <UseWPF>true</UseWPF>
         <UseDi>true</UseDi>
+        <UseJson>true</UseJson>
     </PropertyGroup>
 
     <ItemGroup>

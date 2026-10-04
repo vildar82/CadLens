@@ -1,6 +1,10 @@
 ﻿using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+#if NETFRAMEWORK
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+#endif
 
 namespace CadLens.UI;
 
@@ -50,7 +54,7 @@ public sealed class SettingsService
         {
             Directory.CreateDirectory(_directory);
             File.WriteAllText(temporary, JsonSerializer.Serialize(value));
-            File.Move(temporary, path, overwrite: true);
+            ReplaceSettings(temporary, path);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -70,4 +74,22 @@ public sealed class SettingsService
             }
         }
     }
+
+    private static void ReplaceSettings(string temporary, string path)
+    {
+#if NETFRAMEWORK
+        const uint replaceExisting = 1;
+
+        if (!MoveFileEx(temporary, path, replaceExisting))
+            throw new IOException(new Win32Exception(Marshal.GetLastWin32Error()).Message);
+#else
+        File.Move(temporary, path, overwrite: true);
+#endif
+    }
+
+#if NETFRAMEWORK
+    [DllImport("kernel32.dll", EntryPoint = "MoveFileExW", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool MoveFileEx(string source, string destination, uint flags);
+#endif
 }

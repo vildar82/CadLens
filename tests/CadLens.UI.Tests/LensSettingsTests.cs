@@ -44,10 +44,10 @@ public sealed class LensSettingsTests
         Assert.Equal((0, 0, 0), (actions.FocusCount, actions.SelectCount, actions.IsolateCount));
         await reopened.EnterCommand.ExecuteAsync(Assert.Single(reopened.Items));
         Assert.Equal((1, 1, 1), (actions.FocusCount, actions.SelectCount, actions.IsolateCount));
-        var saved = await File.ReadAllTextAsync(SettingsPath(file, grouping));
+        var saved = File.ReadAllText(SettingsPath(file, grouping));
         await reopened.DeactivateAsync(CancellationToken.None);
         reopened.Close(false);
-        Assert.Equal(saved, await File.ReadAllTextAsync(SettingsPath(file, grouping)));
+        Assert.Equal(saved, File.ReadAllText(SettingsPath(file, grouping)));
     }
 
     /// <summary>Each grouping reopens its own filter, search, sorting, and Auto settings.</summary>
@@ -113,7 +113,7 @@ public sealed class LensSettingsTests
     public async Task InvalidSettingsUseSensibleDefaults(string json)
     {
         using var file = new SettingsFile();
-        await File.WriteAllTextAsync(SettingsPath(file, DrawingGrouping.Layers), json);
+        File.WriteAllText(SettingsPath(file, DrawingGrouping.Layers), json);
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers, file.Service);
         Assert.Equal(0, actions.NativeCalls);
@@ -133,17 +133,17 @@ public sealed class LensSettingsTests
         using var file = new SettingsFile();
         var path = SettingsPath(file, DrawingGrouping.Layers);
         const string json = "{\"EnabledFilters\":[\"custom-filter\",\"removed-filter\",null,\"\"]}";
-        await File.WriteAllTextAsync(path, json);
+        File.WriteAllText(path, json);
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers, file.Service);
-        Assert.Equal(json, await File.ReadAllTextAsync(path));
+        Assert.Equal(json, File.ReadAllText(path));
         await model.ActivateAsync(CancellationToken.None);
-        Assert.Equal(["custom-filter", "removed-filter"], actions.Reads[0].Order(StringComparer.Ordinal));
+        Assert.Equal(["custom-filter", "removed-filter"], actions.Reads[0].OrderBy(item => item, StringComparer.Ordinal));
         Assert.True(model.Filters[0].IsEnabled);
         await model.ReadCommand.ExecuteAsync(null);
         Assert.Equal("custom-filter", Assert.Single(actions.Reads[1]));
         model.SearchText = "Beta";
-        using var saved = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        using var saved = JsonDocument.Parse(File.ReadAllText(path));
         Assert.Equal(
             "custom-filter",
             Assert.Single(saved.RootElement.GetProperty("EnabledFilters").EnumerateArray())
@@ -189,12 +189,12 @@ public sealed class LensSettingsTests
         using var current = new ObjectExplorerViewModel(new Actions(), DrawingGrouping.Layers, file.Service);
         current.SearchText = "new";
         var path = SettingsPath(file, DrawingGrouping.Layers);
-        var saved = await File.ReadAllTextAsync(path);
+        var saved = File.ReadAllText(path);
         closed.SearchText = "stale";
         closed.SortByCountCommand.Execute(null);
         closed.SortByNameCommand.Execute(null);
         closed.ClearSearchCommand.Execute(null);
-        Assert.Equal(saved, await File.ReadAllTextAsync(path));
+        Assert.Equal(saved, File.ReadAllText(path));
         using var reopened = new ObjectExplorerViewModel(new Actions(), DrawingGrouping.Layers, file.Service);
         Assert.Equal("new", reopened.SearchText);
         Assert.False(reopened.IsCountSortActive);
@@ -229,7 +229,7 @@ public sealed class LensSettingsTests
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
-            IReadOnlySet<string> enabledFilters,
+            IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken)
         {

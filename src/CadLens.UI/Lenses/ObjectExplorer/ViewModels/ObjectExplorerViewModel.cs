@@ -255,7 +255,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             if (ReferenceEquals(type, _propertyOptionsType))
                 return field;
 
-            var targets = type.Objects.ToHashSet();
+            var targets = new HashSet<IPlacedObjectId>(type.Objects);
             field = DrawingProperties.GetAvailableFields(
                 _inventory.Entities.Where(entity => targets.Contains(entity.Id)));
             _propertyOptionsType = type;
@@ -315,7 +315,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             if (_inventory is null || GroupingTypeKey is not { } typeKey)
                 return [];
 
-            var selected = _propertyGrouping.GetValueOrDefault(typeKey, []);
+            ImmutableArray<DrawingPropertyId> selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
+                ? fields
+                : [];
             return
             [
                 .. AvailableProperties
@@ -593,23 +595,24 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         _sortDescending = preferences.SortDescending;
         _searchText = preferences.SearchText ?? "";
 
-        foreach (var (typeKey, names) in preferences.PropertyGrouping ?? [])
+        foreach (var pair in preferences.PropertyGrouping ?? [])
         {
             var fields = new List<DrawingPropertyId>();
 
-            foreach (var name in names ?? [])
+            foreach (var name in pair.Value ?? [])
             {
-                if (Enum.TryParse<DrawingPropertyId>(name, out var id) && Enum.IsDefined(id))
+                if (Enum.TryParse<DrawingPropertyId>(name, out var id) && Enum.IsDefined(typeof(DrawingPropertyId), id))
                     fields.Add(id);
             }
 
-            _propertyGrouping[typeKey] = [.. fields.Distinct().Order()];
+            _propertyGrouping[pair.Key] = [.. fields.Distinct().OrderBy(item => item)];
         }
 
-        foreach (var (typeKey, name) in preferences.DisplayProperties ?? [])
+        foreach (var pair in preferences.DisplayProperties ?? [])
         {
-            if (Enum.TryParse<DrawingPropertyId>(name, out var id) && Enum.IsDefined(id))
-                _displayProperties[typeKey] = id;
+            if (Enum.TryParse<DrawingPropertyId>(pair.Value, out var id) &&
+                Enum.IsDefined(typeof(DrawingPropertyId), id))
+                _displayProperties[pair.Key] = id;
         }
     }
 
@@ -622,7 +625,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             IsAutoFocus,
             IsAutoSelect,
             IsAutoIsolation,
-            [.. _enabledFilters.Order(StringComparer.Ordinal)],
+            [.. _enabledFilters.OrderBy(item => item, StringComparer.Ordinal)],
             SearchText,
             IsCountSortActive,
             _sortDescending,
@@ -660,9 +663,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
     private void UpdateVisibleGroups()
     {
-        var groups = Groups.Where(group => group.Label.Contains(
+        var groups = Groups.Where(group => group.Label.IndexOf(
             SearchText.Trim(),
-            StringComparison.OrdinalIgnoreCase));
+            StringComparison.OrdinalIgnoreCase) >= 0);
         _visibleGroups = [.. OrderItems(groups)];
         _navigation.SetItemOrder(OrderItems);
         OnPropertyChanged(nameof(Items));
@@ -865,7 +868,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             cancellationToken);
     }
 
-    private async Task<UiMessage> ApplyPresentationAsync(LensPresentation presentation, CancellationToken cancellationToken)
+    private async Task<UiMessage> ApplyPresentationAsync(
+        LensPresentation presentation,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         _spaceIsDrawingData = true;
@@ -1085,10 +1090,12 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         if (_inventory is null || GroupingTypeKey is not { } typeKey)
             return "Grouping unavailable.";
 
-        var selected = _propertyGrouping.GetValueOrDefault(typeKey, []);
+        ImmutableArray<DrawingPropertyId> selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
+            ? fields
+            : [];
         _propertyGrouping[typeKey] = option.IsSelected
             ? selected.Remove(option.Id)
-            : [.. selected.Append(option.Id).Distinct().Order()];
+            : [.. selected.Add(option.Id).Distinct().OrderBy(item => item)];
         var previousTargets = Current?.Objects ?? [];
         Groups = DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping).Groups;
         _navigation.Reset(Groups, true);

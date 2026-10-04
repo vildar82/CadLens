@@ -159,7 +159,9 @@ public sealed class DrawingLensTests
         Assert.Equal(5, first.Groups.SelectMany(node => node.Objects).Distinct().Count());
         Assert.Equal(first.Groups.Select(node => node.Id), shuffled.Groups.Select(node => node.Id));
 
-        foreach (var (original, reordered) in first.Groups.Zip(shuffled.Groups))
+        foreach (var (original, reordered) in first.Groups.Zip(
+                     shuffled.Groups,
+                     (original, reordered) => (original, reordered)))
         {
             Assert.Equal<IPlacedObjectId>(original.Objects, reordered.Objects);
             Assert.Equal(original.Children.Select(node => node.Id), reordered.Children.Select(node => node.Id));
@@ -268,7 +270,7 @@ public sealed class DrawingLensTests
     private static async Task<LensPresentation> Load(
         ImmutableArray<LayerSnapshot> layers,
         ImmutableArray<EntitySnapshot> entities,
-        IReadOnlySet<string> filters,
+        IReadOnlyCollection<string> filters,
         DrawingGrouping grouping = DrawingGrouping.Layers)
     {
         var provider = new DrawingLensProvider(new Source(new DrawingInventory("Model", layers, entities)));

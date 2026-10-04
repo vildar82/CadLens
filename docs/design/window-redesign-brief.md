@@ -17,7 +17,8 @@ Give the user concrete interaction examples to compare. Preserve the drawing as 
 Explain each concept's practical advantage and cost; avoid asking which screenshot looks cooler.
 
 Current source baseline: 300 x 52 compact; 370 x 660 initial expanded; one movable window; Segoe UI;
-WPF-UI controls and custom templates. These are starting points, not newly mandated design dimensions.
+standard WPF controls, local themes, and custom templates. These are starting points, not newly
+mandated design dimensions.
 The README screenshot predates the current shell. Current rendered WPF and native mouse behavior
 have not been inspected during this concept trial; source findings must be labeled accordingly.
 

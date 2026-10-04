@@ -93,7 +93,7 @@ public sealed class NavigationTests
     {
         public Task<HostResult<LensPresentation>> LoadAsync(
             DrawingGrouping grouping,
-            IReadOnlySet<string> enabledFilters,
+            IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<LensPresentation>>(

@@ -4,6 +4,7 @@
         <UseDi>true</UseDi>
         <IsTestProject>true</IsTestProject>
         <IsPackable>false</IsPackable>
+        <TestTfmsInParallel>false</TestTfmsInParallel>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="../../src/CadLens.UI/CadLens.UI.csproj" />

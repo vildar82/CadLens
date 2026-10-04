@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Markup;
 using CadLens.Lenses;
+using Common;
 
 namespace CadLens.UI;
 
@@ -103,7 +104,7 @@ public sealed class DrawingValueFormatter : MarkupExtension
     {
         var value = number.Unit == DrawingUnit.Angle ? number.Value * (180 / Math.PI) : number.Value;
 
-        if (!double.IsFinite(value))
+        if (!value.IsFinite())
             return "—";
 
         return number.Unit switch
@@ -116,7 +117,7 @@ public sealed class DrawingValueFormatter : MarkupExtension
 
     private static string FormatDecimal(double value, int precision)
     {
-        var digits = Math.Clamp(precision, 0, 8);
+        var digits = Math.Min(Math.Max(precision, 0), 8);
         var rounded = Math.Round(value, digits, MidpointRounding.AwayFromZero);
         var format = digits == 0 ? "0" : $"0.{new string('#', digits)}";
 

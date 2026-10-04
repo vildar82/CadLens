@@ -4,6 +4,7 @@ using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Runtime;
 using CadLens.Lenses;
+using Common;
 using Common.AutoCAD;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
@@ -315,7 +316,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
     }
 
     private static DrawingNumberValue? ReadNumber(Func<double> getter, DrawingUnit unit = DrawingUnit.Distance) =>
-        ReadScalar(getter) is { } value && double.IsFinite(value)
+        ReadScalar(getter) is { } value && value.IsFinite()
             ? new DrawingNumberValue(value == 0 ? 0 : value, unit)
             : null;
 

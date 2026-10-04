@@ -812,9 +812,9 @@
                         Text="{ui:Localize 'Auto off · camera kept'}" />
                 </DockPanel>
                 <TextBlock
+                    x:Name="StatusText"
                     MinHeight="28"
                     Margin="1,4,1,0"
-                    AutomationProperties.LiveSetting="Polite"
                     FontSize="11"
                     Text="{Binding Status}"
                     TextWrapping="Wrap"
