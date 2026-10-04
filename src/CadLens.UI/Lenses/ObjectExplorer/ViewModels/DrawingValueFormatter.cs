@@ -44,7 +44,7 @@ public sealed class DrawingValueFormatter : MarkupExtension
     public static string FormatPropertyLabel(DrawingPropertyKey key) => key.Source switch
     {
         DrawingPropertySource.Attribute => new UiMessage("Attribute: {0}", key.Name).ToString(),
-        DrawingPropertySource.DynamicBlock => new UiMessage("Dynamic block: {0}", key.Name).ToString(),
+        DrawingPropertySource.DynamicBlock => new UiMessage("Dynamic: {0}", key.Name).ToString(),
         _ => UiText.Current.Get(DrawingProperties.GetLabel(key))
     };
 

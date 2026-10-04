@@ -31,7 +31,7 @@ public sealed class BlockPropertyExplorationTests : IDisposable
         var labels = model.DisplayPropertyOptions.ToDictionary(option => option.Id, option => option.Label);
         Assert.Equal(language == LanguagePreference.English ? "Layer" : "Слой", labels[DrawingPropertyId.Layer]);
         Assert.Equal(language == LanguagePreference.English ? "Attribute: Layer" : "Атрибут: Layer", labels[AttributeLayer]);
-        Assert.Equal(language == LanguagePreference.English ? "Dynamic block: Layer" : "Дин. свойство: Layer", labels[DynamicLayer]);
+        Assert.Equal(language == LanguagePreference.English ? "Dynamic: Layer" : "Дин. свойство: Layer", labels[DynamicLayer]);
         Assert.Equal(3, new[] {labels[DrawingPropertyId.Layer], labels[AttributeLayer], labels[DynamicLayer]}.Distinct().Count());
 
         Show(model, AttributeLayer);

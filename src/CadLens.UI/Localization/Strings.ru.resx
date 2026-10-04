@@ -764,7 +764,7 @@
   <data name="Attribute: {0}" xml:space="preserve">
     <value>Атрибут: {0}</value>
   </data>
-  <data name="Dynamic block: {0}" xml:space="preserve">
+  <data name="Dynamic: {0}" xml:space="preserve">
     <value>Дин. свойство: {0}</value>
   </data>
   <data name="Count" xml:space="preserve">
