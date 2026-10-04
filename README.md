@@ -82,8 +82,6 @@ when selected again. A Windows display-language change usually also requires Win
 
 A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
 
-![Layers lens with sample drawing layers and object counts](docs/images/layers-preview.png)
-
 ### Object scope
 
 Both lenses start with **All objects**, which reads direct objects in the active model or paper space.
