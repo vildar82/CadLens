@@ -1,7 +1,7 @@
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.GraphicsInterface;
-using Common.AutoCAD;
+using CadLens.Common.AutoCAD;
 using Xunit;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 

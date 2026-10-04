@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 using CadLens.Lenses;
-using Common;
+using CadLens.Common;
 
 namespace CadLens.UI;
 

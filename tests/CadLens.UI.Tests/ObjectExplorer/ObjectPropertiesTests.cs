@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.IO;
 using CadLens.Lenses;
-using Common;
+using CadLens.Common;
 using Xunit;
 
 namespace CadLens.UI.Tests;

@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Reflection;
 using CadLens.Lenses;
-using Common;
+using CadLens.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 

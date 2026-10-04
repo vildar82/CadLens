@@ -57,7 +57,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 }
 
-namespace Common.AutoCAD
+namespace CadLens.Common.AutoCAD
 {
     internal static class InventoryExtensions
     {
@@ -79,8 +79,8 @@ namespace CadLens.AutoCAD
             cancellationToken.ThrowIfCancellationRequested();
 
             return new EntitySnapshot(
-                new Common.AutoCAD.EntityId(entity.ObjectId),
-                new Common.AutoCAD.LayerId(entity.LayerId),
+                new CadLens.Common.AutoCAD.EntityId(entity.ObjectId),
+                new CadLens.Common.AutoCAD.LayerId(entity.LayerId),
                 "AcDbLine",
                 ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty);
         }

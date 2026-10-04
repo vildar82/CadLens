@@ -4,8 +4,8 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.GraphicsInterface;
-using Common;
-using Common.AutoCAD;
+using CadLens.Common;
+using CadLens.Common.AutoCAD;
 using Xunit;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 

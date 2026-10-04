@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using CadLens.Lenses;
-using Common;
+using CadLens.Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace CadLens.UI;

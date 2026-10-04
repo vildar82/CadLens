@@ -4,8 +4,8 @@ using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Runtime;
 using CadLens.Lenses;
-using Common;
-using Common.AutoCAD;
+using CadLens.Common;
+using CadLens.Common.AutoCAD;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace CadLens.AutoCAD;
