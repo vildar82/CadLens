@@ -336,6 +336,7 @@
                     </Popup>
                     <ToggleButton
                         x:Name="PropertyFilterAction"
+                        Command="{Binding RefreshSavedPropertyFiltersCommand}"
                         Grid.Column="4"
                         Padding="4,5"
                         HorizontalContentAlignment="Stretch"
@@ -373,6 +374,7 @@
                             BorderBrush="{DynamicResource QuietBorder}"
                             BorderThickness="1"
                             CornerRadius="5">
+                            <ScrollViewer MaxHeight="400" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
                                 <TextBlock
                                     Margin="0,0,0,8"
@@ -456,10 +458,37 @@
                                     <Button
                                         Margin="3,0,0,0"
                                         Command="{Binding ClearPropertyFilterCommand}"
-                                        Content="{ui:Localize 'Clear filter'}"
-                                        Style="{StaticResource ModeButton}" />
+                                        Style="{StaticResource ModeButton}">
+                                        <TextBlock Text="{ui:Localize 'Clear filter'}" TextWrapping="Wrap" TextAlignment="Center" />
+                                    </Button>
                                 </UniformGrid>
+                                <ToggleButton x:Name="SavedFiltersToggle" Margin="0,8,0,0"
+                                    Content="{ui:Localize 'Saved filters'}" Style="{StaticResource ModeToggle}" />
+                                <StackPanel Margin="0,6,0,0"
+                                    Visibility="{Binding IsChecked, ElementName=SavedFiltersToggle, Converter={StaticResource BooleanVisibility}}">
+                                        <ComboBox
+                                            x:Name="SavedFilterChoice"
+                                            AutomationProperties.Name="{ui:Localize 'Saved filters'}"
+                                            ItemsSource="{Binding SavedFilterNames}"
+                                            SelectedItem="{Binding SelectedSavedFilter}" />
+                                        <UniformGrid Margin="0,6,0,0" Columns="2">
+                                            <Button Margin="0,0,3,0" Command="{Binding ApplySavedPropertyFilterCommand}"
+                                                Content="{ui:Localize 'Apply saved'}" Style="{StaticResource ModeButton}" />
+                                            <Button Margin="3,0,0,0" Command="{Binding DeleteSavedPropertyFilterCommand}"
+                                                Content="{ui:Localize 'Delete saved'}" Style="{StaticResource ModeButton}" />
+                                        </UniformGrid>
+                                        <TextBlock Margin="0,8,0,4" Foreground="{DynamicResource QuietText}"
+                                            Text="{ui:Localize 'Save current condition as'}" />
+                                        <TextBox x:Name="SavedFilterNameInput"
+                                            AutomationProperties.Name="{ui:Localize 'Filter name'}"
+                                            Text="{Binding SavedFilterName, UpdateSourceTrigger=PropertyChanged}" />
+                                        <Button Margin="0,6,0,0" Command="{Binding SavePropertyFilterCommand}"
+                                            Content="{ui:Localize 'Save filter'}" Style="{StaticResource ModeButton}" />
+                                        <TextBlock Margin="0,4,0,0" Text="{Binding SavedFilterMessage}"
+                                            Foreground="{DynamicResource QuietAccent}" TextWrapping="Wrap" />
+                                </StackPanel>
                             </StackPanel>
+                            </ScrollViewer>
                         </Border>
                     </Popup>
                 </Grid>

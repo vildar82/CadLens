@@ -710,4 +710,40 @@
   <data name="Property filter updated." xml:space="preserve">
     <value>Фильтр по свойству обновлён.</value>
   </data>
+  <data name="Saved filters" xml:space="preserve">
+    <value>Сохранённые фильтры</value>
+  </data>
+  <data name="Apply saved" xml:space="preserve">
+    <value>Применить</value>
+  </data>
+  <data name="Delete saved" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Save current condition as" xml:space="preserve">
+    <value>Сохранить текущее условие как</value>
+  </data>
+  <data name="Filter name" xml:space="preserve">
+    <value>Имя фильтра</value>
+  </data>
+  <data name="Save filter" xml:space="preserve">
+    <value>Сохранить фильтр</value>
+  </data>
+  <data name="Enter a name for the filter." xml:space="preserve">
+    <value>Введите имя фильтра.</value>
+  </data>
+  <data name="A filter with this name already exists for this type." xml:space="preserve">
+    <value>Фильтр с таким именем уже есть для этого типа.</value>
+  </data>
+  <data name="Filter saved." xml:space="preserve">
+    <value>Фильтр сохранён.</value>
+  </data>
+  <data name="This saved filter is not available for the current type." xml:space="preserve">
+    <value>Этот фильтр недоступен для текущего типа.</value>
+  </data>
+  <data name="Saved filter deleted." xml:space="preserve">
+    <value>Сохранённый фильтр удалён.</value>
+  </data>
+  <data name="Saved filters could not be written. Try again." xml:space="preserve">
+    <value>Не удалось записать фильтры. Повторите попытку.</value>
+  </data>
 </root>

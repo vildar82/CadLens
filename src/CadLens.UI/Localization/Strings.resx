@@ -710,4 +710,40 @@
   <data name="Property filter updated." xml:space="preserve">
     <value>Property filter updated.</value>
   </data>
+  <data name="Saved filters" xml:space="preserve">
+    <value>Saved filters</value>
+  </data>
+  <data name="Apply saved" xml:space="preserve">
+    <value>Apply saved</value>
+  </data>
+  <data name="Delete saved" xml:space="preserve">
+    <value>Delete saved</value>
+  </data>
+  <data name="Save current condition as" xml:space="preserve">
+    <value>Save current condition as</value>
+  </data>
+  <data name="Filter name" xml:space="preserve">
+    <value>Filter name</value>
+  </data>
+  <data name="Save filter" xml:space="preserve">
+    <value>Save filter</value>
+  </data>
+  <data name="Enter a name for the filter." xml:space="preserve">
+    <value>Enter a name for the filter.</value>
+  </data>
+  <data name="A filter with this name already exists for this type." xml:space="preserve">
+    <value>A filter with this name already exists for this type.</value>
+  </data>
+  <data name="Filter saved." xml:space="preserve">
+    <value>Filter saved.</value>
+  </data>
+  <data name="This saved filter is not available for the current type." xml:space="preserve">
+    <value>This saved filter is not available for the current type.</value>
+  </data>
+  <data name="Saved filter deleted." xml:space="preserve">
+    <value>Saved filter deleted.</value>
+  </data>
+  <data name="Saved filters could not be written. Try again." xml:space="preserve">
+    <value>Saved filters could not be written. Try again.</value>
+  </data>
 </root>

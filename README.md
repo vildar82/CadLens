@@ -186,8 +186,12 @@ Invalid input keeps the previous result. **Clear** removes the condition, includ
 Each lens keeps one filter per primitive type for the current panel session. In Layers, a type's filter
 also applies to that type in other layers. Counts, property groups, and drawing actions use the matching
 objects. Changing a filter uses the captured inventory; Refresh rereads the drawing. Filters survive
-navigation and lens switching, and clear when the drawing or space changes. Named saved filters are not
-part of this feature.
+navigation and lens switching, and clear when the drawing or space changes.
+Use **Filter → Saved filters** to save a valid condition under a name for the current object type.
+Both lenses share these conditions across sessions through `property-filters.json` in the settings directory.
+Applying uses the current inventory and scope; deleting a preset leaves the applied condition unchanged.
+Saved filters contain no drawing object IDs. Layer conditions resolve the saved layer name in the current drawing.
+
 When matching targets change, enabled Auto modes follow the result and manual isolation clears.
 Manual CAD selection stays until explicitly replaced or cleared; a zero-match result clears selection
 and isolation while keeping the camera.

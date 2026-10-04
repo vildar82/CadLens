@@ -8,7 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace CadLens.UI;
 
 /// <summary>Drawing overview and asynchronous operations for the modeless panel.</summary>
-public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
+public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposable
 {
     private readonly IObjectExplorerActions _actions;
     private readonly DrawingGrouping _grouping;
@@ -121,6 +121,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         SortByNameCommand = new RelayCommand(() => ChangeSort(false));
         SortByCountCommand = new RelayCommand(() => ChangeSort(true));
         ClearSearchCommand = new RelayCommand(() => SearchText = "");
+        InitializeSavedFilters();
         RestorePreferences();
     }
 
@@ -833,6 +834,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         SelectDisplayPropertyCommand.NotifyCanExecuteChanged();
         ApplyPropertyFilterCommand.NotifyCanExecuteChanged();
         ClearPropertyFilterCommand.NotifyCanExecuteChanged();
+        NotifySavedFilterCommands();
         ToggleAutoIsolationCommand.NotifyCanExecuteChanged();
         ToggleAutoSelectCommand.NotifyCanExecuteChanged();
         ToggleAutoFocusCommand.NotifyCanExecuteChanged();
@@ -1107,6 +1109,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         {
             _filterOptionsType = type;
             PropertyFilter.Load(type?.Children ?? [], AppliedPropertyFilter);
+            RefreshSavedFilters();
+            SetSavedFilterMessage("");
         }
 
         OnPropertyChanged(nameof(Items));

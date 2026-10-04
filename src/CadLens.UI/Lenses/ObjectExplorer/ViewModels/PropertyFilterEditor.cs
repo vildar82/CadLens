@@ -11,6 +11,8 @@ public sealed class PropertyFilterEditor : ObservableObject
 {
     private ImmutableArray<LensNode> _objects = [];
     private string _error = "";
+    private DrawingPropertyFilter? _loadedFilter;
+    private string _loadedInputText = "";
     private CultureInfo _inputCulture = UiText.Current.Culture;
 
     /// <summary>Observed properties in the unfiltered, included type scope.</summary>
@@ -137,6 +139,8 @@ public sealed class PropertyFilterEditor : ObservableObject
         if (applied is not null && UsesValueOptions)
             SelectedValue = ValueOptions.FirstOrDefault(option => option.Value.Equals(applied.Value))?.Value;
 
+        _loadedFilter = applied;
+        _loadedInputText = InputText;
         _error = "";
         OnPropertyChanged(string.Empty);
     }
@@ -145,6 +149,10 @@ public sealed class PropertyFilterEditor : ObservableObject
     {
         _error = "";
         var value = ReadInput();
+
+        if (_loadedFilter is {Value: DrawingNumberValue number} loaded && PropertyId == loaded.PropertyId &&
+            InputText == _loadedInputText && value is DrawingNumberValue parsed && parsed.Unit == number.Unit && number.Value.IsFinite())
+            value = number;
 
         if (PropertyId is not { } id || value is null || !OperatorOptions.Any(option => option.Value == Operator))
         {
@@ -159,9 +167,14 @@ public sealed class PropertyFilterEditor : ObservableObject
 
     internal void RefreshLanguage()
     {
+        var unchangedInput = InputText == _loadedInputText;
+
         if (SampleValue is DrawingNumberValue &&
             double.TryParse(InputText, NumberStyles.Float, _inputCulture, out var number) && number.IsFinite())
             InputText = number.ToString("R", UiText.Current.Culture);
+
+        if (unchangedInput)
+            _loadedInputText = InputText;
 
         _inputCulture = UiText.Current.Culture;
 

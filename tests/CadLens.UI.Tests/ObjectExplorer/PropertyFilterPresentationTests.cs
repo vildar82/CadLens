@@ -24,7 +24,7 @@ public sealed class PropertyFilterPresentationTests
     {
         var previous = UiText.Current.Preference;
         using var settings = new SettingsFile();
-        using var lens = new ObjectExplorerLens(new PropertyFilterTests.Actions(), DrawingGrouping.ObjectTypes);
+        using var lens = new ObjectExplorerLens(new PropertyFilterTests.Actions(), DrawingGrouping.ObjectTypes, settings.Service);
         using var shell = new ExplorerViewModel([lens]);
         var appearance = new AppearancePreferences(settings.Service) {Theme = theme};
         var window = new ExplorerWindow(shell, appearance) {ShowActivated = false, Left = -10000, Top = -10000};
@@ -55,7 +55,7 @@ public sealed class PropertyFilterPresentationTests
                 control =>
                     control.ItemsSource is IEnumerable<PropertyFilterOperatorOption>);
             comparison.SelectedValue = DrawingFilterOperator.GreaterThan;
-            var input = Assert.Single(WpfTest.Descendants(content).OfType<TextBox>());
+            var input = Assert.IsType<TextBox>(view.FindName("PropertyFilterInput"));
             input.Text = "5";
             Pump();
             Assert.Equal(DrawingPropertyId.Length, model.PropertyFilter.PropertyId);
@@ -83,6 +83,25 @@ public sealed class PropertyFilterPresentationTests
                         Assert.IsType<SolidColorBrush>(control.Foreground).Color);
                 });
             Save(content, $"filter-{language}-{theme}-popup");
+            var saved = Assert.IsType<ToggleButton>(view.FindName("SavedFiltersToggle"));
+            saved.IsChecked = true;
+            Pump();
+            var nameInput = Assert.IsType<TextBox>(view.FindName("SavedFilterNameInput"));
+            nameInput.Text = "Named condition";
+            Pump();
+            model.SavePropertyFilterCommand.Execute(null);
+            Pump();
+            Assert.Equal("Named condition", Assert.Single(model.SavedFilterNames));
+            var savedChoice = Assert.IsType<ComboBox>(view.FindName("SavedFilterChoice"));
+            Assert.Equal("Named condition", savedChoice.SelectedItem);
+            model.ClearPropertyFilterCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+            model.ApplySavedPropertyFilterCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+            Assert.Equal(["2", "3"], model.Current.Objects.Select(id => id.DisplayId));
+            Pump();
+            Assert.InRange(content.ActualHeight, 1, 450);
+            Save(content, $"filter-{language}-{theme}-saved");
+            saved.IsChecked = false;
+            Pump();
             var alternate = language == LanguagePreference.English
                 ? LanguagePreference.Russian
                 : LanguagePreference.English;
