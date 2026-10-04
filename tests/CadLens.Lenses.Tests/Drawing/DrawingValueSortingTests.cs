@@ -112,9 +112,9 @@ public sealed class DrawingValueSortingTests
         Assert.Null(DrawingProperties.GetValue(node, DrawingPropertyId.Radius));
     }
 
-    /// <summary>Drawing precision travels with presentations while raw facts and composite identities remain exact.</summary>
+    /// <summary>Drawing precision controls numeric group membership without changing raw object facts.</summary>
     [Fact]
-    public void DisplayPrecisionDoesNotRoundPropertiesOrGroupingKeys()
+    public void DisplayPrecisionGroupsRoundedMeasurementsWithoutRoundingObjectFacts()
     {
         var layer = new LayerSnapshot(new TestLayerId("roads"), "Roads", false, false, false, false);
         var firstEntity = new EntitySnapshot(
@@ -149,10 +149,10 @@ public sealed class DrawingValueSortingTests
         Assert.Same(precision, first.Inventory!.Precision);
         Assert.Equal(6, changed.Precision!.Linear);
         Assert.Equal(3, changed.Precision.Angular);
-        Assert.Equal(2, first.Groups[0].Children.Length);
-        Assert.Equal(
-            first.Groups[0].Children.Select(node => node.Id),
-            changed.Groups[0].Children.Select(node => node.Id));
+        Assert.Equal(2, Assert.Single(first.Groups[0].Children).Count);
+        Assert.Equal(new DrawingNumberValue(12.34, DrawingUnit.Distance), first.Groups[0].Children[0].Properties[0].Value);
+        Assert.Equal(2, changed.Groups[0].Children.Length);
+        Assert.DoesNotContain(first.Groups[0].Children[0].Id, changed.Groups[0].Children.Select(node => node.Id));
         Assert.Equal(
             12.3412,
             Assert.IsType<DrawingNumberValue>(DrawingProperties.GetValue(firstEntity, layer, DrawingPropertyId.Length))

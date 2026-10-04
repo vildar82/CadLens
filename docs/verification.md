@@ -117,8 +117,11 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    Switch language, test narrow widths and long names, and confirm grouping stays unchanged. Refresh
    after editing properties; grouping and sorting alone must not reread the drawing.
    Change `LUPREC` and `AUPREC`, then Refresh. Check rounded rows, group captions, details, and tooltips
-   in English and Russian. Values that round to the same caption should keep their distinct groups
-   and exact numeric sort order. Check themed grouping checkboxes and centered labels in Light/Dark.
+   in English and Russian. Numeric values of the same kind and unit that display identically must share
+   one group. Include zero and small positive/negative values that display as zero, several values that
+   display as 1.2, and unavailable values: there must be one numeric zero group and a separate dash group.
+   Increasing precision may split groups after Refresh. Check exact object sorting and filter comparisons,
+   unchanged object values and Select/Isolate targets, and themed grouping controls in Light/Dark.
 10. In both lenses, filter a primitive type by length, vertex count, closed state, text, and assigned color.
     Apply and clear conditions while viewing a type, subgroup, and individual object. Check that counts
     and Focus/Select/Isolate use exactly the matching targets. Test zero matches with all Auto modes on:

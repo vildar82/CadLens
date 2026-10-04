@@ -174,8 +174,10 @@ CAD Lens shows a dash rather than substituting zero. A valid native zero remains
 
 Decimal measurements display up to the drawing's `LUPREC` digits, and angles use `AUPREC` in degrees.
 Trailing zeros are omitted. Counts remain integers, and assigned lineweights retain their millimeter
-precision. Refresh applies changed drawing precision to rows, group captions, details, and tooltips;
-grouping and sorting continue to compare the exact stored values.
+precision. Numeric grouping uses the same rounded values as the display: values that appear as `Area: 0`
+form one group, separate from unavailable values (`—`). Refresh applies changed drawing precision to
+rows, group membership, captions, details, and tooltips. Object values, sorting, and numeric filters
+retain their exact stored values; a displayed zero group can include small nonzero measurements.
 
 Use **Group by** to combine properties such as Color + Linetype + Lineweight, or hatch Pattern + Angle.
 Each distinct combination creates one subgroup with its own object count and drawing controls. Clear the
@@ -213,8 +215,9 @@ Manual CAD selection stays until explicitly replaced or cleared; a zero-match re
 and isolation while keeping the camera.
 
 Grouping compares assigned values, preserving ByLayer, ByBlock, indexed colors, true colors, and named
-color-book entries. Numeric grouping uses exact stored values, independently of rounded or localized
-captions. Lineweight, constant polyline width, and extrusion thickness are separate properties.
+color-book entries. Numeric group keys use drawing precision while retaining their numeric type and
+units; localized captions never determine identity. Lineweight, constant polyline width, and extrusion
+thickness are separate properties.
 
 A block insertion remains one drawing target. Its structural measurement counts live direct entities in
 the referenced definition, including attribute definitions; a nested insertion counts once. Attached
@@ -267,8 +270,9 @@ property access, and `DrawingLensProvider` builds both exploration trees. Detail
 and numeric sorting use these same detached values. A new primitive reader does not require a new UI
 model or a separate grouping implementation.
 
-Drawing precision is read once with the inventory. `DrawingValueFormatter` applies it at the shared
-presentation boundary, keeping raw property values available for grouping and sorting.
+Drawing precision is read once with the inventory. `DrawingPrecision` supplies the same numeric
+rounding for group keys and `DrawingValueFormatter`; raw object values remain available for details,
+sorting, and filters.
 
 ### Host and lens lifetime
 

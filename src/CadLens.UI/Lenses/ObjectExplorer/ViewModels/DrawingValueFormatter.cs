@@ -120,26 +120,14 @@ public sealed class DrawingValueFormatter : MarkupExtension
 
     private static string FormatNumber(DrawingNumberValue number, DrawingPrecision precision)
     {
-        var value = number.Unit == DrawingUnit.Angle ? number.Value * (180 / Math.PI) : number.Value;
+        var value = precision.Round(number.Value, number.Unit);
 
         if (!value.IsFinite())
             return "—";
 
-        return number.Unit switch
-        {
-            DrawingUnit.Count => value.ToString("N0", UiText.Current.Culture),
-            DrawingUnit.Angle => $"{FormatDecimal(value, precision.Angular)}°",
-            _ => FormatDecimal(value, precision.Linear)
-        };
-    }
+        var text = value.ToString(precision.GetNumberFormat(number.Unit), UiText.Current.Culture);
 
-    private static string FormatDecimal(double value, int precision)
-    {
-        var digits = Math.Min(Math.Max(precision, 0), 8);
-        var rounded = Math.Round(value, digits, MidpointRounding.AwayFromZero);
-        var format = digits == 0 ? "0" : $"0.{new string('#', digits)}";
-
-        return (rounded == 0 ? 0 : rounded).ToString(format, UiText.Current.Culture);
+        return number.Unit == DrawingUnit.Angle ? $"{text}°" : text;
     }
 
     private static string FormatColor(AssignedColor color) => color.Kind switch

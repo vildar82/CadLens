@@ -10,7 +10,7 @@ namespace CadLens.UI.Tests;
 [Collection("WPF")]
 public sealed class ObjectPropertiesTests
 {
-    /// <summary>Curve and hatch areas share localized display, exact grouping, sorting, and numeric filtering.</summary>
+    /// <summary>Curve and hatch areas group by displayed precision while sorting and filtering retain raw values.</summary>
     [Theory]
     [InlineData(DrawingGrouping.Layers, LanguagePreference.English, "AcDbEllipse", "Area", "12.35", "12.3451")]
     [InlineData(DrawingGrouping.Layers, LanguagePreference.Russian, "AcDbHatch", "Площадь", "12,35", "12,3451")]
@@ -56,8 +56,11 @@ public sealed class ObjectPropertiesTests
             Assert.Equal(rounded, DrawingValueFormatter.FormatDetail(detail, model.Precision));
 
             await Toggle(model, DrawingPropertyId.Area);
-            Assert.Equal(4, model.Items.Length);
-            Assert.Equal(2, model.Items.Count(node => DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: {rounded}"));
+            Assert.Equal(3, model.Items.Length);
+            var roundedGroup = Assert.Single(model.Items, node =>
+                DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: {rounded}");
+            Assert.Equal(2, roundedGroup.Count);
+            Assert.Equal(["1", "2"], roundedGroup.Objects.Select(id => id.DisplayId));
             model.PropertyFilter.PropertyId = DrawingPropertyId.Area;
             Assert.Equal(
                 UiText.Current.Get("Enter square drawing units without digit grouping."),
@@ -78,6 +81,83 @@ public sealed class ObjectPropertiesTests
                 ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
                     DrawingPropertyId.Area,
                     area is { } value ? new DrawingNumberValue(value, DrawingUnit.Area) : null));
+        }
+        finally
+        {
+            UiText.Current.Select(previous, persist: false);
+        }
+    }
+
+    /// <summary>Equal area captions share groups without losing raw numeric values or placed targets.</summary>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers, LanguagePreference.English, "0.0003")]
+    [InlineData(DrawingGrouping.Layers, LanguagePreference.Russian, "0,0003")]
+    [InlineData(DrawingGrouping.ObjectTypes, LanguagePreference.English, "0.0003")]
+    [InlineData(DrawingGrouping.ObjectTypes, LanguagePreference.Russian, "0,0003")]
+    public async Task AreasWithSameDisplayedValueShareOneGroup(
+        DrawingGrouping grouping,
+        LanguagePreference language,
+        string nonzero)
+    {
+        var previous = UiText.Current.Preference;
+
+        try
+        {
+            UiText.Current.Select(language, persist: false);
+            var layer = new LayerId("Roads");
+            double?[] areas =
+            [0, 0.00001, -0.00001, 0.0003, null, 1.20001, 1.20002, 123456789012.1231, 123456789012.1232];
+            var inventory = new DrawingInventory(
+                "Model",
+                [new LayerSnapshot(layer, "Roads", false, false, false, false)],
+                [.. areas.Select((area, index) => new EntitySnapshot(
+                    new TestEntityId(index + 1),
+                    layer,
+                    "AcDbHatch",
+                    ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
+                        DrawingPropertyId.Area,
+                        area is { } value ? new DrawingNumberValue(value, DrawingUnit.Area) : null)))],
+                DrawingPrecision.Default);
+            var actions = new Actions(inventory);
+            using var model = new ObjectExplorerViewModel(actions, grouping);
+            await model.ActivateAsync(CancellationToken.None);
+
+            if (grouping == DrawingGrouping.Layers)
+                await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+
+            await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+            await Toggle(model, DrawingPropertyId.Area);
+            Assert.Equal(4, model.Precision.Linear);
+            Assert.Equal(5, model.Items.Length);
+            var label = UiText.Current.Get("Area");
+            var zero = Assert.Single(model.Items, node =>
+                DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: 0");
+            Assert.Equal(3, zero.Count);
+            Assert.Equal(["1", "2", "3"], zero.Objects.Select(id => id.DisplayId));
+            var other = Assert.Single(model.Items, node =>
+                DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: {nonzero}");
+            Assert.Equal(1, other.Count);
+            Assert.Equal("4", Assert.Single(other.Objects).DisplayId);
+            var unavailable = Assert.Single(model.Items, node =>
+                DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: —");
+            Assert.Equal(1, unavailable.Count);
+            Assert.Equal("5", Assert.Single(unavailable.Objects).DisplayId);
+            var rounded = language == LanguagePreference.English ? "1.2" : "1,2";
+            var repeated = Assert.Single(model.Items, node =>
+                DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: {rounded}");
+            Assert.Equal(2, repeated.Count);
+            Assert.Equal(["6", "7"], repeated.Objects.Select(id => id.DisplayId));
+            var largeCaption = language == LanguagePreference.English ? "123456789012.123" : "123456789012,123";
+            var large = Assert.Single(model.Items, node =>
+                DrawingValueFormatter.FormatLabel(node, model.Precision) == $"{label}: {largeCaption}");
+            Assert.Equal(2, large.Count);
+            Assert.Equal(["8", "9"], large.Objects.Select(id => id.DisplayId));
+            Assert.Equal(areas, model.Items.SelectMany(node => node.Children).OrderBy(node => node.Id)
+                .Select(node => (DrawingProperties.GetValue(node, DrawingPropertyId.Area) as DrawingNumberValue)?.Value));
+            await model.EnterCommand.ExecuteAsync(zero);
+            await model.SelectCommand.ExecuteAsync(null);
+            Assert.Equal(["1", "2", "3"], actions.Selected.Select(id => id.DisplayId));
+            Assert.Equal(1, actions.ReadCount);
         }
         finally
         {
