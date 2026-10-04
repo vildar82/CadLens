@@ -52,7 +52,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         DrawingInventory snapshot,
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping = null,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping = null,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters = null) =>
         Build(
             snapshot,
@@ -68,7 +68,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         DrawingGrouping grouping,
         bool includeFrozen,
         bool includeOff,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
@@ -116,7 +116,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     private static ImmutableArray<LensNode> CreateLayerGroups(
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
@@ -150,7 +150,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         LayerSnapshot layer,
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
@@ -172,7 +172,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IEnumerable<EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
         LayerSnapshot? layer,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken) =>
     [
@@ -186,7 +186,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IGrouping<string, EntitySnapshot> entities,
         Dictionary<ILayerId, LayerSnapshot> layers,
         LayerSnapshot? layer,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping,
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         CancellationToken cancellationToken)
     {
@@ -253,7 +253,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
     private static IEnumerable<DetailField> CreateAttributeDetails(EntitySnapshot entity)
     {
-        if (entity.Properties?.ContainsKey(DrawingPropertyId.Attributes) is not true)
+        if (entity.BlockAttributes.IsDefault && entity.Properties?.ContainsKey(DrawingPropertyId.Attributes) is not true)
             yield break;
 
         var attributes = entity.BlockAttributes;
@@ -271,7 +271,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 tag ?? "Unavailable",
                 value is null ? "Unavailable" : value.Length == 0 ? "(blank)" : value,
                 string.IsNullOrEmpty(value) ? DetailValueKind.ApplicationText : DetailValueKind.RawText,
-                IsLabelRaw: tag is not null);
+                IsLabelRaw: tag is not null,
+                PropertyKey: tag is {Length: > 0} ? DrawingPropertyKey.ForAttribute(tag) : null);
         }
     }
 
@@ -293,9 +294,9 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             new DrawingTextValue(label, label != typeKey));
     }
 
-    private static ImmutableArray<DrawingPropertyId> GetGroupingFields(
+    private static ImmutableArray<DrawingPropertyKey> GetGroupingFields(
         List<EntitySnapshot> entities,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyId>>? propertyGrouping)
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping)
     {
         if (entities.Count == 0 || propertyGrouping is null ||
             !propertyGrouping.TryGetValue(entities[0].TypeKey, out var selected) ||
@@ -311,7 +312,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         List<EntitySnapshot> entities,
         ImmutableArray<LensNode> objects,
         Dictionary<ILayerId, LayerSnapshot> layers,
-        ImmutableArray<DrawingPropertyId> fields)
+        ImmutableArray<DrawingPropertyKey> fields)
     {
         var groups = new Dictionary<PropertyGroupKey, List<LensNode>>();
 
@@ -355,7 +356,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                     DrawingProperties.GetLabel(property.Id),
                     string.Empty,
                     DetailValueKind.TypedValue,
-                    property.Value))
+                    property.Value,
+                    PropertyKey: property.Id))
             ],
             [LensAction.Focus],
             LensNodeKind.PropertyGroup,
@@ -386,7 +388,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         {
             var identity = string.Join(
                 ";",
-                Properties.Select(property => $"{(int) property.Id}:{Serialize(property.Value)}"));
+                Properties.Select(property => $"{SerializeKey(property.Id)}:{Serialize(property.Value)}"));
 
             var bytes = Encoding.UTF8.GetBytes(identity);
 #if NETFRAMEWORK
@@ -398,6 +400,10 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
             return $"properties:{hash}";
         }
+
+        private static string SerializeKey(DrawingPropertyKey key) => key.BuiltIn is { } id
+            ? ((int) id).ToString(CultureInfo.InvariantCulture)
+            : $"{key.Source}:{Encode(key.Name)}";
 
         private static string Serialize(DrawingValue? value) => value switch
         {

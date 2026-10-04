@@ -106,6 +106,58 @@ namespace Autodesk.AutoCAD.DatabaseServices
         {
             get => AttributesError is { } error ? throw new Runtime.Exception(error) : field;
         } = [];
+        internal Runtime.ErrorStatus? DynamicPropertiesError { get; init; }
+        internal DynamicBlockReferencePropertyCollection DynamicBlockReferencePropertyCollection
+        {
+            get => DynamicPropertiesError is { } error ? throw new Runtime.Exception(error) : field;
+            init;
+        } = new();
+    }
+
+    internal enum DynamicBlockReferencePropertyUnitsType { NoUnits, Angular, Distance, Area }
+
+    internal sealed class DynamicBlockReferencePropertyCollection : IEnumerable, IDisposable
+    {
+        internal List<DynamicBlockReferenceProperty> Properties { get; } = [];
+        internal Runtime.ErrorStatus? EnumerationError { get; init; }
+        internal bool IsDisposed { get; private set; }
+
+        public IEnumerator GetEnumerator() => EnumerationError is { } error
+            ? throw new Runtime.Exception(error)
+            : Properties.GetEnumerator();
+
+        public void Dispose() => IsDisposed = true;
+    }
+
+    internal sealed class DynamicBlockReferenceProperty
+    {
+        internal Runtime.ErrorStatus? NameError { get; init; }
+        internal string PropertyName
+        {
+            get => NameError is { } error ? throw new Runtime.Exception(error) : field;
+            init;
+        } = "";
+        internal Runtime.ErrorStatus? ValueError { get; init; }
+        internal Action? ValueReading { get; init; }
+        internal int ValueReadCount { get; private set; }
+        internal object? Value
+        {
+            get
+            {
+                ValueReadCount++;
+                ValueReading?.Invoke();
+
+                return ValueError is { } error ? throw new Runtime.Exception(error) : field;
+            }
+            set;
+        }
+        internal Runtime.ErrorStatus? UnitsError { get; init; }
+        internal DynamicBlockReferencePropertyUnitsType UnitsType
+        {
+            get => UnitsError is { } error ? throw new Runtime.Exception(error) : field;
+            init;
+        }
+        internal bool ReadOnly { get; init; }
     }
 
     internal enum HatchPatternType { PreDefined }

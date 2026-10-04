@@ -10,10 +10,12 @@ namespace CadLens.Lenses;
 /// <param name="Properties">Observed primitive properties; a present null value means unavailable.</param>
 /// <param name="PrimaryMetric">Property used as the meaningful row measurement, when supported.</param>
 /// <param name="BlockAttributes">Attached insertion attributes; default means unavailable or not a block.</param>
+/// <param name="DynamicBlockProperties">Detached dynamic insertion properties; default means unavailable.</param>
 public sealed record EntitySnapshot(
     IPlacedObjectId Id,
     ILayerId LayerId,
     string TypeKey,
     ImmutableDictionary<DrawingPropertyId, DrawingValue?>? Properties = null,
     DrawingPropertyId? PrimaryMetric = null,
-    ImmutableArray<BlockAttributeSnapshot> BlockAttributes = default);
+    ImmutableArray<BlockAttributeSnapshot> BlockAttributes = default,
+    ImmutableArray<DynamicBlockPropertySnapshot> DynamicBlockProperties = default);

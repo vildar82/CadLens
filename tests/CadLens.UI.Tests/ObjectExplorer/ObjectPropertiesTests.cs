@@ -130,7 +130,7 @@ public sealed class ObjectPropertiesTests
         Assert.Contains(
             model.Items,
             node => node.Properties.Any(property =>
-                property is {Id: DrawingPropertyId.Vertices, Value: null}));
+                property is {Id.BuiltIn: DrawingPropertyId.Vertices, Value: null}));
         Assert.Equal(1, actions.ReadCount);
     }
 
@@ -143,7 +143,7 @@ public sealed class ObjectPropertiesTests
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, grouping);
         await EnterPolylines(model, grouping);
-        Assert.Equal(DrawingPropertyId.Vertices, model.DisplayPropertyId);
+        Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Vertices, model.DisplayPropertyId);
         var calls = actions.EffectCalls;
         ShowProperty(model, DrawingPropertyId.Length);
 
@@ -317,16 +317,16 @@ public sealed class ObjectPropertiesTests
         Assert.Equal(0, actions.ReadCount);
         await EnterPolylines(reopened, DrawingGrouping.ObjectTypes);
         Assert.Equal([DrawingPropertyId.Linetype], SelectedFields(reopened));
-        Assert.Equal(DrawingPropertyId.Linetype, reopened.DisplayPropertyId);
+        Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Linetype, reopened.DisplayPropertyId);
         await reopened.RootCommand.ExecuteAsync(null);
         await reopened.EnterCommand.ExecuteAsync(reopened.Items.Single(node => node.Id == "AcDbHatch"));
         Assert.Equal([DrawingPropertyId.Pattern], SelectedFields(reopened));
-        Assert.Equal(DrawingPropertyId.Pattern, reopened.DisplayPropertyId);
+        Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Pattern, reopened.DisplayPropertyId);
 
         using var reopenedLayers = new ObjectExplorerViewModel(new Actions(), DrawingGrouping.Layers, file.Service);
         await EnterPolylines(reopenedLayers, DrawingGrouping.Layers);
         Assert.Equal([DrawingPropertyId.Color, DrawingPropertyId.Lineweight], SelectedFields(reopenedLayers));
-        Assert.Equal(DrawingPropertyId.Length, reopenedLayers.DisplayPropertyId);
+        Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Length, reopenedLayers.DisplayPropertyId);
     }
 
     /// <summary>Unknown saved property identities cannot create invalid grouping controls or host work.</summary>
@@ -348,11 +348,11 @@ public sealed class ObjectPropertiesTests
         Assert.Equal([DrawingPropertyId.Color], SelectedFields(model));
         Assert.Equal(2, model.Items.Length);
         Assert.Equal(1, actions.ReadCount);
-        Assert.Equal(DrawingPropertyId.Vertices, model.DisplayPropertyId);
+        Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Vertices, model.DisplayPropertyId);
     }
 
     private static IEnumerable<DrawingPropertyId> SelectedFields(ObjectExplorerViewModel model) =>
-        model.GroupingOptions.Where(option => option.IsSelected).Select(option => option.Id);
+        model.GroupingOptions.Where(option => option.IsSelected).Select(option => option.Id.BuiltIn!.Value);
 
     private static Task Toggle(ObjectExplorerViewModel model, DrawingPropertyId id) =>
         model.ToggleGroupingCommand.ExecuteAsync(model.GroupingOptions.Single(option => option.Id == id));

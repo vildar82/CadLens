@@ -12,6 +12,7 @@ public sealed class PropertyFilterEditor : ObservableObject
     private ImmutableArray<LensNode> _objects = [];
     private ImmutableArray<GroupingOption> _propertyOptions = [];
     private string _error = "";
+    private bool _hasMixedValueKinds;
     private DrawingPropertyFilter? _loadedFilter;
     private string _loadedInputText = "";
     private CultureInfo _inputCulture = UiText.Current.Culture;
@@ -20,12 +21,12 @@ public sealed class PropertyFilterEditor : ObservableObject
     public ImmutableArray<GroupingOption> PropertyOptions =>
     [
         .. _propertyOptions.OrderBy(
-            option => UiText.Current.Get(option.Label),
+            option => option.Label,
             StringComparer.Create(UiText.Current.Culture, true))
     ];
 
     /// <summary>Property being edited.</summary>
-    public DrawingPropertyId? PropertyId
+    public DrawingPropertyKey? PropertyId
     {
         get;
         set
@@ -66,17 +67,15 @@ public sealed class PropertyFilterEditor : ObservableObject
     public ImmutableArray<PropertyFilterValueOption> ValueOptions { get; private set; } = [];
 
     /// <summary>Whether a typed choice replaces free text input.</summary>
-    public bool UsesValueOptions => SampleValue is not (DrawingNumberValue or DrawingTextValue) ||
-                                    ValueOptions.Any(option => option.Value is DrawingTextValue
-                                    {
-                                        IsApplicationText: true
-                                    });
+    public bool UsesValueOptions => _hasMixedValueKinds ||
+                                    SampleValue is not (DrawingNumberValue or DrawingTextValue) ||
+                                    ValueOptions.Any(option => option.Value is DrawingTextValue {IsApplicationText: true});
 
     /// <summary>Whether a text box accepts the filter value.</summary>
     public bool UsesTextInput => !UsesValueOptions;
 
     /// <summary>Units and numeric-input guidance.</summary>
-    public string InputHint => UiText.Current.Get(
+    public string InputHint => UsesValueOptions ? "" : UiText.Current.Get(
         SampleValue switch
         {
             DrawingNumberValue {Unit: DrawingUnit.Angle} => "Enter degrees without digit grouping.",
@@ -129,7 +128,7 @@ public sealed class PropertyFilterEditor : ObservableObject
                     .Select(property => property.Id))
                 .Distinct()
                 .OrderBy(id => id)
-                .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), false))
+                .Select(id => new GroupingOption(id, false))
         ];
         PropertyId = applied?.PropertyId ?? _propertyOptions.FirstOrDefault()?.Id;
         UpdateValueOptions();
@@ -157,7 +156,7 @@ public sealed class PropertyFilterEditor : ObservableObject
         _error = "";
         var value = ReadInput();
 
-        if (_loadedFilter is {Value: DrawingNumberValue number} loaded && PropertyId == loaded.PropertyId &&
+        if (!UsesValueOptions && _loadedFilter is {Value: DrawingNumberValue number} loaded && PropertyId == loaded.PropertyId &&
             InputText == _loadedInputText && value is DrawingNumberValue parsed && parsed.Unit == number.Unit && number.Value.IsFinite())
             value = number;
 
@@ -221,13 +220,19 @@ public sealed class PropertyFilterEditor : ObservableObject
             ? _objects.Select(node => DrawingProperties.GetValue(node, id)).OfType<DrawingValue>().Distinct().ToList()
             : [];
 
-        if (SampleValue is DrawingBooleanValue)
+        if (values.Count > 0 && values.All(value => value is DrawingBooleanValue))
             values = [new DrawingBooleanValue(false), new DrawingBooleanValue(true)];
 
+        var sample = values.FirstOrDefault();
+        _hasMixedValueKinds = values.Any(value => (sample, value) switch
+        {
+            (DrawingNumberValue first, DrawingNumberValue next) => first.Unit != next.Unit,
+            _ => sample?.GetType() != value.GetType()
+        });
         ValueOptions =
         [
             .. values.OrderBy(value => value, Comparer<DrawingValue>.Create(DrawingProperties.CompareValues))
-                .Select(value => new PropertyFilterValueOption(value))
+                .Select(value => new PropertyFilterValueOption(value, _hasMixedValueKinds))
         ];
         SelectedValue = ValueOptions.FirstOrDefault()?.Value;
     }
@@ -241,7 +246,8 @@ public sealed record PropertyFilterOperatorOption(DrawingFilterOperator Value, s
 
 /// <summary>A selectable assigned value; captions never determine equality.</summary>
 /// <param name="value">Original detached value.</param>
-public sealed class PropertyFilterValueOption(DrawingValue value) : ObservableObject
+/// <param name="showKind">Whether mixed values need a type or unit marker.</param>
+public sealed class PropertyFilterValueOption(DrawingValue value, bool showKind = false) : ObservableObject
 {
     /// <summary>Original detached value used for selection and comparison.</summary>
     public DrawingValue Value { get; } = value;
@@ -251,7 +257,33 @@ public sealed class PropertyFilterValueOption(DrawingValue value) : ObservableOb
     {
         get;
         private set => SetProperty(ref field, value);
-    } = DrawingValueFormatter.FormatValue(value);
+    } = FormatLabel(value, showKind);
 
-    internal void RefreshLanguage() => Label = DrawingValueFormatter.FormatValue(Value);
+    internal void RefreshLanguage() => Label = FormatLabel(Value, showKind);
+
+    private static string FormatLabel(DrawingValue value, bool showKind)
+    {
+        var label = DrawingValueFormatter.FormatValue(value);
+
+        if (!showKind)
+            return label;
+
+        var kind = value switch
+        {
+            DrawingNumberValue {Unit: DrawingUnit.Count} => "Count",
+            DrawingNumberValue {Unit: DrawingUnit.Distance} => "Drawing units",
+            DrawingNumberValue {Unit: DrawingUnit.Angle} => "Angle",
+            DrawingNumberValue {Unit: DrawingUnit.Scale} => "Scale",
+            DrawingNumberValue {Unit: DrawingUnit.Area} => "Square drawing units",
+            DrawingTextValue => "Text",
+            DrawingBooleanValue => "Boolean",
+            DrawingLayerValue => "Layer",
+            DrawingColorValue => "Color",
+            DrawingLineweightValue => "Lineweight",
+            DrawingTransparencyValue => "Transparency",
+            _ => ""
+        };
+
+        return $"{label} ({UiText.Current.Get(kind)})";
+    }
 }

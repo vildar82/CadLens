@@ -247,10 +247,10 @@
                                         <DataTemplate DataType="{x:Type ui:GroupingOption}">
                                             <CheckBox
                                                 Margin="0,0,0,3"
-                                                AutomationProperties.Name="{ui:Localize Binding={Binding Label}}"
+                                                AutomationProperties.Name="{ui:Localize Binding={Binding Id}}"
                                                 Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                 CommandParameter="{Binding}"
-                                                Content="{ui:Localize Binding={Binding Label}}"
+                                                Content="{ui:Localize Binding={Binding Id}}"
                                                 IsChecked="{Binding IsSelected, Mode=OneWay}"
                                                 Style="{StaticResource QuietCheckBox}" />
                                         </DataTemplate>
@@ -312,7 +312,7 @@
                                             <Button
                                                 Margin="0,0,0,3"
                                                 Padding="5,4"
-                                                AutomationProperties.Name="{ui:Localize Binding={Binding Label}}"
+                                                AutomationProperties.Name="{ui:Localize Binding={Binding Id}}"
                                                 Click="DisplayPropertyClicked"
                                                 Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                 CommandParameter="{Binding}"
@@ -325,7 +325,7 @@
                                                         Foreground="{DynamicResource QuietAccent}"
                                                         Text="✓"
                                                         Visibility="{Binding IsSelected, Converter={StaticResource BooleanVisibility}}" />
-                                                    <TextBlock VerticalAlignment="Center" Text="{ui:Localize Binding={Binding Label}}" />
+                                                    <TextBlock VerticalAlignment="Center" Text="{ui:Localize Binding={Binding Id}}" />
                                                 </DockPanel>
                                             </Button>
                                         </DataTemplate>
@@ -390,7 +390,7 @@
                                     SelectedValuePath="Id">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{ui:Localize Binding={Binding Label}}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{ui:Localize Binding={Binding Id}}" TextTrimming="CharacterEllipsis" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>

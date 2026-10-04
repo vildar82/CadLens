@@ -57,14 +57,16 @@ public sealed class LocalizeExtension : MarkupExtension
             if (value == DependencyProperty.UnsetValue || value is null)
                 return "";
 
-            if (value is DetailField field)
-                return detailValue
+            return value switch
+            {
+                DetailField field => detailValue
                     ? DrawingValueFormatter.FormatDetail(field, values[2] as DrawingPrecision)
-                    : field.IsLabelRaw ? field.Label : UiText.Current.Get(field.Label);
-
-            return format is not null
-                ? string.Format(UiText.Current.Culture, UiText.Current.Get(format), value)
-                : UiText.Current.Get(value as string ?? text ?? "");
+                    : DrawingValueFormatter.FormatDetailLabel(field),
+                DrawingPropertyKey propertyKey => DrawingValueFormatter.FormatPropertyLabel(propertyKey),
+                _ => format is not null
+                    ? string.Format(UiText.Current.Culture, UiText.Current.Get(format), value)
+                    : UiText.Current.Get(value as string ?? text ?? "")
+            };
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>

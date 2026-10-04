@@ -181,6 +181,15 @@ Each distinct combination creates one subgroup with its own object count and dra
 checkboxes to return to individual objects. Grouping choices are saved separately per lens and primitive
 type. Grouping and sorting use the last inventory; Refresh rereads changed drawing properties.
 
+Block attribute tags and dynamic block properties are available in the same display, grouping, and filter
+controls. They are marked **Attribute: TAG** and **Dynamic block: Name**, with localized prefixes, so a
+block attribute named `Layer` remains distinct from the built-in Layer property. Names and attribute
+text stay as supplied by the drawing; numeric-looking attribute text such as `002` is not converted to
+a number. Dynamic properties retain their native numeric units or text values. Missing, unreadable,
+and duplicate same-name values are unavailable for grouping/filtering; blank text remains distinct.
+Saved property selections and named filters can reuse these keys across sessions and drawings.
+Use Refresh after changing a block value in CAD. No block values are edited by these controls.
+
 The dropdown lists the properties observed on objects of the current type, including measurements.
 
 Use **Filter** inside a primitive type to choose one property, comparison, and value, then press **Apply**.

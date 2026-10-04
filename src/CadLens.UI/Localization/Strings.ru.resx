@@ -761,4 +761,31 @@
   <data name="(blank)" xml:space="preserve">
     <value>(пусто)</value>
   </data>
+  <data name="Attribute: {0}" xml:space="preserve">
+    <value>Атрибут: {0}</value>
+  </data>
+  <data name="Dynamic block: {0}" xml:space="preserve">
+    <value>Дин. свойство: {0}</value>
+  </data>
+  <data name="Count" xml:space="preserve">
+    <value>Количество</value>
+  </data>
+  <data name="Drawing units" xml:space="preserve">
+    <value>Единицы чертежа</value>
+  </data>
+  <data name="Angle" xml:space="preserve">
+    <value>Угол</value>
+  </data>
+  <data name="Scale" xml:space="preserve">
+    <value>Масштаб</value>
+  </data>
+  <data name="Square drawing units" xml:space="preserve">
+    <value>Квадратные единицы чертежа</value>
+  </data>
+  <data name="Text" xml:space="preserve">
+    <value>Текст</value>
+  </data>
+  <data name="Boolean" xml:space="preserve">
+    <value>Логическое значение</value>
+  </data>
 </root>

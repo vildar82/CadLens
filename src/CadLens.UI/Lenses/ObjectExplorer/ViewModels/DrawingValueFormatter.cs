@@ -39,6 +39,21 @@ public sealed class DrawingValueFormatter : MarkupExtension
         return binding.ProvideValue(serviceProvider);
     }
 
+    /// <summary>Localizes the property source while preserving drawing-owned names.</summary>
+    /// <param name="key">Identity of a built-in, attribute, or dynamic block property.</param>
+    public static string FormatPropertyLabel(DrawingPropertyKey key) => key.Source switch
+    {
+        DrawingPropertySource.Attribute => new UiMessage("Attribute: {0}", key.Name).ToString(),
+        DrawingPropertySource.DynamicBlock => new UiMessage("Dynamic block: {0}", key.Name).ToString(),
+        _ => UiText.Current.Get(DrawingProperties.GetLabel(key))
+    };
+
+    /// <summary>Formats property labels without translating drawing-owned text.</summary>
+    /// <param name="field">Detached detail field and optional property identity.</param>
+    public static string FormatDetailLabel(DetailField field) => field.PropertyKey is { } key
+        ? FormatPropertyLabel(key)
+        : field.IsLabelRaw ? field.Label : UiText.Current.Get(field.Label);
+
     /// <summary>Formats composite group captions while preserving drawing-owned text.</summary>
     /// <param name="node">Node whose properties supply the group caption.</param>
     public static string FormatLabel(LensNode node) => FormatLabel(node, DrawingPrecision.Default);
@@ -52,9 +67,9 @@ public sealed class DrawingValueFormatter : MarkupExtension
                 " · ",
                 node.Properties
                     .OrderBy(
-                        property => UiText.Current.Get(DrawingProperties.GetLabel(property.Id)),
+                        property => FormatPropertyLabel(property.Id),
                         StringComparer.Create(UiText.Current.Culture, true))
-                    .Select(property => $"{UiText.Current.Get(DrawingProperties.GetLabel(property.Id))}: {FormatValue(property.Value, precision)}"))
+                    .Select(property => $"{FormatPropertyLabel(property.Id)}: {FormatValue(property.Value, precision)}"))
             : node.Label;
 
     /// <summary>Formats a placed-object metric or the selectable group count.</summary>
@@ -63,7 +78,7 @@ public sealed class DrawingValueFormatter : MarkupExtension
     /// <param name="precision">Detached drawing precision.</param>
     public static string FormatMetric(
         LensNode node,
-        DrawingPropertyId? propertyId = null,
+        DrawingPropertyKey? propertyId = null,
         DrawingPrecision? precision = null) =>
         node.Kind == LensNodeKind.Object
             ? FormatValue(
@@ -162,7 +177,7 @@ public sealed class DrawingValueFormatter : MarkupExtension
             if (values[0] is not LensNode node)
                 return "";
 
-            DrawingPropertyId? propertyId = values[2] is DrawingPropertyId selected ? selected : null;
+            DrawingPropertyKey? propertyId = values[2] is DrawingPropertyKey selected ? selected : null;
             var precision = values[3] as DrawingPrecision ?? DrawingPrecision.Default;
 
             if (!valueToolTip)

@@ -56,12 +56,12 @@ public sealed class DrawingPresentationTests
                     FlushDispatcher();
                     var popupContent = Assert.IsAssignableFrom<FrameworkElement>(popup.Child);
                     var checkBox = WpfTest.Descendants(popupContent).OfType<CheckBox>()
-                        .Single(box => box.CommandParameter is GroupingOption {Id: DrawingPropertyId.Color});
+                        .Single(box => box.CommandParameter is GroupingOption {Id.BuiltIn: DrawingPropertyId.Color});
                     Click(checkBox);
                     FlushDispatcher();
                     model.ToggleGroupingCommand.ExecutionTask?.GetAwaiter().GetResult();
                     checkBox = WpfTest.Descendants(popupContent).OfType<CheckBox>()
-                        .Single(box => box.CommandParameter is GroupingOption {Id: DrawingPropertyId.Color});
+                        .Single(box => box.CommandParameter is GroupingOption {Id.BuiltIn: DrawingPropertyId.Color});
                     var glyphBorder = Assert.IsType<Border>(checkBox.Template.FindName("GlyphBorder", checkBox));
                     var glyph = Assert.IsType<System.Windows.Shapes.Path>(
                         checkBox.Template.FindName("CheckGlyph", checkBox));
@@ -182,7 +182,7 @@ public sealed class DrawingPresentationTests
 
                 Assert.All(
                     model.GroupingOptions.Where(option =>
-                        option.Id is DrawingPropertyId.Color or DrawingPropertyId.Linetype),
+                        option.Id.BuiltIn is DrawingPropertyId.Color or DrawingPropertyId.Linetype),
                     option => Assert.True(option.IsSelected));
                 Assert.Contains(UiText.Current.Get("Color"), model.GroupingSummary);
                 Assert.Contains(UiText.Current.Get("Linetype"), model.GroupingSummary);
@@ -206,12 +206,12 @@ public sealed class DrawingPresentationTests
                 var propertyOptions = Assert.Single(WpfTest.Descendants(propertyPopup.Child).OfType<ItemsControl>());
                 Assert.NotNull(propertyOptions.ItemsSource);
                 var lengthButton = WpfTest.Descendants(propertyPopup.Child).OfType<Button>()
-                    .Single(button => button.CommandParameter is GroupingOption {Id: DrawingPropertyId.Length});
+                    .Single(button => button.CommandParameter is GroupingOption {Id.BuiltIn: DrawingPropertyId.Length});
                 Assert.Same(model.SelectDisplayPropertyCommand, lengthButton.Command);
                 Click(lengthButton);
                 FlushDispatcher();
                 Assert.False(propertyPopup.IsOpen);
-                Assert.Equal(DrawingPropertyId.Length, model.DisplayPropertyId);
+                Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Length, model.DisplayPropertyId);
                 Assert.Contains("42.5", Text(content));
                 Assert.Contains("125.25", Text(content));
                 Assert.DoesNotContain("7", Text(content));
@@ -224,7 +224,7 @@ public sealed class DrawingPresentationTests
                 Assert.True(propertyPopup.IsOpen);
                 Assert.True(
                     ((GroupingOption) WpfTest.Descendants(propertyPopup.Child).OfType<Button>()
-                        .Single(button => button.CommandParameter is GroupingOption {Id: DrawingPropertyId.Length})
+                        .Single(button => button.CommandParameter is GroupingOption {Id.BuiltIn: DrawingPropertyId.Length})
                         .CommandParameter).IsSelected);
                 propertyPopup.IsOpen = false;
                 model.EnterCommand.ExecuteAsync(model.Items[0]).GetAwaiter().GetResult();
@@ -284,11 +284,11 @@ public sealed class DrawingPresentationTests
                 FlushDispatcher();
                 Assert.True(popup.IsOpen);
                 var button = WpfTest.Descendants(popup.Child).OfType<Button>()
-                    .Single(option => option.CommandParameter is GroupingOption {Id: DrawingPropertyId.Text});
+                    .Single(option => option.CommandParameter is GroupingOption {Id.BuiltIn: DrawingPropertyId.Text});
                 Click(button);
                 FlushDispatcher();
                 Assert.False(popup.IsOpen);
-                Assert.Equal(DrawingPropertyId.Text, model.DisplayPropertyId);
+                Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Text, model.DisplayPropertyId);
                 var rowValue = Assert.Single(
                     WpfTest.Descendants(content).OfType<TextBlock>(),
                     block => block is {Text: rawText, ToolTip: string});
@@ -345,7 +345,7 @@ public sealed class DrawingPresentationTests
                 var popupContent = (FrameworkElement) popup.Child;
                 Layout(popupContent, 250);
                 var colorCheckBox = WpfTest.Descendants(popupContent).OfType<CheckBox>()
-                    .Single(checkBox => checkBox.CommandParameter is GroupingOption {Id: DrawingPropertyId.Color});
+                    .Single(checkBox => checkBox.CommandParameter is GroupingOption {Id.BuiltIn: DrawingPropertyId.Color});
                 Assert.Same(model.ToggleGroupingCommand, colorCheckBox.Command);
                 Assert.True(colorCheckBox.IsChecked);
                 Assert.True(colorCheckBox.Command.CanExecute(colorCheckBox.CommandParameter));
@@ -355,7 +355,7 @@ public sealed class DrawingPresentationTests
                 Layout(popupContent, 250);
                 Assert.False(
                     WpfTest.Descendants(popupContent).OfType<CheckBox>()
-                        .Single(checkBox => checkBox.CommandParameter is GroupingOption {Id: DrawingPropertyId.Color})
+                        .Single(checkBox => checkBox.CommandParameter is GroupingOption {Id.BuiltIn: DrawingPropertyId.Color})
                         .IsChecked);
                 model.ToggleGroupingCommand.ExecuteAsync(
                         model.GroupingOptions.Single(option => option.Id == DrawingPropertyId.Color))

@@ -47,7 +47,7 @@ public sealed class DrawingPropertyTests
         var second = Entity("2", "Custom.Curve", Properties((DrawingPropertyId.Width, null)));
         var presentation = Build([first, second], fields: [DrawingPropertyId.PatternAngle]);
 
-        Assert.Equal<DrawingPropertyId>(
+        Assert.Equal<DrawingPropertyKey>(
             [
                 DrawingPropertyId.Layer, DrawingPropertyId.Length, DrawingPropertyId.Width,
                 DrawingPropertyId.PatternAngle
@@ -149,7 +149,7 @@ public sealed class DrawingPropertyTests
             new DrawingInventory("Model", [renamedLayer], [entity]),
             DrawingGrouping.ObjectTypes,
             new HashSet<string>(),
-            new Dictionary<string, ImmutableArray<DrawingPropertyId>> {["AcDbLine"] = [DrawingPropertyId.Layer]});
+            new Dictionary<string, ImmutableArray<DrawingPropertyKey>> {["AcDbLine"] = [DrawingPropertyId.Layer]});
         var originalGroup = original.Groups[0].Children[0];
         var navigation = new NavigationState();
         navigation.Reset(original.Groups, false);
@@ -274,10 +274,10 @@ public sealed class DrawingPropertyTests
         Assert.Equal(["Radius", "Start angle"], fields.Select(field => field.Label));
         Assert.Contains(fields, field => field is {Label: "Start angle", TypedValue: null});
         Assert.DoesNotContain(fields, field => field.Label is "Layer" or "End angle");
-        Assert.Equal<DrawingPropertyId>(
+        Assert.Equal<DrawingPropertyKey>(
             [DrawingPropertyId.Layer, DrawingPropertyId.Radius, DrawingPropertyId.StartAngle],
             DrawingProperties.GetAvailableFields([entity]));
-        Assert.Equal<DrawingPropertyId>(
+        Assert.Equal<DrawingPropertyKey>(
             [DrawingPropertyId.Layer],
             DrawingProperties.GetAvailableFields([Entity("2", "AcDbLine")]));
         Assert.Empty(DrawingProperties.GetDetails(Entity("2", "AcDbLine"), Layer));
@@ -380,7 +380,7 @@ public sealed class DrawingPropertyTests
     private static LensPresentation Build(
         ImmutableArray<EntitySnapshot> entities,
         DrawingGrouping grouping = DrawingGrouping.ObjectTypes,
-        ImmutableArray<DrawingPropertyId> fields = default)
+        ImmutableArray<DrawingPropertyKey> fields = default)
     {
         var selected = fields.IsDefaultOrEmpty
             ? null

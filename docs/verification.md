@@ -138,3 +138,11 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
     unavailable values. Area is in square drawing units and uses drawing precision. In both lenses,
     display, group, filter, and save an area condition; reuse it in another drawing, then edit geometry
     and Refresh. Check that ordinary length metrics and Focus/Select/Isolate targets remain correct.
+13. Use attributed dynamic block insertions with different marks, visibility states, distances, angles,
+    and flip values. Choose prefixed Attribute and Dynamic block properties in both lenses; compare
+    displayed values, grouping membership, sorting, filters, and saved presets with each insertion.
+    Include a tag and dynamic property named Layer to confirm they remain separate from the built-in
+    property. Check blank/missing/duplicate tags, numeric-looking text, and properties with the same
+    name but different native value types across definitions. Confirm English/Russian prefixes preserve
+    the original names, saved choices survive restart, and Refresh captures edits. Focus/Select/Isolate
+    must still target whole insertions, and browsing must not change DBMOD.
