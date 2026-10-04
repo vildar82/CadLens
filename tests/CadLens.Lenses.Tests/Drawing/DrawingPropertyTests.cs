@@ -219,10 +219,10 @@ public sealed class DrawingPropertyTests
 
             Assert.Equal(english.Groups[0].Children[0].Id, russian.Groups[0].Children[0].Id);
             Assert.Equal(
-                "properties:D227E1465E5B6C12BE74FE81BF486FA9B81DA5BB35D005A292325F58B2CF8EA6",
+                "properties:971D6BE9037E2EECBCA6E543BF5D5F16AAA50E6F0DD20544ECAC1F5D5AA14870",
                 english.Groups[0].Children[0].Id);
             Assert.Equal(
-                0.125,
+                7 * (Math.PI / 180),
                 Assert.IsType<DrawingNumberValue>(english.Groups[0].Children[0].Properties[0].Value).Value);
         }
         finally

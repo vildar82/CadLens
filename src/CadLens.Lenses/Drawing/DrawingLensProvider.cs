@@ -78,6 +78,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             .Where(layer => IsIncluded(layer, includeFrozen, includeOff))
             .ToDictionary(layer => layer.Id);
         var entities = snapshot.Entities.Where(entity => layers.ContainsKey(entity.LayerId)).ToList();
+        var precision = snapshot.Precision ?? DrawingPrecision.Default;
         var groups = grouping switch
         {
             DrawingGrouping.Layers => CreateLayerGroups(
@@ -85,6 +86,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 layers,
                 propertyGrouping,
                 propertyFilters,
+                precision,
                 cancellationToken),
             DrawingGrouping.ObjectTypes => CreateTypeGroups(
                 entities,
@@ -92,6 +94,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 null,
                 propertyGrouping,
                 propertyFilters,
+                precision,
                 cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(grouping), grouping, "Unknown drawing grouping.")
         };
@@ -118,6 +121,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         Dictionary<ILayerId, LayerSnapshot> layers,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
+        DrawingPrecision precision,
         CancellationToken cancellationToken)
     {
         var entitiesByLayer = entities.GroupBy(entity => entity.LayerId)
@@ -132,6 +136,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 layers,
                 propertyGrouping,
                 propertyFilters,
+                precision,
                 cancellationToken))
         ];
     }
@@ -152,11 +157,12 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         Dictionary<ILayerId, LayerSnapshot> layers,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
+        DrawingPrecision precision,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var types = CreateTypeGroups(entities, layers, layer, propertyGrouping, propertyFilters, cancellationToken);
+        var types = CreateTypeGroups(entities, layers, layer, propertyGrouping, propertyFilters, precision, cancellationToken);
 
         return new LensNode(
             layer.Id.DisplayId,
@@ -174,12 +180,13 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         LayerSnapshot? layer,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
+        DrawingPrecision precision,
         CancellationToken cancellationToken) =>
     [
         .. entities.GroupBy(entity => entity.TypeKey, StringComparer.Ordinal)
             .OrderBy(group => group.Key.GetTypeLabel(), StringComparer.OrdinalIgnoreCase)
             .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .Select(group => CreateTypeNode(group, layers, layer, propertyGrouping, propertyFilters, cancellationToken))
+            .Select(group => CreateTypeNode(group, layers, layer, propertyGrouping, propertyFilters, precision, cancellationToken))
     ];
 
     private static LensNode CreateTypeNode(
@@ -188,6 +195,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         LayerSnapshot? layer,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
+        DrawingPrecision precision,
         CancellationToken cancellationToken)
     {
         var label = entities.Key.GetTypeLabel();
@@ -200,7 +208,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             .Select(entity => CreateObjectNode(layers[entity.LayerId], entity, label, cancellationToken))
             .ToImmutableArray();
         var fields = GetGroupingFields(orderedEntities, propertyGrouping);
-        var children = fields.IsEmpty ? objects : CreatePropertyGroups(orderedEntities, objects, layers, fields);
+        var children = fields.IsEmpty ? objects : CreatePropertyGroups(orderedEntities, objects, layers, fields, precision);
         var metric = GetCommonMetric(objects);
 
         return new LensNode(
@@ -312,7 +320,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         List<EntitySnapshot> entities,
         ImmutableArray<LensNode> objects,
         Dictionary<ILayerId, LayerSnapshot> layers,
-        ImmutableArray<DrawingPropertyKey> fields)
+        ImmutableArray<DrawingPropertyKey> fields,
+        DrawingPrecision precision)
     {
         var groups = new Dictionary<PropertyGroupKey, List<LensNode>>();
 
@@ -323,7 +332,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             [
                 .. fields.Select(id => new DrawingProperty(
                     id,
-                    DrawingProperties.GetValue(entity, layers[entity.LayerId], id)))
+                    RoundGroupingValue(DrawingProperties.GetValue(entity, layers[entity.LayerId], id), precision)))
             ]);
 
             if (!groups.TryGetValue(key, out var members))
@@ -340,6 +349,19 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             .. groups.Select(group => CreatePropertyNode(group.Key, group.Value))
                 .OrderBy(node => node.Id, StringComparer.Ordinal)
         ];
+    }
+
+    private static DrawingValue? RoundGroupingValue(DrawingValue? value, DrawingPrecision precision)
+    {
+        if (value is not DrawingNumberValue number)
+            return value;
+
+        var rounded = precision.Round(number.Value, number.Unit);
+
+        if (!rounded.IsFinite())
+            return null;
+
+        return number with {Value = number.Unit == DrawingUnit.Angle ? rounded * (Math.PI / 180) : rounded};
     }
 
     private static LensNode CreatePropertyNode(PropertyGroupKey key, List<LensNode> objects)

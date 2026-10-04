@@ -70,7 +70,12 @@ public sealed class DrawingPrecisionTests
     [InlineData(double.NegativeInfinity)]
     public void NonfiniteValuesDisplayAsUnavailable(double value)
     {
-        foreach (var unit in Enum.GetValues(typeof(DrawingUnit)).Cast<DrawingUnit>())
+#if NETFRAMEWORK
+        var units = Enum.GetValues(typeof(DrawingUnit)).Cast<DrawingUnit>();
+#else
+        var units = Enum.GetValues<DrawingUnit>();
+#endif
+        foreach (var unit in units)
             Assert.Equal("—", DrawingValueFormatter.FormatValue(new DrawingNumberValue(value, unit)));
     }
 
@@ -95,7 +100,7 @@ public sealed class DrawingPrecisionTests
         var value = new DrawingNumberValue(radians, DrawingUnit.Angle);
         var text = DrawingValueFormatter.FormatValue(value);
         Assert.EndsWith("°", text);
-        var displayed = double.Parse(text.Substring(0, text.Length - 1), NumberStyles.Float, UiText.Current.Culture);
+        var displayed = double.Parse(text.TrimEnd('°'), NumberStyles.Float, UiText.Current.Culture);
 
         Assert.True(displayed.IsFinite());
         Assert.InRange(Math.Abs((displayed - expectedDegrees) / expectedDegrees), 0, 1e-14);
@@ -117,11 +122,11 @@ public sealed class DrawingPrecisionTests
         Assert.Equal(["0%", "60%", "100%"], values.Select(value => DrawingValueFormatter.FormatValue(value)));
     }
 
-    /// <summary>Rows, captions, details, and tooltips use refreshed precision while raw grouping and sorting stay exact.</summary>
+    /// <summary>Precision refresh splits rounded groups while preserving object navigation, raw sorting, and bound values.</summary>
     [Theory]
     [InlineData(LanguagePreference.English, "12.34", "12.3412", "15.1°", "15.12°")]
     [InlineData(LanguagePreference.Russian, "12,34", "12,3412", "15,1°", "15,12°")]
-    public void RefreshUpdatesBoundValuesAndKeepsExactGroups(
+    public void RefreshUpdatesBoundValuesAndRebuildsRoundedGroups(
         LanguagePreference language,
         string rounded,
         string refreshed,
@@ -153,13 +158,13 @@ public sealed class DrawingPrecisionTests
                     .ExecuteAsync(model.GroupingOptions.Single(option => option.Id == DrawingPropertyId.Length))
                     .GetAwaiter().GetResult();
                 Layout(view);
-                Assert.Equal(2, model.Items.Length);
-                var identities = model.Items.Select(node => node.Id).OrderBy(item => item, StringComparer.Ordinal).ToArray();
+                var roundedGroup = Assert.Single(model.Items);
+                Assert.Equal(2, roundedGroup.Count);
                 var label = $"{UiText.Current.Get("Length")}: {rounded}";
-                Assert.Equal(2, Text(view).Count(text => text == label));
-                model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Objects.Contains(new TestEntityId(2))))
-                    .GetAwaiter().GetResult();
-                model.EnterCommand.ExecuteAsync(Assert.Single(model.Items)).GetAwaiter().GetResult();
+                Assert.Single(Text(view), text => text == label);
+                model.EnterCommand.ExecuteAsync(roundedGroup).GetAwaiter().GetResult();
+                Assert.Equal(["2", "1"], model.Items.Select(node => node.Id));
+                model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Id == "2")).GetAwaiter().GetResult();
                 Layout(view);
                 Assert.Contains(rounded, Text(view));
                 Assert.Contains(angle, Text(view));
@@ -173,7 +178,11 @@ public sealed class DrawingPrecisionTests
                 Assert.Contains(refreshedAngle, Text(view));
                 model.BackCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 model.BackCommand.ExecuteAsync(null).GetAwaiter().GetResult();
-                Assert.Equal(identities, model.Items.Select(node => node.Id).OrderBy(item => item, StringComparer.Ordinal));
+                Assert.Equal(2, model.Items.Length);
+                Assert.DoesNotContain(model.Items, node => node.Id == roundedGroup.Id);
+                Assert.All(model.Items, node => Assert.Equal(1, node.Count));
+                Assert.Equal([12.3448, 12.3412], model.Items.SelectMany(node => node.Children).OrderBy(node => node.Id)
+                    .Select(node => Assert.IsType<DrawingNumberValue>(DrawingProperties.GetValue(node, DrawingPropertyId.Length)).Value));
                 Assert.Equal(2, actions.ReadCount);
             });
         }
