@@ -53,7 +53,7 @@ $manifest = @"
 <ApplicationPackage SchemaVersion="1.0" AppVersion="$version" Author="Vildar Hisyametdinov" ProductCode="$productCode" UpgradeCode="{F8CF54AC-12A7-4C35-BA1B-BF0AA4745431}" Name="CAD Lens" Description="Drawing exploration for AutoCAD" Icon="./Contents/CadLens.ico" HelpFile="./Contents/Help.html">
   <CompanyDetails Name="Vildar Hisyametdinov" Email="vildar82@gmail.com" URL="https://github.com/vildar82/CadLens" />
   <Components>
-    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R23.0" SeriesMax="R26.0" />
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R23.0" SeriesMax="R26.0" SupportPath="./Contents" />
     <ComponentEntry AppName="CadLensRibbon" ModuleName="./Contents/CadLens.cuix" />
   </Components>
   <Components>
