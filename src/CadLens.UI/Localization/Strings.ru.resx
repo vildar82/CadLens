@@ -31,6 +31,9 @@
   <data name="Questions and suggestions" xml:space="preserve">
     <value>Вопросы и предложения</value>
   </data>
+  <data name="Privacy policy" xml:space="preserve">
+    <value>Политика конфиденциальности</value>
+  </data>
   <data name="Unable to open the browser. Open the project link manually." xml:space="preserve">
     <value>Не удалось открыть браузер. Откройте ссылку на проект вручную.</value>
   </data>
