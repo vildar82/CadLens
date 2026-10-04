@@ -6,7 +6,7 @@ namespace CadLens.UI;
 internal sealed record SavedPropertyFilter(
     string Name,
     string TypeKey,
-    DrawingPropertyId PropertyId,
+    JsonElement PropertyId,
     DrawingFilterOperator Operator,
     string ValueKind,
     JsonElement Value)
@@ -25,13 +25,22 @@ internal sealed record SavedPropertyFilter(
             _ => throw new ArgumentOutOfRangeException(nameof(filter))
         };
 
-        return new SavedPropertyFilter(name, typeKey, filter.PropertyId, filter.Operator, kind, value);
+        return new SavedPropertyFilter(
+            name,
+            typeKey,
+            JsonSerializer.SerializeToElement(filter.PropertyId.ToString()),
+            filter.Operator,
+            kind,
+            value);
     }
 
     internal DrawingPropertyFilter? Read(IEnumerable<LensNode> objects)
     {
         try
         {
+            if (ReadPropertyKey() is not { } property)
+                return null;
+
             DrawingValue? value = ValueKind switch
             {
                 "Text" or "ApplicationText" when Value.ValueKind == JsonValueKind.String =>
@@ -58,11 +67,23 @@ internal sealed record SavedPropertyFilter(
                 _ => null
             };
 
-            return value is null ? null : new DrawingPropertyFilter(PropertyId, Operator, value);
+            return value is null ? null : new DrawingPropertyFilter(property, Operator, value);
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException)
         {
             return null;
         }
+    }
+
+    private DrawingPropertyKey? ReadPropertyKey()
+    {
+        var name = PropertyId.ValueKind switch
+        {
+            JsonValueKind.String => PropertyId.GetString(),
+            JsonValueKind.Number when PropertyId.TryGetInt32(out var id) => ((DrawingPropertyId) id).ToString(),
+            _ => null
+        };
+
+        return DrawingPropertyKey.TryParse(name, out var key) ? key : null;
     }
 }

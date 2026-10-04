@@ -15,10 +15,10 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private readonly SettingsService? _settings;
     private readonly string _settingsFileName;
 
-    private readonly Dictionary<string, ImmutableArray<DrawingPropertyId>> _propertyGrouping =
+    private readonly Dictionary<string, ImmutableArray<DrawingPropertyKey>> _propertyGrouping =
         new(StringComparer.Ordinal);
 
-    private readonly Dictionary<string, DrawingPropertyId> _displayProperties = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, DrawingPropertyKey> _displayProperties = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DrawingPropertyFilter> _propertyFilters = new(StringComparer.Ordinal);
 
     private readonly NavigationState _navigation = new();
@@ -240,16 +240,25 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             : "Sort by name");
 
     /// <summary>Accessible description of count sorting.</summary>
-    public string SortByCountLabel => UiText.Current.Get(
+    public string SortByCountLabel =>
         Current is { } node && node.Children.All(child => child.Kind == LensNodeKind.Object)
-            ? DisplayPropertyId is { } id ? DrawingProperties.GetLabel(id) : "Details"
-            : "Objects");
+            ? DisplayPropertyLabel
+            : UiText.Current.Get("Objects");
 
     private LensNode? GroupingType => _navigation.Path.FirstOrDefault(node => node.Kind == LensNodeKind.Type);
     private string? GroupingTypeKey => GroupingType?.TypeKey;
 
     /// <summary>Whether properties of the current primitive type can be combined.</summary>
     public bool CanGroup => _inventory is not null && GroupingTypeKey is not null;
+
+    /// <summary>Whether the current rows can display a selected object property.</summary>
+    public bool CanShowProperty => CanGroup && Current is { } node &&
+                                   node.Children.All(child => child.Kind != LensNodeKind.PropertyGroup);
+
+    /// <summary>Explains where the selected object property is displayed.</summary>
+    public string DisplayPropertyHint => CanShowProperty
+        ? "Choose the property shown in object rows"
+        : "Open a group to choose the property shown in object rows";
 
     /// <summary>Draft property condition, independent of the current result.</summary>
     public PropertyFilterEditor PropertyFilter { get; } = new();
@@ -266,7 +275,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     /// <summary>Readable condition for the compact filter control.</summary>
     public string PropertyFilterSummary => AppliedPropertyFilter is { } filter
-        ? $"{UiText.Current.Get(DrawingProperties.GetLabel(filter.PropertyId))} {FilterOperatorLabel(filter.Operator)} {DrawingValueFormatter.FormatValue(filter.Value, Precision)}"
+        ? $"{DrawingValueFormatter.FormatPropertyLabel(filter.PropertyId)} {FilterOperatorLabel(filter.Operator)} {DrawingValueFormatter.FormatValue(filter.Value, Precision)}"
         : UiText.Current.Get("None");
 
     /// <summary>Matching objects and the included type count before property filtering.</summary>
@@ -281,7 +290,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             : _unfilteredGroups).FirstOrDefault(node => node.Id == type.Id)
         : null;
 
-    private ImmutableArray<DrawingPropertyId> AvailableProperties
+    private ImmutableArray<DrawingPropertyKey> AvailableProperties
     {
         get
         {
@@ -305,7 +314,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     } = [];
 
     /// <summary>Property displayed beside objects and used for value sorting.</summary>
-    public DrawingPropertyId? DisplayPropertyId
+    public DrawingPropertyKey? DisplayPropertyId
     {
         get
         {
@@ -327,7 +336,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     /// <summary>Localized caption of the currently displayed property.</summary>
     public string DisplayPropertyLabel => DisplayPropertyId is { } id
-        ? UiText.Current.Get(DrawingProperties.GetLabel(id))
+        ? DrawingValueFormatter.FormatPropertyLabel(id)
         : UiText.Current.Get("Details");
 
     /// <summary>Observed properties available for the single displayed column.</summary>
@@ -340,9 +349,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             return
             [
                 .. AvailableProperties
-                    .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), id == selected))
+                    .Select(id => new GroupingOption(id, id == selected))
                     .OrderBy(
-                        option => UiText.Current.Get(option.Label),
+                        option => option.Label,
                         StringComparer.Create(UiText.Current.Culture, true))
             ];
         }
@@ -358,13 +367,13 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
             var selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
                 ? fields
-                : ImmutableArray<DrawingPropertyId>.Empty;
+                : ImmutableArray<DrawingPropertyKey>.Empty;
             return
             [
                 .. AvailableProperties
-                    .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), selected.Contains(id)))
+                    .Select(id => new GroupingOption(id, selected.Contains(id)))
                     .OrderBy(
-                        option => UiText.Current.Get(option.Label),
+                        option => option.Label,
                         StringComparer.Create(UiText.Current.Culture, true))
             ];
         }
@@ -376,7 +385,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         get
         {
             var labels = GroupingOptions.Where(option => option.IsSelected)
-                .Select(option => UiText.Current.Get(option.Label)).ToList();
+                .Select(option => option.Label).ToList();
 
             return labels.Count == 0 ? UiText.Current.Get("None") : string.Join(" + ", labels);
         }
@@ -438,7 +447,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             var properties = new Queue<DetailField>(fields
                 .Where(detail => detail.ValueKind == DetailValueKind.TypedValue)
                 .OrderBy(
-                    detail => UiText.Current.Get(detail.Label),
+                    DrawingValueFormatter.FormatDetailLabel,
                     StringComparer.Create(UiText.Current.Culture, true)));
 
             return [.. fields.Select(detail => detail.ValueKind == DetailValueKind.TypedValue ? properties.Dequeue() : detail)];
@@ -662,11 +671,11 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         foreach (var pair in preferences.PropertyGrouping ?? [])
         {
-            var fields = new List<DrawingPropertyId>();
+            var fields = new List<DrawingPropertyKey>();
 
             foreach (var name in pair.Value ?? [])
             {
-                if (Enum.TryParse<DrawingPropertyId>(name, out var id) && IsKnownProperty(id))
+                if (DrawingPropertyKey.TryParse(name, out var id))
                     fields.Add(id);
             }
 
@@ -675,8 +684,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         foreach (var pair in preferences.DisplayProperties ?? [])
         {
-            if (Enum.TryParse<DrawingPropertyId>(pair.Value, out var id) &&
-                IsKnownProperty(id))
+            if (DrawingPropertyKey.TryParse(pair.Value, out var id))
                 _displayProperties[pair.Key] = id;
         }
     }
@@ -725,13 +733,6 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         string Label(LensNode node) => DrawingValueFormatter.FormatLabel(node, Precision);
     }
-
-    private static bool IsKnownProperty(DrawingPropertyId id) =>
-#if NETFRAMEWORK
-        Enum.IsDefined(typeof(DrawingPropertyId), id);
-#else
-        Enum.IsDefined(id);
-#endif
 
     private void UpdateVisibleGroups()
     {
@@ -1156,6 +1157,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         OnPropertyChanged(nameof(CanGroup));
         OnPropertyChanged(nameof(GroupingOptions));
         OnPropertyChanged(nameof(GroupingSummary));
+        OnPropertyChanged(nameof(CanShowProperty));
+        OnPropertyChanged(nameof(DisplayPropertyHint));
         OnPropertyChanged(nameof(DisplayPropertyId));
         OnPropertyChanged(nameof(DisplayPropertyLabel));
         OnPropertyChanged(nameof(DisplayPropertyOptions));
@@ -1191,7 +1194,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         var selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
             ? fields
-            : ImmutableArray<DrawingPropertyId>.Empty;
+            : ImmutableArray<DrawingPropertyKey>.Empty;
         _propertyGrouping[typeKey] = option.IsSelected
             ? selected.Remove(option.Id)
             : [.. selected.Add(option.Id).Distinct().OrderBy(item => item)];

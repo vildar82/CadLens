@@ -216,7 +216,7 @@ public sealed class DrawingPropertyFilterTests
         inventory,
         grouping,
         [],
-        new Dictionary<string, ImmutableArray<DrawingPropertyId>> {[PolylineType] = [DrawingPropertyId.Closed]},
+        new Dictionary<string, ImmutableArray<DrawingPropertyKey>> {[PolylineType] = [DrawingPropertyId.Closed]},
         new Dictionary<string, DrawingPropertyFilter>
         {
             [PolylineType] = new(

@@ -33,7 +33,7 @@ public sealed class BlockAttributeDetailsTests
         Assert.Equal("P-01", Field(model, "MARK").Value);
         Assert.Equal(1, model.Current!.Count);
         Assert.Equal(1, actions.ReadCount);
-        Assert.DoesNotContain(model.DisplayPropertyOptions, option => option.Label == "MARK");
+        Assert.Contains(model.DisplayPropertyOptions, option => option.Id == DrawingPropertyKey.ForAttribute("MARK"));
         await model.FocusCommand.ExecuteAsync(null);
         Assert.Equal(model.Current.Objects, actions.Targets);
         await model.SelectCommand.ExecuteAsync(null);
@@ -81,7 +81,8 @@ public sealed class BlockAttributeDetailsTests
                     Assert.Equal(300, window.ActualWidth);
                     var detail = Assert.IsType<ScrollViewer>(Assert.IsType<ObjectExplorerView>(lens.View).FindName("ObjectDetails"));
                     var blocks = WpfTest.Descendants(detail).OfType<TextBlock>().ToList();
-                    var tag = Assert.Single(blocks, block => block is {DataContext: DetailField {IsLabelRaw: true, Label: "Layer"}, Text: "Layer"});
+                    var tag = Assert.Single(blocks, block => block.DataContext is DetailField {IsLabelRaw: true, Label: "Layer"} &&
+                        block.Text == (language == LanguagePreference.English ? "Attribute: Layer" : "Атрибут: Layer"));
                     var longValue = Assert.Single(blocks, block => block.Text == LongValue);
                     Assert.Equal(TextWrapping.Wrap, tag.TextWrapping);
                     Assert.Equal(TextWrapping.Wrap, longValue.TextWrapping);

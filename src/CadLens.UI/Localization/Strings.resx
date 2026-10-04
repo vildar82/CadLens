@@ -656,6 +656,9 @@
   <data name="Choose the property shown in object rows" xml:space="preserve">
     <value>Choose the property shown in object rows</value>
   </data>
+  <data name="Open a group to choose the property shown in object rows" xml:space="preserve">
+    <value>Open a group to choose the property shown in object rows</value>
+  </data>
   <data name="Filter by property" xml:space="preserve">
     <value>Filter by property</value>
   </data>
@@ -760,5 +763,32 @@
   </data>
   <data name="(blank)" xml:space="preserve">
     <value>(blank)</value>
+  </data>
+  <data name="Attribute: {0}" xml:space="preserve">
+    <value>Attribute: {0}</value>
+  </data>
+  <data name="Dynamic: {0}" xml:space="preserve">
+    <value>Dynamic: {0}</value>
+  </data>
+  <data name="Count" xml:space="preserve">
+    <value>Count</value>
+  </data>
+  <data name="Drawing units" xml:space="preserve">
+    <value>Drawing units</value>
+  </data>
+  <data name="Angle" xml:space="preserve">
+    <value>Angle</value>
+  </data>
+  <data name="Scale" xml:space="preserve">
+    <value>Scale</value>
+  </data>
+  <data name="Square drawing units" xml:space="preserve">
+    <value>Square drawing units</value>
+  </data>
+  <data name="Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="Boolean" xml:space="preserve">
+    <value>Boolean</value>
   </data>
 </root>

@@ -107,7 +107,7 @@ public sealed class DrawingValueSortingTests
         Assert.Equal(
             new DrawingLayerValue(layer.Id, layer.Name),
             DrawingProperties.GetValue(node, DrawingPropertyId.Layer));
-        Assert.Contains(node.Properties, property => property is {Id: DrawingPropertyId.Width, Value: null});
+        Assert.Contains(node.Properties, property => property is {Id.BuiltIn: DrawingPropertyId.Width, Value: null});
         Assert.Null(DrawingProperties.GetValue(node, DrawingPropertyId.Width));
         Assert.Null(DrawingProperties.GetValue(node, DrawingPropertyId.Radius));
     }
@@ -136,7 +136,7 @@ public sealed class DrawingValueSortingTests
         };
         var precision = new DrawingPrecision(2, 1);
         var inventory = new DrawingInventory("Model", [layer], [firstEntity, secondEntity], precision);
-        var grouping = new Dictionary<string, ImmutableArray<DrawingPropertyId>>
+        var grouping = new Dictionary<string, ImmutableArray<DrawingPropertyKey>>
             {["AcDbLine"] = [DrawingPropertyId.Length]};
         var first = DrawingLensProvider.Build(inventory, DrawingGrouping.ObjectTypes, new HashSet<string>(), grouping);
         var changed = DrawingLensProvider.Build(
@@ -180,7 +180,7 @@ public sealed class DrawingValueSortingTests
             new DrawingInventory("Model", [layer], [unknown, measured]),
             DrawingGrouping.ObjectTypes,
             new HashSet<string>(),
-            new Dictionary<string, ImmutableArray<DrawingPropertyId>> {["Custom.Curve"] = [DrawingPropertyId.Layer]});
+            new Dictionary<string, ImmutableArray<DrawingPropertyKey>> {["Custom.Curve"] = [DrawingPropertyId.Layer]});
 
         Assert.Equal(DrawingPropertyId.Length, presentation.Groups[0].RowMetric!.Id);
         Assert.Equal(DrawingPropertyId.Length, presentation.Groups[0].Children[0].RowMetric!.Id);

@@ -62,7 +62,7 @@ public enum DrawingUnit
 /// <summary>A selected property and its available value.</summary>
 /// <param name="Id">Stable property identity.</param>
 /// <param name="Value">Value, or null when unavailable.</param>
-public sealed record DrawingProperty(DrawingPropertyId Id, DrawingValue? Value);
+public sealed record DrawingProperty(DrawingPropertyKey Id, DrawingValue? Value);
 
 /// <summary>The meaningful row measurement, separate from the number of placed targets.</summary>
 /// <param name="Id">Measurement identity used for the column header.</param>

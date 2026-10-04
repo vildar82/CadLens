@@ -29,7 +29,8 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             entity.GetRXClass().Name,
             properties.ToImmutableDictionary(),
             metric,
-            entity is BlockReference block ? ReadBlockAttributes(block) : default);
+            entity is BlockReference block ? ReadBlockAttributes(block) : default,
+            entity is BlockReference dynamicBlock ? ReadDynamicBlockProperties(dynamicBlock) : default);
     }
 
     private static void ReadAppearance(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
@@ -261,6 +262,73 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         {
             return default;
         }
+    }
+
+    private ImmutableArray<DynamicBlockPropertySnapshot> ReadDynamicBlockProperties(BlockReference block)
+    {
+        try
+        {
+            if (!block.IsDynamicBlock)
+                return [];
+
+            using var nativeProperties = block.DynamicBlockReferencePropertyCollection;
+            var properties = new List<DynamicBlockPropertySnapshot>();
+
+            foreach (DynamicBlockReferenceProperty property in nativeProperties)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                properties.Add(new DynamicBlockPropertySnapshot(
+                    ReadDynamicProperty(() => property.PropertyName),
+                    ReadDynamicProperty(() => ReadDynamicPropertyValue(property))));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return [.. properties];
+        }
+        catch (Exception)
+        {
+            return default;
+        }
+    }
+
+    private static T? ReadDynamicProperty<T>(Func<T?> getter) where T : class
+    {
+        try
+        {
+            return getter();
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private static DrawingValue? ReadDynamicPropertyValue(DynamicBlockReferenceProperty property) => property.Value switch
+    {
+        string text => new DrawingTextValue(text),
+        bool value => new DrawingBooleanValue(value),
+        double value => ReadDynamicNumber(value, property.UnitsType),
+        float value => ReadDynamicNumber(value, property.UnitsType),
+        short value => ReadDynamicNumber(value, property.UnitsType),
+        int value => ReadDynamicNumber(value, property.UnitsType),
+        _ => null
+    };
+
+    private static DrawingNumberValue? ReadDynamicNumber(double value, DynamicBlockReferencePropertyUnitsType units)
+    {
+        DrawingUnit? unit = units switch
+        {
+            DynamicBlockReferencePropertyUnitsType.NoUnits => DrawingUnit.Scale,
+            DynamicBlockReferencePropertyUnitsType.Angular => DrawingUnit.Angle,
+            DynamicBlockReferencePropertyUnitsType.Distance => DrawingUnit.Distance,
+            DynamicBlockReferencePropertyUnitsType.Area => DrawingUnit.Area,
+            _ => null
+        };
+
+        return unit is { } knownUnit && value.IsFinite()
+            ? new DrawingNumberValue(value == 0 ? 0 : value, knownUnit)
+            : null;
     }
 
     private static string ReadAttributeValue(AttributeReference attribute)

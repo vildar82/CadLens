@@ -48,7 +48,7 @@ public sealed class PropertyFilterPresentationTests
             var content = Assert.IsAssignableFrom<FrameworkElement>(popup.Child);
             var controls = WpfTest.Descendants(content).OfType<ComboBox>().ToArray();
             var property = Assert.Single(controls, control => control.SelectedValuePath == "Id");
-            property.SelectedValue = DrawingPropertyId.Length;
+            property.SelectedValue = (DrawingPropertyKey) DrawingPropertyId.Length;
             Pump();
             var comparison = Assert.Single(
                 controls,
@@ -58,7 +58,7 @@ public sealed class PropertyFilterPresentationTests
             var input = Assert.IsType<TextBox>(view.FindName("PropertyFilterInput"));
             input.Text = "5";
             Pump();
-            Assert.Equal(DrawingPropertyId.Length, model.PropertyFilter.PropertyId);
+            Assert.Equal((DrawingPropertyKey) DrawingPropertyId.Length, model.PropertyFilter.PropertyId);
             Assert.Equal(DrawingFilterOperator.GreaterThan, model.PropertyFilter.Operator);
             Assert.Equal("5", model.PropertyFilter.InputText);
             var apply = Assert.Single(
@@ -112,7 +112,7 @@ public sealed class PropertyFilterPresentationTests
             Assert.Equal(["2", "3"], model.Current.Objects.Select(id => id.DisplayId));
             UiText.Current.Select(language, persist: false);
             input.Text = "5";
-            property.SelectedValue = DrawingPropertyId.Linetype;
+            property.SelectedValue = (DrawingPropertyKey) DrawingPropertyId.Linetype;
             Pump();
             var choice = Assert.IsType<ComboBox>(view.FindName("PropertyFilterValue"));
             choice.SelectedValue = new DrawingTextValue("ByLayer", true);
@@ -123,7 +123,7 @@ public sealed class PropertyFilterPresentationTests
                 UiText.Current.Get("ByLayer"),
                 WpfTest.Descendants(choice).OfType<TextBlock>().Select(block => block.Text));
             UiText.Current.Select(language, persist: false);
-            property.SelectedValue = DrawingPropertyId.Length;
+            property.SelectedValue = (DrawingPropertyKey) DrawingPropertyId.Length;
             comparison.SelectedValue = DrawingFilterOperator.GreaterThan;
             comparison.IsDropDownOpen = true;
             Pump();

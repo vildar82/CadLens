@@ -7,7 +7,7 @@ namespace CadLens.Lenses;
 /// <param name="Operator">Comparison to apply.</param>
 /// <param name="Value">Typed comparison value, with angles in radians.</param>
 public sealed record DrawingPropertyFilter(
-    DrawingPropertyId PropertyId,
+    DrawingPropertyKey PropertyId,
     DrawingFilterOperator Operator,
     DrawingValue Value)
 {
