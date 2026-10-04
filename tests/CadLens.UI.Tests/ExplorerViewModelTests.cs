@@ -6,7 +6,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using System.Windows;
 using CadLens.Lenses;
-using Common;
+using CadLens.Common;
 using Xunit;
 
 namespace CadLens.UI.Tests;

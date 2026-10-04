@@ -2,8 +2,8 @@ using System.Collections.Immutable;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using CadLens.Lenses;
-using Common;
-using Common.AutoCAD;
+using CadLens.Common;
+using CadLens.Common.AutoCAD;
 using Xunit;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 

@@ -75,7 +75,7 @@ public sealed class NavigationState
         ObjectIndex = IsObject ? _siblings.IndexOf(Current!) : -1;
     }
 
-    private bool TryRestoreObject(ImmutableArray<LensNode> nodes, Common.IPlacedObjectId identity)
+    private bool TryRestoreObject(ImmutableArray<LensNode> nodes, CadLens.Common.IPlacedObjectId identity)
     {
         foreach (var node in nodes)
         {

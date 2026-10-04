@@ -4,8 +4,8 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using CadLens.Lenses;
 using CadLens.UI;
-using Common;
-using Common.AutoCAD;
+using CadLens.Common;
+using CadLens.Common.AutoCAD;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace CadLens.AutoCAD;

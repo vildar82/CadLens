@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Markup;
 using CadLens.Lenses;
-using Common;
+using CadLens.Common;
 
 namespace CadLens.UI;
 

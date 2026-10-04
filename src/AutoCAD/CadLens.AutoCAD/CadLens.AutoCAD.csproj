@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="../../Common.AutoCAD/Common.AutoCAD.csproj"/>
+        <ProjectReference Include="../../CadLens.Common.AutoCAD/CadLens.Common.AutoCAD.csproj"/>
         <ProjectReference Include="../../CadLens.Lenses/CadLens.Lenses.csproj"/>
         <ProjectReference Include="../../CadLens.UI/CadLens.UI.csproj"/>
     </ItemGroup>

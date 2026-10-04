@@ -1,6 +1,6 @@
 ﻿using CadLens.Lenses;
 using System.Collections.Immutable;
-using Common;
+using CadLens.Common;
 
 namespace CadLens.UI;
 

@@ -8,7 +8,7 @@ using System.Windows.Interop;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
-using Common;
+using CadLens.Common;
 using JetBrains.Annotations;
 
 namespace CadLens.UI;

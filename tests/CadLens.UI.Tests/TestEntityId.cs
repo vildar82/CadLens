@@ -1,5 +1,5 @@
 using System.Globalization;
-using Common;
+using CadLens.Common;
 
 namespace CadLens.UI.Tests;
 

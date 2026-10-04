@@ -233,8 +233,8 @@ A successful GitHub Actions run also provides the ZIP as a build artifact; GitHu
 
 ### Project map
 
-- `Common` contains host results, typed ID contracts, and the object visualization contract without WPF or AutoCAD.
-- `Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary visual isolation, Focus, and bounds reading.
+- `CadLens.Common` contains host results, typed ID contracts, and the object visualization contract without WPF or AutoCAD.
+- `CadLens.Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary visual isolation, Focus, and bounds reading.
 - `CadLens.Lenses` groups detached drawing inventories by layer or object type and owns navigation state.
 - `CadLens.UI` owns the window, lens switching, and the shared object explorer view and view model.
 - `CadLens.AutoCAD` connects the UI to AutoCAD and owns plugin and panel lifetime.

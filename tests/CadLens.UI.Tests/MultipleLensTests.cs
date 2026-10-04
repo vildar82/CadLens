@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using Common;
+using CadLens.Common;
 using Xunit;
 
 namespace CadLens.UI.Tests;
