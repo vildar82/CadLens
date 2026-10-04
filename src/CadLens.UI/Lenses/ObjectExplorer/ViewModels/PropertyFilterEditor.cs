@@ -71,13 +71,14 @@ public sealed class PropertyFilterEditor : ObservableObject
 
     /// <summary>Units and numeric-input guidance.</summary>
     public string InputHint => UiText.Current.Get(
-        SampleValue is DrawingNumberValue number
-            ? number.Unit == DrawingUnit.Angle
-                ? "Enter degrees without digit grouping."
-                : number.Unit == DrawingUnit.Distance
-                    ? "Enter drawing units without digit grouping."
-                    : "Enter a number without digit grouping."
-            : "");
+        SampleValue switch
+        {
+            DrawingNumberValue {Unit: DrawingUnit.Angle} => "Enter degrees without digit grouping.",
+            DrawingNumberValue {Unit: DrawingUnit.Distance} => "Enter drawing units without digit grouping.",
+            DrawingNumberValue {Unit: DrawingUnit.Area} => "Enter square drawing units without digit grouping.",
+            DrawingNumberValue => "Enter a number without digit grouping.",
+            _ => ""
+        });
 
     /// <summary>Validation feedback; the applied condition remains unchanged.</summary>
     public string Error => UiText.Current.Get(_error);

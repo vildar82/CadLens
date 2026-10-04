@@ -8,6 +8,25 @@ public sealed class DrawingPropertyFilterTests
 {
     private const string PolylineType = "AcDbPolyline";
 
+    /// <summary>Area comparisons use square drawing units and do not treat missing geometry as zero.</summary>
+    [Fact]
+    public void AreaFilteringKeepsExactValuesAndUnits()
+    {
+        var filter = new DrawingPropertyFilter(
+            DrawingPropertyId.Area,
+            DrawingFilterOperator.GreaterThan,
+            new DrawingNumberValue(12.3451, DrawingUnit.Area));
+
+        Assert.True(filter.Matches(new DrawingNumberValue(12.3452, DrawingUnit.Area)));
+        Assert.False(filter.Matches(new DrawingNumberValue(12.3451, DrawingUnit.Area)));
+        Assert.False(filter.Matches(new DrawingNumberValue(12.3452, DrawingUnit.Distance)));
+        Assert.False(filter.Matches(null));
+
+        var zero = filter with {Operator = DrawingFilterOperator.Equal, Value = new DrawingNumberValue(0, DrawingUnit.Area)};
+        Assert.True(zero.Matches(new DrawingNumberValue(0, DrawingUnit.Area)));
+        Assert.False(zero.Matches(null));
+    }
+
     /// <summary>Comparisons use the original value, including differences below display precision.</summary>
     [Theory]
     [InlineData(DrawingFilterOperator.Equal, 12.3451, true)]

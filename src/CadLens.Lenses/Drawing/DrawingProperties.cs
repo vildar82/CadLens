@@ -29,6 +29,7 @@ public static class DrawingProperties
         DrawingPropertyId.Vertices => "Vertices",
         DrawingPropertyId.Closed => "Closed",
         DrawingPropertyId.Length => "Length",
+        DrawingPropertyId.Area => "Area",
         DrawingPropertyId.Width => "Constant width",
         DrawingPropertyId.Thickness => "Extrusion thickness",
         DrawingPropertyId.DefinitionEntities => "Definition entities",

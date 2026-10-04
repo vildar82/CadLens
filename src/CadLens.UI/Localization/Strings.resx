@@ -560,6 +560,12 @@
   <data name="Length" xml:space="preserve">
     <value>Length</value>
   </data>
+  <data name="Area" xml:space="preserve">
+    <value>Area</value>
+  </data>
+  <data name="Enter square drawing units without digit grouping." xml:space="preserve">
+    <value>Enter square drawing units without digit grouping.</value>
+  </data>
   <data name="Constant width" xml:space="preserve">
     <value>Constant width</value>
   </data>

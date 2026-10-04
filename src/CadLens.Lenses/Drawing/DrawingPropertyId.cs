@@ -64,5 +64,7 @@ public enum DrawingPropertyId
     /// <summary>Plain text contents.</summary>
     Text,
     /// <summary>Assigned text style name.</summary>
-    TextStyle
+    TextStyle,
+    /// <summary>Native curve or hatch area in square drawing units.</summary>
+    Area
 }
