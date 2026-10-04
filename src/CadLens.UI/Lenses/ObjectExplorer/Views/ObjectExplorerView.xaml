@@ -252,7 +252,8 @@
                                                 CommandParameter="{Binding}"
                                                 Content="{ui:Localize Binding={Binding Id}}"
                                                 IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                                Style="{StaticResource QuietCheckBox}" />
+                                                Style="{StaticResource QuietCheckBox}"
+                                                ToolTip="{ui:Localize Binding={Binding Id}}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -316,7 +317,8 @@
                                                 Click="DisplayPropertyClicked"
                                                 Command="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                 CommandParameter="{Binding}"
-                                                Style="{StaticResource ModeRow}">
+                                                Style="{StaticResource ModeRow}"
+                                                ToolTip="{ui:Localize Binding={Binding Id}}">
                                                 <DockPanel>
                                                     <TextBlock
                                                         Margin="7,0,0,0"
@@ -387,10 +389,14 @@
                                     AutomationProperties.Name="{ui:Localize 'Property'}"
                                     ItemsSource="{Binding PropertyFilter.PropertyOptions}"
                                     SelectedValue="{Binding PropertyFilter.PropertyId}"
-                                    SelectedValuePath="Id">
+                                    SelectedValuePath="Id"
+                                    ToolTip="{ui:Localize Binding={Binding PropertyFilter.PropertyId}}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{ui:Localize Binding={Binding Id}}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Text="{ui:Localize Binding={Binding Id}}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{ui:Localize Binding={Binding Id}}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
