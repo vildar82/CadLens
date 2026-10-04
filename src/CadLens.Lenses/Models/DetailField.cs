@@ -5,11 +5,13 @@
 /// <param name="Value">Formatted field value.</param>
 /// <param name="ValueKind">Explicit formatting and localization behavior.</param>
 /// <param name="TypedValue">Detached value for typed formatting.</param>
+/// <param name="IsLabelRaw">Preserve a drawing-owned label instead of translating it.</param>
 public sealed record DetailField(
     string Label,
     string Value,
     DetailValueKind ValueKind = DetailValueKind.RawText,
-    DrawingValue? TypedValue = null);
+    DrawingValue? TypedValue = null,
+    bool IsLabelRaw = false);
 
 /// <summary>How to display a detail without guessing from its label.</summary>
 public enum DetailValueKind

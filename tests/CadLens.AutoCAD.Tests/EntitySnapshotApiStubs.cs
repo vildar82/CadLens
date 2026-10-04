@@ -98,7 +98,11 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal bool IsDynamicBlock { get; init; }
         internal ObjectId BlockTableRecord { get; init; }
         internal ObjectId DynamicBlockTableRecord { get; init; }
-        internal List<ObjectId> AttributeCollection { get; } = [];
+        private readonly List<ObjectId> _attributes = [];
+        internal Runtime.ErrorStatus? AttributesError { get; init; }
+        internal List<ObjectId> AttributeCollection => AttributesError is { } error
+            ? throw new Runtime.Exception(error)
+            : _attributes;
     }
 
     internal enum HatchPatternType { PreDefined }
@@ -151,15 +155,35 @@ namespace Autodesk.AutoCAD.DatabaseServices
     internal class DBText : Entity
     {
         internal double Height { get; init; }
-        internal string TextString { get; set; } = "";
+        private string _text = "";
+        internal Runtime.ErrorStatus? TextError { get; init; }
+        internal string TextString
+        {
+            get => TextError is { } error ? throw new Runtime.Exception(error) : _text;
+            set => _text = value;
+        }
         internal string TextStyleName { get; init; } = "";
+    }
+
+    internal sealed class AttributeReference : DBText
+    {
+        private string _tag = "";
+        internal Runtime.ErrorStatus? TagError { get; init; }
+        internal string Tag
+        {
+            get => TagError is { } error ? throw new Runtime.Exception(error) : _tag;
+            init => _tag = value;
+        }
+        internal bool IsMTextAttribute { get; init; }
+        internal MText MTextAttribute { get; init; } = new();
     }
 
     internal sealed class MText : Entity, IDisposable
     {
+        internal bool IsDisposed { get; private set; }
         internal double TextHeight { get; init; }
         internal string Text { get; init; } = "";
         internal string TextStyleName { get; init; } = "";
-        public void Dispose() { }
+        public void Dispose() => IsDisposed = true;
     }
 }

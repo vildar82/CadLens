@@ -27,7 +27,8 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             new LayerId(entity.LayerId),
             entity.GetRXClass().Name,
             properties.ToImmutableDictionary(),
-            metric);
+            metric,
+            entity is BlockReference block ? ReadBlockAttributes(block) : default);
     }
 
     private static void ReadAppearance(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
@@ -209,6 +210,40 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             ReadText(() => nameDefinition.Name) ?? ReadText(() => definition.Name);
 
         return DrawingPropertyId.DefinitionEntities;
+    }
+
+    private ImmutableArray<BlockAttributeSnapshot> ReadBlockAttributes(BlockReference block)
+    {
+        try
+        {
+            var attributes = new List<BlockAttributeSnapshot>();
+
+            foreach (ObjectId id in block.AttributeCollection)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var attribute = ReadOptional(() => id.GetObject<AttributeReference>());
+                attributes.Add(attribute is null
+                    ? new BlockAttributeSnapshot(null, null)
+                    : new BlockAttributeSnapshot(
+                        ReadOptional(() => attribute.Tag),
+                        ReadOptional(() => ReadAttributeValue(attribute))));
+            }
+
+            return [.. attributes];
+        }
+        catch (Exception exception) when (IsUnavailable(exception))
+        {
+            return default;
+        }
+    }
+
+    private static string ReadAttributeValue(AttributeReference attribute)
+    {
+        if (!attribute.IsMTextAttribute)
+            return attribute.TextString;
+
+        using var text = attribute.MTextAttribute;
+        return text.Text;
     }
 
     private DrawingNumberValue? ReadBlockEntityCount(BlockTableRecord definition, bool? isExternal)
