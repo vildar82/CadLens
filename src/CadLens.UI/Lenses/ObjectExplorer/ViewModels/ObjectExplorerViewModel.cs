@@ -8,7 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 namespace CadLens.UI;
 
 /// <summary>Drawing overview and asynchronous operations for the modeless panel.</summary>
-public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
+public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposable
 {
     private readonly IObjectExplorerActions _actions;
     private readonly DrawingGrouping _grouping;
@@ -121,6 +121,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         SortByNameCommand = new RelayCommand(() => ChangeSort(false));
         SortByCountCommand = new RelayCommand(() => ChangeSort(true));
         ClearSearchCommand = new RelayCommand(() => SearchText = "");
+        InitializeSavedFilters();
         RestorePreferences();
     }
 
@@ -354,9 +355,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
             if (_inventory is null || GroupingTypeKey is not { } typeKey)
                 return [];
 
-            ImmutableArray<DrawingPropertyId> selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
+            var selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
                 ? fields
-                : [];
+                : ImmutableArray<DrawingPropertyId>.Empty;
             return
             [
                 .. AvailableProperties
@@ -645,7 +646,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
 
             foreach (var name in pair.Value ?? [])
             {
-                if (Enum.TryParse<DrawingPropertyId>(name, out var id) && Enum.IsDefined(typeof(DrawingPropertyId), id))
+                if (Enum.TryParse<DrawingPropertyId>(name, out var id) && IsKnownProperty(id))
                     fields.Add(id);
             }
 
@@ -655,7 +656,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         foreach (var pair in preferences.DisplayProperties ?? [])
         {
             if (Enum.TryParse<DrawingPropertyId>(pair.Value, out var id) &&
-                Enum.IsDefined(typeof(DrawingPropertyId), id))
+                IsKnownProperty(id))
                 _displayProperties[pair.Key] = id;
         }
     }
@@ -705,11 +706,20 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         string Label(LensNode node) => DrawingValueFormatter.FormatLabel(node, Precision);
     }
 
+    private static bool IsKnownProperty(DrawingPropertyId id) =>
+#if NETFRAMEWORK
+        Enum.IsDefined(typeof(DrawingPropertyId), id);
+#else
+        Enum.IsDefined(id);
+#endif
+
     private void UpdateVisibleGroups()
     {
-        var groups = Groups.Where(group => group.Label.IndexOf(
-            SearchText.Trim(),
-            StringComparison.OrdinalIgnoreCase) >= 0);
+#if NETFRAMEWORK
+        var groups = Groups.Where(group => group.Label.IndexOf(SearchText.Trim(), StringComparison.OrdinalIgnoreCase) >= 0);
+#else
+        var groups = Groups.Where(group => group.Label.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase));
+#endif
         _visibleGroups = [.. OrderItems(groups)];
         _navigation.SetItemOrder(OrderItems);
         OnPropertyChanged(nameof(Items));
@@ -833,6 +843,7 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         SelectDisplayPropertyCommand.NotifyCanExecuteChanged();
         ApplyPropertyFilterCommand.NotifyCanExecuteChanged();
         ClearPropertyFilterCommand.NotifyCanExecuteChanged();
+        NotifySavedFilterCommands();
         ToggleAutoIsolationCommand.NotifyCanExecuteChanged();
         ToggleAutoSelectCommand.NotifyCanExecuteChanged();
         ToggleAutoFocusCommand.NotifyCanExecuteChanged();
@@ -1107,6 +1118,8 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         {
             _filterOptionsType = type;
             PropertyFilter.Load(type?.Children ?? [], AppliedPropertyFilter);
+            RefreshSavedFilters();
+            SetSavedFilterMessage("");
         }
 
         OnPropertyChanged(nameof(Items));
@@ -1155,9 +1168,9 @@ public sealed class ObjectExplorerViewModel : ObservableObject, IDisposable
         if (_inventory is null || GroupingTypeKey is not { } typeKey)
             return "Grouping unavailable.";
 
-        ImmutableArray<DrawingPropertyId> selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
+        var selected = _propertyGrouping.TryGetValue(typeKey, out var fields)
             ? fields
-            : [];
+            : ImmutableArray<DrawingPropertyId>.Empty;
         _propertyGrouping[typeKey] = option.IsSelected
             ? selected.Remove(option.Id)
             : [.. selected.Add(option.Id).Distinct().OrderBy(item => item)];
