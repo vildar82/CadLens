@@ -710,4 +710,10 @@
   <data name="Property filter updated." xml:space="preserve">
     <value>Property filter updated.</value>
   </data>
+  <data name="Total length: {0} drawing units" xml:space="preserve">
+    <value>Total length: {0} drawing units</value>
+  </data>
+  <data name="{0:N0} unavailable" xml:space="preserve">
+    <value>{0:N0} unavailable</value>
+  </data>
 </root>

@@ -5,6 +5,18 @@
     <ResourceDictionary.MergedDictionaries>
         <ui:QuietTheme />
     </ResourceDictionary.MergedDictionaries>
+    <Style x:Key="ModeLengthTotal" TargetType="TextBlock">
+        <Setter Property="Margin" Value="0,3,0,0" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{DynamicResource QuietMuted}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
     <Style x:Key="ModeControl" TargetType="ButtonBase">
         <Setter Property="Foreground" Value="{DynamicResource QuietText}" />
         <Setter Property="Background" Value="{DynamicResource QuietSurface}" />

@@ -66,3 +66,8 @@ public sealed record DrawingProperty(DrawingPropertyId Id, DrawingValue? Value);
 /// <param name="Id">Measurement identity used for the column header.</param>
 /// <param name="Value">Measurement, or null when unavailable.</param>
 public sealed record DrawingMetric(DrawingPropertyId Id, DrawingNumberValue? Value);
+
+/// <summary>Length in drawing units, with excluded unavailable values counted separately.</summary>
+/// <param name="Value">Unrounded sum, or null when no usable total exists.</param>
+/// <param name="UnavailableCount">Targets without a usable length, including missing properties.</param>
+public sealed record DrawingLengthTotal(double? Value, int UnavailableCount);

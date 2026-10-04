@@ -104,7 +104,11 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <Grid Margin="0,0,0,7">
+            <Grid Margin="0,0,0,1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <DockPanel Margin="1,2">
                     <DockPanel.Style>
                         <Style TargetType="DockPanel">
@@ -126,7 +130,7 @@
                         FontWeight="SemiBold"
                         Text="{Binding GroupSummary}" />
                 </DockPanel>
-                <DockPanel Visibility="{Binding HasCurrent, Converter={StaticResource BooleanVisibility}}">
+                <DockPanel Grid.Row="0" Visibility="{Binding HasCurrent, Converter={StaticResource BooleanVisibility}}">
                     <Button
                         x:Name="BackAction"
                         Width="30"
@@ -180,6 +184,17 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </DockPanel>
+                <TextBlock
+                    x:Name="CurrentLengthTotal"
+                    Grid.Row="1"
+                    Margin="0"
+                    Style="{StaticResource ModeLengthTotal}"
+                    Text="{ui:DrawingValueFormatter Binding={Binding Current},
+                                                    LengthTotal=True}"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap"
+                    ToolTip="{ui:DrawingValueFormatter Binding={Binding Current},
+                                                       LengthTotal=True}" />
             </Grid>
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
@@ -699,12 +714,14 @@
                                                                            ValueToolTip=True,
                                                                            PropertyBinding={Binding DataContext.DisplayPropertyId,
                                                                                                     RelativeSource={RelativeSource AncestorType=UserControl}}}" />
-                                    <TextBlock
-                                        MaxHeight="34"
-                                        VerticalAlignment="Center"
-                                        Text="{ui:DrawingValueFormatter Binding={Binding}}"
-                                        TextTrimming="CharacterEllipsis"
-                                        TextWrapping="Wrap" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock
+                                            MaxHeight="34"
+                                            Text="{ui:DrawingValueFormatter Binding={Binding}}"
+                                            TextTrimming="CharacterEllipsis"
+                                            TextWrapping="Wrap" />
+                                        <TextBlock Style="{StaticResource ModeLengthTotal}" Text="{ui:DrawingValueFormatter Binding={Binding}, LengthTotal=True}" />
+                                    </StackPanel>
                                 </DockPanel>
                             </Button>
                         </DataTemplate>

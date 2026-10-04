@@ -710,4 +710,10 @@
   <data name="Property filter updated." xml:space="preserve">
     <value>Фильтр по свойству обновлён.</value>
   </data>
+  <data name="Total length: {0} drawing units" xml:space="preserve">
+    <value>Общая длина: {0} ед. чертежа</value>
+  </data>
+  <data name="{0:N0} unavailable" xml:space="preserve">
+    <value>Недоступно: {0:N0}</value>
+  </data>
 </root>

@@ -23,13 +23,16 @@ public sealed class DrawingValueFormatter : MarkupExtension
     /// <summary>Whether to show the full selected object value or its unavailability explanation.</summary>
     public bool ValueToolTip { get; set; }
 
+    /// <summary>Whether to show the group's total length and unavailable count.</summary>
+    public bool LengthTotal { get; set; }
+
     /// <inheritdoc />
     public override object ProvideValue(IServiceProvider serviceProvider)
     {
         var binding = new MultiBinding
         {
             Mode = BindingMode.OneWay,
-            Converter = new NodeTextConverter(Metric, ValueToolTip)
+            Converter = new NodeTextConverter(Metric, ValueToolTip, LengthTotal)
         };
         binding.Bindings.Add(Binding ?? new Binding());
         binding.Bindings.Add(new Binding(nameof(UiText.Culture)) {Source = UiText.Current});
@@ -95,6 +98,22 @@ public sealed class DrawingValueFormatter : MarkupExtension
         _ => "—"
     };
 
+    /// <summary>Formats a length total without implying zero when every value is unavailable.</summary>
+    /// <param name="total">Detached total, or null when length does not apply.</param>
+    /// <param name="precision">Detached drawing precision.</param>
+    public static string FormatLengthTotal(DrawingLengthTotal? total, DrawingPrecision? precision = null)
+    {
+        if (total is null)
+            return string.Empty;
+
+        var value = total.Value is { } length ? new DrawingNumberValue(length, DrawingUnit.Distance) : null;
+        var text = new UiMessage("Total length: {0} drawing units", FormatValue(value, precision)).ToString();
+
+        return total.UnavailableCount == 0
+            ? text
+            : $"{text} · {new UiMessage("{0:N0} unavailable", total.UnavailableCount)}";
+    }
+
     internal static Binding PrecisionBinding() => new("DataContext.Precision")
     {
         RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(ObjectExplorerView), 1)
@@ -152,7 +171,7 @@ public sealed class DrawingValueFormatter : MarkupExtension
         _ => $"{((255 - transparency.Alpha) * 100d / 255).ToString("0.#", UiText.Current.Culture)}%"
     };
 
-    private sealed class NodeTextConverter(bool metric, bool valueToolTip) : IMultiValueConverter
+    private sealed class NodeTextConverter(bool metric, bool valueToolTip, bool lengthTotal) : IMultiValueConverter
     {
         public object Convert(object?[] values, Type targetType, object parameter, CultureInfo culture)
         {
@@ -161,6 +180,9 @@ public sealed class DrawingValueFormatter : MarkupExtension
 
             DrawingPropertyId? propertyId = values[2] is DrawingPropertyId selected ? selected : null;
             var precision = values[3] as DrawingPrecision ?? DrawingPrecision.Default;
+
+            if (lengthTotal)
+                return node.Kind == LensNodeKind.Object ? string.Empty : FormatLengthTotal(node.LengthTotal, precision);
 
             if (!valueToolTip)
                 return metric ? FormatMetric(node, propertyId, precision) : FormatLabel(node, precision);

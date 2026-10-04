@@ -59,6 +59,18 @@ public static class DrawingProperties
     public static DrawingMetric? GetPrimaryMetric(EntitySnapshot entity) =>
         entity.PrimaryMetric is { } id ? new DrawingMetric(id, ReadValue(entity, id) as DrawingNumberValue) : null;
 
+    /// <summary>Reads a declared length independently of the object's primary row measurement.</summary>
+    /// <param name="entity">Detached entity facts.</param>
+    public static DrawingLengthTotal? GetLengthTotal(EntitySnapshot entity)
+    {
+        if (entity.Properties?.ContainsKey(DrawingPropertyId.Length) != true)
+            return null;
+
+        return ReadValue(entity, DrawingPropertyId.Length) is DrawingNumberValue {Unit: DrawingUnit.Distance} length
+            ? new DrawingLengthTotal(length.Value, 0)
+            : new DrawingLengthTotal(null, 1);
+    }
+
     /// <summary>Reads a property, using assigned layer metadata when the snapshot does not include it.</summary>
     /// <param name="entity">Detached entity facts.</param>
     /// <param name="layer">Assigned layer metadata.</param>

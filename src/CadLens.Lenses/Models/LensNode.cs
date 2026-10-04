@@ -14,6 +14,7 @@ namespace CadLens.Lenses;
 /// <param name="TypeKey">Runtime type owning type-scoped grouping controls.</param>
 /// <param name="Properties">Composite grouping values.</param>
 /// <param name="RowMetric">Object row measurement or the parent column identity.</param>
+/// <param name="LengthTotal">Unrounded length and unavailable count for this node's targets.</param>
 public sealed record LensNode(
     string Id,
     string Label,
@@ -24,7 +25,8 @@ public sealed record LensNode(
     LensNodeKind Kind = LensNodeKind.GenericGroup,
     string? TypeKey = null,
     ImmutableArray<DrawingProperty> Properties = default,
-    DrawingMetric? RowMetric = null)
+    DrawingMetric? RowMetric = null,
+    DrawingLengthTotal? LengthTotal = null)
 {
     /// <summary>Number of objects represented by this node.</summary>
     public int Count => Objects.Length;

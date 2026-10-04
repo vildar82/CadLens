@@ -165,7 +165,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             types,
             CreateLayerDetails(layer),
             [LensAction.Focus],
-            LensNodeKind.Layer);
+            LensNodeKind.Layer,
+            LengthTotal: GetLengthTotal(types));
     }
 
     private static ImmutableArray<LensNode> CreateTypeGroups(
@@ -214,7 +215,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             [LensAction.Focus],
             LensNodeKind.Type,
             entities.Key,
-            RowMetric: metric);
+            RowMetric: metric,
+            LengthTotal: GetLengthTotal(objects));
     }
 
     private static LensNode CreateObjectNode(
@@ -247,7 +249,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 .. DrawingProperties.GetAvailableFields([entity]).Select(id =>
                     new DrawingProperty(id, DrawingProperties.GetValue(entity, layer, id)))
             ],
-            RowMetric: DrawingProperties.GetPrimaryMetric(entity));
+            RowMetric: DrawingProperties.GetPrimaryMetric(entity),
+            LengthTotal: DrawingProperties.GetLengthTotal(entity));
     }
 
     private static ImmutableArray<DetailField> CreateLayerDetails(LayerSnapshot layer) =>
@@ -336,7 +339,36 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             LensNodeKind.PropertyGroup,
             first.TypeKey,
             key.Properties,
-            GetCommonMetric(objects));
+            GetCommonMetric(objects),
+            GetLengthTotal(objects));
+    }
+
+    private static DrawingLengthTotal? GetLengthTotal(IEnumerable<LensNode> nodes)
+    {
+        var hasLength = false;
+        var hasValue = false;
+        var sum = 0d;
+        var unavailable = 0;
+
+        foreach (var node in nodes)
+        {
+            if (node.LengthTotal is not { } total)
+            {
+                unavailable += node.Count;
+                continue;
+            }
+
+            hasLength = true;
+            unavailable += total.UnavailableCount;
+
+            if (node.Count == total.UnavailableCount)
+                continue;
+
+            hasValue = true;
+            sum += total.Value ?? double.NaN;
+        }
+
+        return hasLength ? new DrawingLengthTotal(hasValue && sum.IsFinite() ? sum : null, unavailable) : null;
     }
 
     private static DrawingMetric? GetCommonMetric(IEnumerable<LensNode> objects)

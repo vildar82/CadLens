@@ -18,9 +18,11 @@ public sealed class PropertyFilterTests
         var actions = new Actions();
         using var model = new ObjectExplorerViewModel(actions, grouping);
         await EnterType(model, grouping);
+        Assert.Equal(new DrawingLengthTotal(31.5, 1), model.Current!.LengthTotal);
         await ApplyNumber(model, DrawingPropertyId.Length, DrawingFilterOperator.GreaterThan, "5");
 
         Assert.Equal(["2", "3"], model.Current!.Objects.Select(id => id.DisplayId));
+        Assert.Equal(new DrawingLengthTotal(30, 0), model.Current.LengthTotal);
         Assert.Equal(2, model.ObjectCount);
         await model.ToggleGroupingCommand.ExecuteAsync(
             model.GroupingOptions.Single(option => option.Id == DrawingPropertyId.Color));
@@ -36,6 +38,7 @@ public sealed class PropertyFilterTests
         await model.ClearPropertyFilterCommand.ExecuteAsync(null);
         Assert.Null(model.AppliedPropertyFilter);
         Assert.Equal(4, model.Current.Count);
+        Assert.Equal(new DrawingLengthTotal(31.5, 1), model.Current.LengthTotal);
         Assert.Equal(4, model.Items.Sum(node => node.Count));
         Assert.Equal(1, actions.ReadCount);
     }

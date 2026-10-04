@@ -108,6 +108,14 @@ or asks you to select objects when nothing is selected, then reads them immediat
 and keep the previous view. Only live direct objects in the active space are included. The existing
 off/frozen inclusion filters still apply.
 
+Groups containing length properties show **Total length** in drawing units, using the drawing's
+linear precision. Totals include only the group's current targets, including any property filter.
+Missing, unavailable, and nonfinite lengths are excluded and counted as unavailable; groups with
+no usable lengths show an unavailable marker instead of zero. Groups without length properties
+omit the total. Values are summed before display rounding, without unit conversion or traversal
+of block and xref contents. Grouping and filtering recalculate from the retained inventory;
+use **Refresh** after editing geometry.
+
 Navigation, grouping, inclusion-filter changes, Reset, and Select/Auto Select keep the captured inventory.
 Collapsing the panel or switching lenses also keeps each lens's selected inventory and navigation.
 **Refresh selected objects** also uses the current CAD selection or asks you to select objects, then
