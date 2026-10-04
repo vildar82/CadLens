@@ -16,3 +16,5 @@ artifacts/modes-*/
 artifacts/bundle/
 artifacts/drawing-presentation/
 artifacts/autodesk-profile/
+artifacts/property-filter/
+artifacts/test-results/

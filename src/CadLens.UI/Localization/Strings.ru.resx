@@ -650,4 +650,64 @@
   <data name="Choose the property shown in object rows" xml:space="preserve">
     <value>Выберите свойство для отображения в строках объектов</value>
   </data>
+  <data name="Filter by property" xml:space="preserve">
+    <value>Фильтр по свойству</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>Фильтр</value>
+  </data>
+  <data name="Property" xml:space="preserve">
+    <value>Свойство</value>
+  </data>
+  <data name="Comparison" xml:space="preserve">
+    <value>Условие</value>
+  </data>
+  <data name="Value" xml:space="preserve">
+    <value>Значение</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Применить</value>
+  </data>
+  <data name="Clear filter" xml:space="preserve">
+    <value>Сбросить фильтр</value>
+  </data>
+  <data name="Equals" xml:space="preserve">
+    <value>Равно</value>
+  </data>
+  <data name="Does not equal" xml:space="preserve">
+    <value>Не равно</value>
+  </data>
+  <data name="Less than" xml:space="preserve">
+    <value>Меньше</value>
+  </data>
+  <data name="Less than or equal" xml:space="preserve">
+    <value>Меньше или равно</value>
+  </data>
+  <data name="Greater than" xml:space="preserve">
+    <value>Больше</value>
+  </data>
+  <data name="Greater than or equal" xml:space="preserve">
+    <value>Больше или равно</value>
+  </data>
+  <data name="Contains" xml:space="preserve">
+    <value>Содержит</value>
+  </data>
+  <data name="Enter degrees without digit grouping." xml:space="preserve">
+    <value>Введите градусы без разделителей разрядов.</value>
+  </data>
+  <data name="Enter drawing units without digit grouping." xml:space="preserve">
+    <value>Введите единицы чертежа без разделителей разрядов.</value>
+  </data>
+  <data name="Enter a number without digit grouping." xml:space="preserve">
+    <value>Введите число без разделителей разрядов.</value>
+  </data>
+  <data name="Enter a valid filter value." xml:space="preserve">
+    <value>Введите допустимое значение фильтра.</value>
+  </data>
+  <data name="No objects match the property filter." xml:space="preserve">
+    <value>Нет объектов, соответствующих фильтру по свойству.</value>
+  </data>
+  <data name="Property filter updated." xml:space="preserve">
+    <value>Фильтр по свойству обновлён.</value>
+  </data>
 </root>
