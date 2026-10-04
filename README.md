@@ -164,6 +164,7 @@ appears beside each object and controls value sorting. Numeric values sort numer
 properties use their typed values. Click the value column header to reverse the order; Previous/Next
 follows the displayed order. Unavailable values display a dash and sort last. Geometry distances use
 drawing units; assigned lineweights use millimeters. The displayed property is saved per lens and type.
+Group rows show object counts; open a group to enable **Show property** for its individual object rows.
 
 **Area** is available for every curve and hatch in details, **Show property**, and **Group by**; values
 that AutoCAD can calculate also support numeric filtering. Area uses square drawing units and `LUPREC`

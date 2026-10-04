@@ -656,6 +656,9 @@
   <data name="Choose the property shown in object rows" xml:space="preserve">
     <value>Choose the property shown in object rows</value>
   </data>
+  <data name="Open a group to choose the property shown in object rows" xml:space="preserve">
+    <value>Open a group to choose the property shown in object rows</value>
+  </data>
   <data name="Filter by property" xml:space="preserve">
     <value>Filter by property</value>
   </data>

@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -100,6 +102,8 @@ public sealed class DrawingPresentationTests
                         Assert.IsType<SolidColorBrush>(glyph.Stroke).Color);
                     Assert.Equal(Visibility.Collapsed, focusRing.Visibility);
                     popup.IsOpen = false;
+                    model.EnterCommand.ExecuteAsync(Assert.Single(model.Items)).GetAwaiter().GetResult();
+                    FlushDispatcher();
                     var propertySelector = Assert.IsType<ToggleButton>(content.FindName("DisplayPropertyAction"));
                     var propertyPopup = Assert.IsType<Popup>(content.FindName("DisplayPropertyPopup"));
                     Click(propertySelector);
@@ -243,6 +247,121 @@ public sealed class DrawingPresentationTests
                 window.Close();
             }
         });
+    }
+
+    /// <summary>Real popup activation repeatedly changes rendered builtin, attribute, and dynamic values.</summary>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers)]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    public void PropertyPopupSwitchesRenderedValuesRepeatedly(DrawingGrouping grouping)
+    {
+        var previous = UiText.Current.Preference;
+
+        try
+        {
+            UiText.Current.Select(LanguagePreference.English, persist: false);
+            WpfTest.Run(() =>
+            {
+                var layer = new LayerId("Raw layer");
+                var attribute = DrawingPropertyKey.ForAttribute("MARK");
+                var dynamic = DrawingPropertyKey.ForDynamicBlock("Width");
+                var inventory = new DrawingInventory(
+                    "Model space",
+                    [new LayerSnapshot(layer, layer.DisplayId, false, false, false, false)],
+                    [.. Enumerable.Range(1, 2).Select(index => new EntitySnapshot(
+                        new TestEntityId(index),
+                        layer,
+                        "AcDbBlockReference",
+                        ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty
+                            .Add(DrawingPropertyId.BlockName, new DrawingTextValue("Door"))
+                            .Add(DrawingPropertyId.Attributes, new DrawingNumberValue(index, DrawingUnit.Count)),
+                        DrawingPropertyId.Attributes,
+                        BlockAttributes: [new BlockAttributeSnapshot("MARK", index == 1 ? "A" : "B")],
+                        DynamicBlockProperties: [new DynamicBlockPropertySnapshot(
+                            "Width", new DrawingNumberValue(index == 1 ? 42.5 : 125.25, DrawingUnit.Distance))]))]);
+                using var lens = new ObjectExplorerLens(new Actions(inventory), grouping);
+                using var shell = new ExplorerViewModel([lens]);
+                shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
+                var model = lens.ViewModel;
+
+                if (grouping == DrawingGrouping.Layers)
+                    model.EnterCommand.ExecuteAsync(Assert.Single(model.Items)).GetAwaiter().GetResult();
+
+                model.EnterCommand.ExecuteAsync(Assert.Single(model.Items)).GetAwaiter().GetResult();
+                using var windowSettings = new SettingsFile();
+                var window = new ExplorerWindow(shell, settings: windowSettings.Service)
+                {
+                    ShowActivated = false, Left = -10000, Top = -10000
+                };
+
+                try
+                {
+                    window.Show();
+                    window.Width = 300;
+                    window.Height = 660;
+                    FlushDispatcher();
+                    var content = (ObjectExplorerView) shell.ActiveView!;
+                    var selector = Assert.IsType<ToggleButton>(content.FindName("DisplayPropertyAction"));
+                    var popup = Assert.IsType<Popup>(content.FindName("DisplayPropertyPopup"));
+                    Select(DrawingPropertyId.Layer, "Raw layer", "Raw layer");
+                    Select(attribute, "A", "B");
+                    Select(dynamic, "42.5", "125.25");
+                    Select(DrawingPropertyId.Attributes, "1", "2");
+                    Select(dynamic, "42.5", "125.25");
+                    ToggleBlockGrouping();
+                    Assert.False(selector.IsEnabled);
+                    Assert.Equal("Open a group to choose the property shown in object rows", selector.ToolTip);
+                    Assert.True(ToolTipService.GetShowOnDisabled(selector));
+                    Assert.Equal(dynamic, model.DisplayPropertyId);
+                    model.EnterCommand.ExecuteAsync(Assert.Single(model.Items)).GetAwaiter().GetResult();
+                    FlushDispatcher();
+                    Assert.True(selector.IsEnabled);
+                    Select(attribute, "A", "B");
+                    Select(dynamic, "42.5", "125.25");
+                    model.BackCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+                    FlushDispatcher();
+                    Assert.False(selector.IsEnabled);
+                    Assert.Equal(dynamic, model.DisplayPropertyId);
+                    ToggleBlockGrouping();
+                    Assert.True(selector.IsEnabled);
+                    Select(DrawingPropertyId.Attributes, "1", "2");
+
+                    void ToggleBlockGrouping()
+                    {
+                        model.ToggleGroupingCommand.ExecuteAsync(model.GroupingOptions.Single(option =>
+                            option.Id == DrawingPropertyId.BlockName)).GetAwaiter().GetResult();
+                        FlushDispatcher();
+                    }
+
+                    void Select(DrawingPropertyKey key, params string[] expected)
+                    {
+                        Click(selector);
+                        FlushDispatcher();
+                        Assert.True(popup.IsOpen);
+                        var button = WpfTest.Descendants(popup.Child).OfType<Button>()
+                            .Single(option => option.CommandParameter is GroupingOption item && item.Id == key);
+                        var invoke = Assert.IsAssignableFrom<IInvokeProvider>(
+                            new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke));
+                        invoke.Invoke();
+                        FlushDispatcher();
+                        Assert.False(popup.IsOpen);
+                        Assert.Equal(key, model.DisplayPropertyId);
+                        Assert.Equal(expected, WpfTest.Descendants(content).OfType<TextBlock>()
+                            .Where(block => block.DataContext is LensNode {Kind: LensNodeKind.Object} &&
+                                            DockPanel.GetDock(block) == Dock.Right && block.ToolTip is string)
+                            .Select(block => block.Text));
+                    }
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+        finally
+        {
+            UiText.Current.Select(previous, persist: false);
+        }
     }
 
     /// <summary>Long selected text stays inside its column and remains available in the tooltip.</summary>

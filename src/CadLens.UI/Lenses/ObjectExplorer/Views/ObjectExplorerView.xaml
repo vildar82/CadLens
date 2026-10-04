@@ -268,7 +268,8 @@
                         AutomationProperties.Name="{ui:Localize 'Show property'}"
                         FontSize="11"
                         Style="{StaticResource ModeToggle}"
-                        ToolTip="{ui:Localize 'Choose the property shown in object rows'}">
+                        IsEnabled="{Binding CanShowProperty}"
+                        ToolTip="{ui:Localize Binding={Binding DisplayPropertyHint}}">
                         <DockPanel>
                             <TextBlock
                                 Margin="8,0,0,0"

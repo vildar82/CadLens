@@ -251,6 +251,15 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     /// <summary>Whether properties of the current primitive type can be combined.</summary>
     public bool CanGroup => _inventory is not null && GroupingTypeKey is not null;
 
+    /// <summary>Whether the current rows can display a selected object property.</summary>
+    public bool CanShowProperty => CanGroup && Current is { } node &&
+                                   node.Children.All(child => child.Kind != LensNodeKind.PropertyGroup);
+
+    /// <summary>Explains where the selected object property is displayed.</summary>
+    public string DisplayPropertyHint => CanShowProperty
+        ? "Choose the property shown in object rows"
+        : "Open a group to choose the property shown in object rows";
+
     /// <summary>Draft property condition, independent of the current result.</summary>
     public PropertyFilterEditor PropertyFilter { get; } = new();
 
@@ -1148,6 +1157,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         OnPropertyChanged(nameof(CanGroup));
         OnPropertyChanged(nameof(GroupingOptions));
         OnPropertyChanged(nameof(GroupingSummary));
+        OnPropertyChanged(nameof(CanShowProperty));
+        OnPropertyChanged(nameof(DisplayPropertyHint));
         OnPropertyChanged(nameof(DisplayPropertyId));
         OnPropertyChanged(nameof(DisplayPropertyLabel));
         OnPropertyChanged(nameof(DisplayPropertyOptions));

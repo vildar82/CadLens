@@ -656,6 +656,9 @@
   <data name="Choose the property shown in object rows" xml:space="preserve">
     <value>Выберите свойство для отображения в строках объектов</value>
   </data>
+  <data name="Open a group to choose the property shown in object rows" xml:space="preserve">
+    <value>Откройте группу, чтобы выбрать свойство для строк объектов</value>
+  </data>
   <data name="Filter by property" xml:space="preserve">
     <value>Фильтр по свойству</value>
   </data>
