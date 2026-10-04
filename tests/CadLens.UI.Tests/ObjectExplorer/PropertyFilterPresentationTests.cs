@@ -50,8 +50,10 @@ public sealed class PropertyFilterPresentationTests
             var property = Assert.Single(controls, control => control.SelectedValuePath == "Id");
             property.SelectedValue = DrawingPropertyId.Length;
             Pump();
-            var comparison = Assert.Single(controls, control =>
-                control.ItemsSource is IEnumerable<PropertyFilterOperatorOption>);
+            var comparison = Assert.Single(
+                controls,
+                control =>
+                    control.ItemsSource is IEnumerable<PropertyFilterOperatorOption>);
             comparison.SelectedValue = DrawingFilterOperator.GreaterThan;
             var input = Assert.Single(WpfTest.Descendants(content).OfType<TextBox>());
             input.Text = "5";
@@ -70,16 +72,20 @@ public sealed class PropertyFilterPresentationTests
             Assert.Equal(["2", "3"], model.Current!.Objects.Select(id => id.DisplayId));
             Assert.InRange(content.ActualWidth, 250, 300);
             Assert.InRange(content.ActualHeight, 1, 450);
-            Assert.All(controls.Where(control => control.IsVisible), control =>
-            {
-                Assert.True(control.ActualWidth > 0);
-                Assert.True(control.ActualHeight >= 24);
-                Assert.Equal(
-                    Assert.IsType<SolidColorBrush>(window.FindResource("QuietText")).Color,
-                    Assert.IsType<SolidColorBrush>(control.Foreground).Color);
-            });
+            Assert.All(
+                controls.Where(control => control.IsVisible),
+                control =>
+                {
+                    Assert.True(control.ActualWidth > 0);
+                    Assert.True(control.ActualHeight >= 24);
+                    Assert.Equal(
+                        Assert.IsType<SolidColorBrush>(window.FindResource("QuietText")).Color,
+                        Assert.IsType<SolidColorBrush>(control.Foreground).Color);
+                });
             Save(content, $"filter-{language}-{theme}-popup");
-            var alternate = language == LanguagePreference.English ? LanguagePreference.Russian : LanguagePreference.English;
+            var alternate = language == LanguagePreference.English
+                ? LanguagePreference.Russian
+                : LanguagePreference.English;
             input.Text = language == LanguagePreference.English ? "1.5" : "1,5";
             UiText.Current.Select(alternate, persist: false);
             Pump();
@@ -98,6 +104,15 @@ public sealed class PropertyFilterPresentationTests
                 UiText.Current.Get("ByLayer"),
                 WpfTest.Descendants(choice).OfType<TextBlock>().Select(block => block.Text));
             UiText.Current.Select(language, persist: false);
+            property.SelectedValue = DrawingPropertyId.Length;
+            comparison.SelectedValue = DrawingFilterOperator.GreaterThan;
+            comparison.IsDropDownOpen = true;
+            Pump();
+            var operatorPopup = Assert.IsType<Popup>(comparison.Template.FindName("PART_Popup", comparison));
+            Save(
+                Assert.IsAssignableFrom<FrameworkElement>(operatorPopup.Child),
+                $"filter-{language}-{theme}-operators");
+            comparison.IsDropDownOpen = false;
             popup.IsOpen = false;
             Pump();
             var list = Assert.Single(WpfTest.Descendants(view).OfType<ListBox>());

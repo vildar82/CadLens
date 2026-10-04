@@ -401,7 +401,16 @@
                                     SelectedValuePath="Value">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{ui:Localize Binding={Binding Label}}" TextTrimming="CharacterEllipsis" />
+                                            <DockPanel>
+                                                <TextBlock
+                                                    Width="18"
+                                                    Margin="0,0,7,0"
+                                                    DockPanel.Dock="Left"
+                                                    Foreground="{DynamicResource QuietAccent}"
+                                                    Text="{Binding Symbol}"
+                                                    TextAlignment="Center" />
+                                                <TextBlock Text="{ui:Localize Binding={Binding Label}}" TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
@@ -420,7 +429,10 @@
                                     Visibility="{Binding PropertyFilter.UsesValueOptions, Converter={StaticResource BooleanVisibility}}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}" />
+                                            <TextBlock
+                                                Text="{Binding Label}"
+                                                TextTrimming="CharacterEllipsis"
+                                                ToolTip="{Binding Label}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>

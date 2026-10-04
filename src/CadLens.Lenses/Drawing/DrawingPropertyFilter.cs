@@ -23,7 +23,11 @@ public sealed record DrawingPropertyFilter(
     {
         (DrawingNumberValue first, DrawingNumberValue second) => MatchesNumber(first, second),
         (DrawingTextValue first, DrawingTextValue second) => Operator == DrawingFilterOperator.Contains
+#if NETFRAMEWORK
             ? first.Text.IndexOf(second.Text, StringComparison.OrdinalIgnoreCase) >= 0
+#else
+            ? first.Text.Contains(second.Text, StringComparison.OrdinalIgnoreCase)
+#endif
             : MatchesEquality(string.Equals(first.Text, second.Text, StringComparison.OrdinalIgnoreCase)),
         (DrawingBooleanValue first, DrawingBooleanValue second) => MatchesEquality(first == second),
         (DrawingLayerValue first, DrawingLayerValue second) => MatchesEquality(first == second),

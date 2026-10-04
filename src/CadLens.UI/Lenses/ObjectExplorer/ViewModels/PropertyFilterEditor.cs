@@ -59,19 +59,23 @@ public sealed class PropertyFilterEditor : ObservableObject
 
     /// <summary>Whether a typed choice replaces free text input.</summary>
     public bool UsesValueOptions => SampleValue is not (DrawingNumberValue or DrawingTextValue) ||
-                                    ValueOptions.Any(option => option.Value is DrawingTextValue {IsApplicationText: true});
+                                    ValueOptions.Any(option => option.Value is DrawingTextValue
+                                    {
+                                        IsApplicationText: true
+                                    });
 
     /// <summary>Whether a text box accepts the filter value.</summary>
     public bool UsesTextInput => !UsesValueOptions;
 
     /// <summary>Units and numeric-input guidance.</summary>
-    public string InputHint => UiText.Current.Get(SampleValue is DrawingNumberValue number
-        ? number.Unit == DrawingUnit.Angle
-            ? "Enter degrees without digit grouping."
-            : number.Unit == DrawingUnit.Distance
-                ? "Enter drawing units without digit grouping."
-                : "Enter a number without digit grouping."
-        : "");
+    public string InputHint => UiText.Current.Get(
+        SampleValue is DrawingNumberValue number
+            ? number.Unit == DrawingUnit.Angle
+                ? "Enter degrees without digit grouping."
+                : number.Unit == DrawingUnit.Distance
+                    ? "Enter drawing units without digit grouping."
+                    : "Enter a number without digit grouping."
+            : "");
 
     /// <summary>Validation feedback; the applied condition remains unchanged.</summary>
     public string Error => UiText.Current.Get(_error);
@@ -81,20 +85,24 @@ public sealed class PropertyFilterEditor : ObservableObject
     {
         DrawingNumberValue when !UsesValueOptions =>
         [
-            new(DrawingFilterOperator.Equal, "Equals"),
-            new(DrawingFilterOperator.NotEqual, "Does not equal"),
-            new(DrawingFilterOperator.LessThan, "Less than"),
-            new(DrawingFilterOperator.LessThanOrEqual, "Less than or equal"),
-            new(DrawingFilterOperator.GreaterThan, "Greater than"),
-            new(DrawingFilterOperator.GreaterThanOrEqual, "Greater than or equal")
+            new PropertyFilterOperatorOption(DrawingFilterOperator.Equal, "=", "Equals"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.NotEqual, "≠", "Does not equal"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.LessThan, "<", "Less than"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.LessThanOrEqual, "≤", "Less than or equal"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.GreaterThan, ">", "Greater than"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.GreaterThanOrEqual, "≥", "Greater than or equal")
         ],
         DrawingTextValue when !UsesValueOptions =>
         [
-            new(DrawingFilterOperator.Equal, "Equals"),
-            new(DrawingFilterOperator.NotEqual, "Does not equal"),
-            new(DrawingFilterOperator.Contains, "Contains")
+            new PropertyFilterOperatorOption(DrawingFilterOperator.Equal, "=", "Equals"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.NotEqual, "≠", "Does not equal"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.Contains, "∋", "Contains")
         ],
-        _ => [new(DrawingFilterOperator.Equal, "Equals"), new(DrawingFilterOperator.NotEqual, "Does not equal")]
+        _ =>
+        [
+            new PropertyFilterOperatorOption(DrawingFilterOperator.Equal, "=", "Equals"),
+            new PropertyFilterOperatorOption(DrawingFilterOperator.NotEqual, "≠", "Does not equal")
+        ]
     };
 
     private DrawingValue? SampleValue => PropertyId is { } id
@@ -108,8 +116,8 @@ public sealed class PropertyFilterEditor : ObservableObject
         PropertyOptions =
         [
             .. objects.SelectMany(node => node.Properties
-                .Where(property => DrawingProperties.GetValue(node, property.Id) is not null)
-                .Select(property => property.Id))
+                    .Where(property => DrawingProperties.GetValue(node, property.Id) is not null)
+                    .Select(property => property.Id))
                 .Distinct()
                 .OrderBy(id => id)
                 .Select(id => new GroupingOption(id, DrawingProperties.GetLabel(id), false))
@@ -120,8 +128,8 @@ public sealed class PropertyFilterEditor : ObservableObject
         InputText = applied?.Value switch
         {
             DrawingNumberValue number => (number.Unit == DrawingUnit.Angle
-                    ? number.Value * (180 / Math.PI)
-                    : number.Value).ToString("R", UiText.Current.Culture),
+                ? number.Value * (180 / Math.PI)
+                : number.Value).ToString("R", UiText.Current.Culture),
             DrawingTextValue text => text.Text,
             _ => ""
         };
@@ -168,21 +176,23 @@ public sealed class PropertyFilterEditor : ObservableObject
         if (UsesValueOptions)
             return ValueOptions.Any(option => option.Value.Equals(SelectedValue)) ? SelectedValue : null;
 
-        if (SampleValue is DrawingNumberValue number)
+        switch (SampleValue)
         {
-            if (!double.TryParse(InputText, NumberStyles.Float, UiText.Current.Culture, out var value))
+            case DrawingNumberValue number:
+                if (!double.TryParse(InputText, NumberStyles.Float, UiText.Current.Culture, out var value))
+                    return null;
+
+                if (number.Unit == DrawingUnit.Angle)
+                    value *= Math.PI / 180;
+
+                return value.IsFinite() ? new DrawingNumberValue(value, number.Unit) : null;
+
+            case DrawingTextValue text:
+                return new DrawingTextValue(InputText, text.IsApplicationText);
+
+            default:
                 return null;
-
-            if (number.Unit == DrawingUnit.Angle)
-                value *= Math.PI / 180;
-
-            return value.IsFinite() ? new DrawingNumberValue(value, number.Unit) : null;
         }
-
-        if (SampleValue is DrawingTextValue text)
-            return new DrawingTextValue(InputText, text.IsApplicationText);
-
-        return null;
     }
 
     private void UpdateValueOptions()
@@ -205,8 +215,9 @@ public sealed class PropertyFilterEditor : ObservableObject
 
 /// <summary>A comparison operator and its application label.</summary>
 /// <param name="Value">Typed operator.</param>
+/// <param name="Symbol">Language-independent comparison symbol.</param>
 /// <param name="Label">English resource key.</param>
-public sealed record PropertyFilterOperatorOption(DrawingFilterOperator Value, string Label);
+public sealed record PropertyFilterOperatorOption(DrawingFilterOperator Value, string Symbol, string Label);
 
 /// <summary>A selectable assigned value; captions never determine equality.</summary>
 /// <param name="value">Original detached value.</param>
