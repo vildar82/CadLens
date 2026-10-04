@@ -28,7 +28,8 @@ focus on, and temporarily isolate objects without changing stored DWG geometry o
 - **Preferences:** choose English or Russian, customize appearance, and keep separate settings for each lens.
 
 The panel opens as a compact bar over the drawing. Activate a lens to explore; collapsing or closing
-it clears temporary isolation and restores the ordinary display.
+it clears temporary isolation and restores the ordinary display. Drag the empty space in the header
+to move the panel.
 
 The current bundle targets **64-bit Windows, AutoCAD 2025–2026, and Civil 3D 2025–2026**, using .NET 8
 and WPF. These are the intended hosts; native compatibility needs verification in each host/version.
@@ -81,8 +82,6 @@ when selected again. A Windows display-language change usually also requires Win
 ## Use the Layers lens
 
 A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
-
-![Layers lens with sample drawing layers and object counts](docs/images/layers-preview.png)
 
 ### Object scope
 
