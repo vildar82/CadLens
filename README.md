@@ -1,6 +1,12 @@
 ﻿# CAD Lens
 
-CAD Lens is a personal experiment in exploring AutoCAD drawings through game-inspired visual layers. Its lenses help reveal a DWG's structure without changing drawing geometry or properties.
+<img src="src/CadLens.UI/Resources/CadLens.png" alt="CAD Lens icon" width="96">
+
+Explore an AutoCAD drawing by layer, object type, and property. CAD Lens helps you find, select,
+focus on, and temporarily isolate objects without changing stored DWG geometry or properties.
+
+**[Download the latest release](https://github.com/vildar82/CadLens/releases)** ·
+[Installation](#install-and-run) · [Report an issue](https://github.com/vildar82/CadLens/issues)
 
 ## Contents
 
@@ -12,31 +18,39 @@ CAD Lens is a personal experiment in exploring AutoCAD drawings through game-ins
 - [Appearance](#appearance)
 - [Development](#development)
 - [Verification](#verification)
-- [Future ideas](#future-ideas)
 
 ## Overview
 
-The plugin provides Layers and Object Types. Layers groups objects by layer; Object Types groups the same included active-space objects by type across layers. Both support object details, camera focus, CAD selection, and temporary isolation. The panel stays over the drawing; closing or collapsing it restores the ordinary display.
+- **Layers:** browse Layer → Type → Object and see how the drawing is organized.
+- **Object Types:** browse Type → Object across layers, inspect properties, and combine property groups.
+- **Drawing controls:** focus the camera, select objects in CAD, or temporarily isolate a target.
+- **Object scope:** explore all direct objects in the active space or a captured CAD selection.
+- **Preferences:** choose English or Russian, customize appearance, and keep separate settings for each lens.
 
-CAD Lens uses C#, .NET 8, and WPF on Windows. The intended hosts are AutoCAD 2025 and 2026 and their Civil 3D counterparts. The bundle manifest declares AutoCAD release R25.0 as its minimum; compatibility with newer host or .NET runtime updates needs a separate native check. AutoCAD LT is outside the current scope.
+The panel opens as a compact bar over the drawing. Activate a lens to explore; collapsing or closing
+it clears temporary isolation and restores the ordinary display.
+
+The current bundle targets **64-bit Windows, AutoCAD 2025–2026, and Civil 3D 2025–2026**, using .NET 8
+and WPF. These are the intended hosts; native compatibility needs verification in each host/version.
+Other host versions, AutoCAD LT, and macOS are outside the current release scope.
+
+The screenshots below show the production WPF interface with sample drawing data. They illustrate the
+interface and do not establish behavior inside AutoCAD or Civil 3D. See [Verification](#verification).
 
 ## Install and run
 
-### Bundle
+### Download and install
 
-Build the bundle from the repository root:
-
-```powershell
-./scripts/New-Bundle.ps1
-```
-
-The script publishes the plugin, generates `PackageContents.xml`, and creates `artifacts/bundle/CadLens.bundle.zip`. A successful GitHub Actions run also offers that ZIP as a downloadable artifact.
-
-1. Extract the ZIP.
-2. Copy the `CadLens.bundle` directory to `%PROGRAMFILES%\Autodesk\ApplicationPlugins`.
+1. Open the [latest GitHub release](https://github.com/vildar82/CadLens/releases) and download **CadLens.bundle.zip** from **Assets**.
+2. Extract the ZIP and copy the complete `CadLens.bundle` directory to `%PROGRAMFILES%\Autodesk\ApplicationPlugins`.
 3. Restart AutoCAD or Civil 3D, open a DWG, and run `CADLENS`.
+4. Press **Layers** or **Objects** in the compact bar to explore the active drawing space.
 
-The bundle loads the plugin when `CADLENS` is invoked. To update an installation, close the host and replace the entire `CadLens.bundle` directory.
+The bundle loads the plugin when `CADLENS` is invoked. Releases are currently published as prereleases;
+check their notes and the [verification guide](docs/verification.md) for evidence limits.
+
+To update, close the host and replace the entire `CadLens.bundle` directory with the new one. To uninstall,
+close the host and remove that directory. Do not replace plugin DLLs while the host is running.
 
 ### Manual development load
 
@@ -68,7 +82,7 @@ when selected again. A Windows display-language change usually also requires Win
 
 A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
 
-![CAD Lens Layers preview showing the drawing inventory and Isolate control](docs/images/layers-preview.png)
+![Layers lens with sample drawing layers and object counts](docs/images/layers-preview.png)
 
 ### Object scope
 
@@ -123,6 +137,8 @@ CAD Lens uses one exploration session for the active drawing. Focus moves only t
 
 Press Objects to browse object types across all included layers in the current model or paper space and see their counts. Search the type names or sort by name/count, then browse Type → Object; each object shows its own layer and visibility details. A block insertion counts as one object. Nested block and external-reference contents are not traversed.
 
+![Object Types lens with sample object properties and grouping controls](docs/images/objects-preview.png)
+
 Object Types shares the drawing controls and inclusion filters described above. Switching lenses clears the previous lens's selection/isolation and restores the destination lens's valid navigation and settings. Counts include off-screen objects and stay unchanged when panning or zooming. Use Refresh after drawing edits.
 
 Within a primitive type in either lens, object rows show a useful measurement: vertices for polylines,
@@ -171,6 +187,18 @@ Click **CAD Lens ⓘ** in the compact bar to read about the program, open the Gi
 or submit questions and suggestions through GitHub Issues. The links open in your default browser.
 
 ## Development
+
+### Build the bundle
+
+From the repository root, run:
+
+```powershell
+./scripts/New-Bundle.ps1
+```
+
+The script publishes the plugin, generates `PackageContents.xml`, and creates
+`artifacts/bundle/CadLens.bundle.zip`. A successful GitHub Actions run also provides the ZIP as a
+build artifact; GitHub Releases provide the versioned download for users.
 
 ### Project map
 
@@ -225,7 +253,3 @@ GitHub generates the release description from merged pull request titles, contri
 ## Verification
 
 See the [verification guide](docs/verification.md) for managed checks, native AutoCAD scenarios, and the current evidence limits. Build and test results do not establish native rendering, lifecycle, or host compatibility. Earlier Layers and Highlight acceptance does not verify the current Isolate behavior.
-
-## Future ideas
-
-Possible later lenses include geometry classification, object inspection, blocks, drawing problems, and session history where source events support it. Selection Lens, a radial menu, minimap, game elements, and separate adapters are also ideas. These are exploration topics, not committed features; existing DWG objects do not necessarily carry a recoverable creation date.

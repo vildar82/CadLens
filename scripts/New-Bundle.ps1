@@ -29,6 +29,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Get-ChildItem -LiteralPath $contents -Filter '*.xml' | Remove-Item
+Copy-Item -LiteralPath (Join-Path $repository 'docs\images\cadlens.ico') -Destination (Join-Path $contents 'CadLens.ico')
 
 $version = dotnet msbuild $project -getProperty:Version -property:Configuration=Release
 
@@ -38,9 +39,9 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($version)) {
 
 $manifest = @"
 <?xml version="1.0" encoding="utf-8"?>
-<ApplicationPackage SchemaVersion="1.0" AppVersion="$version" ProductCode="{EE37011F-E21D-4DCE-B88C-C54E351D71BF}" Name="CAD Lens" Description="Drawing exploration for AutoCAD">
+<ApplicationPackage SchemaVersion="1.0" AppVersion="$version" ProductCode="{F8CF54AC-12A7-4C35-BA1B-BF0AA4745431}" Name="CAD Lens" Description="Drawing exploration for AutoCAD" Icon="./Contents/CadLens.ico">
   <Components>
-    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R25.0" />
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD|Civil3D" SeriesMin="R25.0" SeriesMax="R25.1" />
     <ComponentEntry AppName="CadLens" ModuleName="./Contents/CadLens.AutoCAD.dll" LoadOnCommandInvocation="True">
       <Commands GroupName="CadLens">
         <Command Global="CADLENS" Local="CADLENS" />
