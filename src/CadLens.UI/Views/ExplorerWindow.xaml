@@ -1,6 +1,5 @@
 ﻿<Window
     Title="CAD Lens"
-    Icon="/CadLens.UI;component/Resources/CadLens.png"
     x:Class="CadLens.UI.ExplorerWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -70,15 +69,7 @@
                             Style="{StaticResource QuietToggle}"
                             ToolTip="{local:Localize 'About CAD Lens'}"
                             WindowChrome.IsHitTestVisibleInChrome="True">
-                            <StackPanel Orientation="Horizontal">
-                                <Image
-                                    Width="16"
-                                    Height="16"
-                                    Margin="0,0,4,0"
-                                    VerticalAlignment="Center"
-                                    Source="/CadLens.UI;component/Resources/CadLens.png" />
-                                <TextBlock Text="CAD Lens" />
-                            </StackPanel>
+                            <TextBlock Text="CAD Lens" />
                         </ToggleButton>
                         <Popup
                             x:Name="AboutPopup"
@@ -96,11 +87,20 @@
                                 CornerRadius="8"
                                 TextElement.Foreground="{DynamicResource QuietText}">
                                 <StackPanel>
-                                    <TextBlock
+                                    <StackPanel
                                         Margin="0,0,0,8"
-                                        FontSize="14"
-                                        FontWeight="SemiBold"
-                                        Text="{local:Localize 'About CAD Lens'}" />
+                                        Orientation="Horizontal">
+                                        <Image
+                                            Width="36"
+                                            Height="36"
+                                            Margin="0,0,8,0"
+                                            Source="/CadLens.UI;component/Resources/CadLens.png" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Text="{local:Localize 'About CAD Lens'}" />
+                                    </StackPanel>
                                     <TextBlock
                                         Margin="0,0,0,10"
                                         Text="{local:Localize 'Explore drawing objects by layer or type in AutoCAD and Civil 3D.'}"
