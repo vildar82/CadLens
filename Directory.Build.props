@@ -12,8 +12,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' and '$(MSBuildProjectName)' == 'CadLens.AutoCAD' ">
-        <OutputPath>$(AppData)\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\$(TargetFramework)\</OutputPath>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <OutputPath>$(AppData)\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\</OutputPath>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     </PropertyGroup>
 

@@ -27,7 +27,10 @@ jobs:
       - name: Restore
         run: dotnet restore CadLens.slnx
 
-      - name: Build
+      - name: Build Debug
+        run: dotnet build CadLens.slnx --configuration Debug --no-restore
+
+      - name: Build Release
         run: dotnet build CadLens.slnx --configuration Release --no-restore
 
       - name: Test
