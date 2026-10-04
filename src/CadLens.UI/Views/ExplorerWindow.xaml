@@ -130,6 +130,15 @@
                                             <Run Text="{local:Localize 'Questions and suggestions'}" />
                                         </Hyperlink>
                                     </TextBlock>
+                                    <TextBlock Margin="0,8,0,0">
+                                        <Hyperlink
+                                            x:Name="PrivacyPolicyLink"
+                                            Foreground="{DynamicResource QuietAccent}"
+                                            NavigateUri="https://github.com/vildar82/CadLens/blob/main/docs/privacy-policy.md"
+                                            RequestNavigate="ProjectLinkRequested">
+                                            <Run Text="{local:Localize 'Privacy policy'}" />
+                                        </Hyperlink>
+                                    </TextBlock>
                                     <TextBlock
                                         x:Name="AboutLinkStatus"
                                         Margin="0,8,0,0"

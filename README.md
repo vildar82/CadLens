@@ -59,11 +59,12 @@ interface and do not establish behavior inside AutoCAD or Civil 3D. See [Verific
 
 1. Open the [latest GitHub release](https://github.com/vildar82/CadLens/releases) and download **CadLens.bundle.zip** from **Assets**.
 2. Extract the ZIP and copy the complete `CadLens.bundle` directory to `%PROGRAMFILES%\Autodesk\ApplicationPlugins`.
-3. Restart AutoCAD or Civil 3D, open a DWG, and run `CADLENS`.
+3. Restart AutoCAD or Civil 3D, open a DWG, and click **CAD Lens** on the **Plug-Ins** ribbon tab or run `CADLENS`.
 4. Press **Layers** or **Objects** in the compact bar to explore the active drawing space.
 
-The bundle loads the plugin when `CADLENS` is invoked. Releases are currently published as prereleases;
-check their notes and the [verification guide](docs/verification.md) for evidence limits.
+The bundle loads the plugin when `CADLENS` is invoked. Check the release notes and the
+[verification guide](docs/verification.md) for evidence limits. See the [privacy policy](docs/privacy-policy.md)
+for local preferences, diagnostic exports, and external links.
 
 To update, close the host and replace the entire `CadLens.bundle` directory with the new one. To uninstall,
 close the host and remove that directory. Do not replace plugin DLLs while the host is running.
@@ -199,7 +200,7 @@ CAD Lens uses defaults; if it cannot be saved, the choices still work for the cu
 Appearance changes do not change AutoCAD's theme, the drawing, navigation, or temporary effects.
 
 Click **CAD Lens ⓘ** in the compact bar to read about the program, open the GitHub project,
-or submit questions and suggestions through GitHub Issues. The links open in your default browser.
+read the privacy policy, or submit questions and suggestions through GitHub Issues. The links open in your default browser.
 
 ## Development
 
@@ -212,8 +213,8 @@ From the repository root, run:
 ```
 
 The script publishes all four target frameworks, generates a version-specific `PackageContents.xml`, and creates
-`artifacts/bundle/CadLens.bundle.zip`. A successful GitHub Actions run also provides the ZIP as a
-build artifact; GitHub Releases provide the versioned download for users.
+`artifacts/bundle/CadLens.bundle.zip`, including the partial ribbon CUIX, offline help, and privacy policy.
+A successful GitHub Actions run also provides the ZIP as a build artifact; GitHub Releases provide the versioned download for users.
 
 ### Project map
 

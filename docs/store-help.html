@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CAD Lens help</title>
+    <style>
+        body { margin: 2rem auto; padding: 0 1.25rem; max-width: 52rem; font: 1rem/1.6 system-ui, sans-serif; }
+        h1, h2 { line-height: 1.25; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: .5rem; border: 1px solid #ccc; text-align: left; }
+        code { overflow-wrap: anywhere; }
+    </style>
+</head>
+<body>
+<h1>CAD Lens</h1>
+<p>Version 1.0.0. Explore a drawing by layer, object type, and property. Find, select, focus on, and temporarily
+    isolate objects without changing stored DWG geometry or properties.</p>
+
+<h2>Get started</h2>
+<ol>
+    <li>Open a drawing in AutoCAD or Civil 3D. Click <strong>CAD Lens</strong> on the <strong>Plug-Ins</strong> ribbon tab or enter <code>CADLENS</code>.</li>
+    <li>Press <strong>Layers</strong> or <strong>Objects</strong> in the compact bar.</li>
+    <li>Choose a layer or type, then browse its objects. Use breadcrumbs or Back to return.</li>
+    <li>Use Focus, Select, or Isolate on the current target. Press the active lens button to collapse the panel.</li>
+</ol>
+<p>Running <code>CADLENS</code> again brings the existing panel forward. Drag empty header space to move it.</p>
+
+<h2>Commands</h2>
+<table>
+    <thead>
+    <tr>
+        <th>Command</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><code>CADLENS</code></td>
+        <td>Open or activate the drawing explorer.</td>
+    </tr>
+    </tbody>
+</table>
+
+<h2>Explore the drawing</h2>
+<p><strong>Layers</strong> follows Layer &rarr; Type &rarr; Object. <strong>Objects</strong> follows Type &rarr;
+    Object across included layers. Search, inclusion filters, and sorting help narrow the list.</p>
+<p><strong>All objects</strong> reads direct objects in the active model or paper space. <strong>Selected
+    objects</strong> captures the current CAD selection or prompts for one. Clicking it again captures a new selection.
+    Press Escape during the prompt to keep the previous view.</p>
+<p>Use <strong>Refresh</strong> after drawing edits. Within an object type, use <strong>Show property</strong> to choose
+    the displayed value and <strong>Group by</strong> to combine observed properties. Grouping and sorting use the last
+    captured inventory.</p>
+
+<h2>Drawing controls</h2>
+<ul>
+    <li><strong>Focus</strong> fits the current target in the active view.</li>
+    <li><strong>Select</strong> replaces the CAD selection with the current target.</li>
+    <li><strong>Isolate</strong> temporarily hides other direct objects in the active space.</li>
+</ul>
+<p>Each action has an independent Auto toggle. All start off; saved choices apply when you choose a target.
+    For selection without camera movement, enable Auto Select and leave Auto Focus off.</p>
+<p>Returning to the root, turning Auto Isolate off, collapsing or closing the panel, or switching drawings or spaces
+    clears temporary isolation. With Auto Isolate off, navigation clears a manual isolation. Reset clears selection,
+    isolation, and Auto modes while keeping the camera and navigation.</p>
+
+<h2>Preferences</h2>
+<p>The EN/RU menu selects English, Russian, or the Windows display language. The gear menu chooses a theme, palette,
+    and accent color. Drawing names and identifiers retain their original text.</p>
+<p>Preferences are saved under <code>%LOCALAPPDATA%\CadLens</code>. Each lens keeps its own controls, filters, search
+    text, sorting, and property choices. A new panel session starts collapsed with All objects selected.</p>
+
+<h2>Compatibility</h2>
+<p>The bundle targets 64-bit Windows with AutoCAD and Civil 3D 2019&ndash;2027.</p>
+<table>
+    <thead>
+    <tr>
+        <th>Host versions</th>
+        <th>Runtime baseline</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>2019&ndash;2020</td>
+        <td>.NET Framework 4.7</td>
+    </tr>
+    <tr>
+        <td>2021&ndash;2024</td>
+        <td>.NET Framework 4.8</td>
+    </tr>
+    <tr>
+        <td>2025&ndash;2026</td>
+        <td>.NET 8</td>
+    </tr>
+    <tr>
+        <td>2027</td>
+        <td>.NET 10</td>
+    </tr>
+    </tbody>
+</table>
+<p>A compatible later .NET Framework 4.x runtime also satisfies the legacy requirements. The host selects the matching
+    payload automatically. AutoCAD LT, macOS, and AutoCAD 2018 or earlier are outside the release scope.</p>
+
+<h2>Installation and removal</h2>
+<p>For an Autodesk App Store installer, close AutoCAD and Civil 3D, then run the downloaded installer. It installs the
+    plugin automatically. To remove it, close the host and uninstall CAD Lens through Windows Settings &gt; Apps.</p>
+<p>For the GitHub ZIP distribution, extract <code>CadLens.bundle.zip</code> and copy the complete
+    <code>CadLens.bundle</code> directory to <code>%PROGRAMFILES%\Autodesk\ApplicationPlugins</code>. Restart the host
+    and enter <code>CADLENS</code>. Updating a manual installation means replacing the entire bundle directory while
+    the host is closed. To remove a manual installation, delete that bundle directory.</p>
+
+<h2>Known limits</h2>
+<ul>
+    <li>Nested block and external-reference contents are not traversed; an insertion remains one drawing target.</li>
+    <li>Objects on off or frozen layers remain hidden even when included in the list.</li>
+    <li>Focus can be unavailable when bounds cannot be read or the viewport is locked. Select remains available.</li>
+    <li>Drawing edits require Refresh. Counts include objects outside the visible camera.</li>
+</ul>
+<p>Host support describes the intended version range. See the
+    <a href="https://github.com/vildar82/CadLens/blob/main/docs/verification.md">verification guide</a>
+    for the recorded evidence and native checks.</p>
+
+<h2>Privacy and support</h2>
+<p>CAD Lens works locally and does not automatically upload drawing information. Ctrl+Shift+F12 in the panel creates
+    an optional diagnostic JSON file on your Desktop; review it before sharing it.</p>
+<p>Read the <a href="https://github.com/vildar82/CadLens/blob/main/docs/privacy-policy.md">privacy policy</a>.
+    For questions and reports, use <a href="https://github.com/vildar82/CadLens/issues">GitHub Issues</a> or
+    <a href="mailto:vildar82@gmail.com">vildar82@gmail.com</a>. Public issues should omit confidential drawing data.</p>
+</body>
+</html>

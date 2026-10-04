@@ -45,17 +45,22 @@ public sealed class ProgramInformationTests
                 var panel = Assert.IsType<Border>(popup.Child);
                 Assert.Contains("About CAD Lens", Texts(panel));
                 Assert.Contains("Questions and suggestions", Runs(panel));
+                Assert.Contains("Privacy policy", Runs(panel));
                 Assert.Equal(
                     new Uri("https://github.com/vildar82/CadLens"),
                     Assert.IsType<Hyperlink>(window.FindName("ProjectLink")).NavigateUri);
                 Assert.Equal(
                     new Uri("https://github.com/vildar82/CadLens/issues"),
                     Assert.IsType<Hyperlink>(window.FindName("IssuesLink")).NavigateUri);
+                Assert.Equal(
+                    new Uri("https://github.com/vildar82/CadLens/blob/main/docs/privacy-policy.md"),
+                    Assert.IsType<Hyperlink>(window.FindName("PrivacyPolicyLink")).NavigateUri);
 
                 UiText.Current.Select(LanguagePreference.Russian, persist: false);
                 Pump(window);
                 Assert.Contains("О CAD Lens", Texts(panel));
                 Assert.Contains("Вопросы и предложения", Runs(panel));
+                Assert.Contains("Политика конфиденциальности", Runs(panel));
                 Assert.Equal("О CAD Lens", AutomationProperties.GetName(button));
                 Assert.True(popup.IsOpen);
                 Assert.False(model.IsLensActive);
