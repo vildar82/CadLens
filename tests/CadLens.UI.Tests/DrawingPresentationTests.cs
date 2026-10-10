@@ -20,6 +20,8 @@ namespace CadLens.UI.Tests;
 [Collection("Language changes")]
 public sealed class DrawingPresentationTests
 {
+    private static readonly string[] ColorThemes = ["Dark", "Light"];
+
     /// <summary>Both custom property popups center their labels and retain themed controls with keyboard focus.</summary>
     [Theory]
     [InlineData(LanguagePreference.English, "Dark")]
@@ -551,6 +553,80 @@ public sealed class DrawingPresentationTests
 
     private static void FlushDispatcher() =>
         Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+
+    /// <summary>Production row outlines retain their RGB color and monochrome contrast when the theme changes.</summary>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers)]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    public void RowColorBordersFollowThemeAndKeepFocusIndicators(DrawingGrouping grouping)
+    {
+        WpfTest.Run(() =>
+        {
+            var original = Inventory();
+            var inventory = original with
+            {
+                Layers = [original.Layers[0] with {DisplayColor = 0x123456}],
+                Entities =
+                [
+                    original.Entities[0],
+                    original.Entities[1] with {DisplayColor = 0xFFFFFF, Properties = null},
+                    original.Entities[2] with {DisplayColor = 0, Properties = null}
+                ]
+            };
+            using var file = new SettingsFile();
+            using var lens = new ObjectExplorerLens(new Actions(inventory), grouping);
+            using var shell = new ExplorerViewModel([lens]);
+            shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
+            var appearance = new AppearancePreferences(file.Service) {Theme = "Dark"};
+            var window = new ExplorerWindow(shell, appearance) {ShowActivated = false, Left = -10000, Top = -10000};
+
+            try
+            {
+                window.Show();
+                FlushDispatcher();
+                var content = Assert.IsType<ObjectExplorerView>(shell.ActiveView);
+
+                if (grouping == DrawingGrouping.Layers)
+                {
+                    var layerBorder = Assert.Single(ColorBorders(content));
+                    Assert.Equal(Color.FromRgb(18, 52, 86), Assert.IsType<SolidColorBrush>(layerBorder.BorderBrush).Color);
+                    lens.ViewModel.EnterCommand.ExecuteAsync(Assert.Single(lens.ViewModel.Items)).GetAwaiter().GetResult();
+                    FlushDispatcher();
+                }
+
+                Assert.Equal(Colors.Transparent, Assert.IsType<SolidColorBrush>(Assert.Single(ColorBorders(content)).BorderBrush).Color);
+                lens.ViewModel.EnterCommand.ExecuteAsync(Assert.Single(lens.ViewModel.Items)).GetAwaiter().GetResult();
+                FlushDispatcher();
+
+                foreach (var theme in ColorThemes)
+                {
+                    appearance.Theme = theme;
+                    FlushDispatcher();
+                    var borders = ColorBorders(content);
+                    Assert.Equal(3, borders.Count);
+                    Assert.Equal(Color.FromRgb(18, 52, 86), Assert.IsType<SolidColorBrush>(borders[0].BorderBrush).Color);
+                    var foreground = Assert.IsType<SolidColorBrush>(content.Foreground).Color;
+                    Assert.Equal(foreground, Assert.IsType<SolidColorBrush>(borders[1].BorderBrush).Color);
+                    Assert.Equal(foreground, Assert.IsType<SolidColorBrush>(borders[2].BorderBrush).Color);
+                    Assert.All(borders, border => Assert.False(border.IsHitTestVisible));
+                    Save(content, 370, LanguagePreference.English, $"colors-{grouping}-{theme}");
+                }
+
+                var button = WpfTest.Descendants(content).OfType<Button>().First(row => row.CommandParameter is LensNode);
+                Assert.NotNull(button.Template.FindName("FocusRing", button));
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
+    private static List<Border> ColorBorders(FrameworkElement content) =>
+    [
+        .. WpfTest.Descendants(content).OfType<Border>()
+            .Where(border => border is {DataContext: LensNode, IsHitTestVisible: false} && border.Margin == new Thickness(2))
+    ];
 
     private static string[] Text(FrameworkElement content) =>
         [.. WpfTest.Descendants(content).OfType<TextBlock>().Select(block => block.Text)];
