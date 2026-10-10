@@ -70,10 +70,7 @@ public static class DrawingProperties
     /// <param name="id">Requested property.</param>
     public static DrawingValue? GetValue(EntitySnapshot entity, LayerSnapshot layer, DrawingPropertyKey id)
     {
-        if (id.Source != DrawingPropertySource.BuiltIn)
-            return ReadNamedValue(entity, id);
-
-        if (id.BuiltIn is { } builtIn && entity.Properties?.TryGetValue(builtIn, out var value) == true)
+        if (entity.Properties?.TryGetValue(id, out var value) == true)
             return Normalize(value);
 
         return id.BuiltIn == DrawingPropertyId.Layer ? new DrawingLayerValue(layer.Id, layer.Name) : null;
@@ -139,7 +136,6 @@ public static class DrawingProperties
     [
         .. GetObservedFields(entity)
         .Where(id => id.BuiltIn != DrawingPropertyId.Layer && id.Source != DrawingPropertySource.Attribute)
-        .Distinct()
         .OrderBy(id => id)
         .Select(id => new DetailField(
             GetLabel(id),
@@ -149,45 +145,7 @@ public static class DrawingProperties
             PropertyKey: id.Source == DrawingPropertySource.DynamicBlock ? id : null))
     ];
 
-    private static IEnumerable<DrawingPropertyKey> GetObservedFields(EntitySnapshot entity)
-    {
-        foreach (var id in entity.Properties?.Keys ?? [])
-            yield return id;
-
-        if (!entity.BlockAttributes.IsDefaultOrEmpty)
-        {
-            foreach (var attribute in entity.BlockAttributes)
-            {
-                if (attribute.Tag is {Length: > 0})
-                    yield return DrawingPropertyKey.ForAttribute(attribute.Tag);
-            }
-        }
-
-        if (entity.DynamicBlockProperties.IsDefaultOrEmpty)
-            yield break;
-
-        foreach (var property in entity.DynamicBlockProperties)
-        {
-            if (property.Name is {Length: > 0})
-                yield return DrawingPropertyKey.ForDynamicBlock(property.Name);
-        }
-    }
-
-    private static DrawingValue? ReadNamedValue(EntitySnapshot entity, DrawingPropertyKey key)
-    {
-        var values = key.Source switch
-        {
-            DrawingPropertySource.Attribute when !entity.BlockAttributes.IsDefaultOrEmpty => entity.BlockAttributes
-                .Where(attribute => string.Equals(attribute.Tag, key.Name, StringComparison.Ordinal))
-                .Select(attribute => attribute.Value is null ? null : new DrawingTextValue(attribute.Value)),
-            DrawingPropertySource.DynamicBlock when !entity.DynamicBlockProperties.IsDefaultOrEmpty => entity.DynamicBlockProperties
-                .Where(property => string.Equals(property.Name, key.Name, StringComparison.Ordinal))
-                .Select(property => property.Value),
-            _ => []
-        };
-
-        return values.Take(2).ToArray() is [var value] ? Normalize(value) : null;
-    }
+    private static IEnumerable<DrawingPropertyKey> GetObservedFields(EntitySnapshot entity) => entity.Properties?.Keys ?? [];
 
     private static DrawingValue? ReadValue(EntitySnapshot entity, DrawingPropertyId id) =>
         entity.Properties?.TryGetValue(id, out var value) == true ? Normalize(value) : null;

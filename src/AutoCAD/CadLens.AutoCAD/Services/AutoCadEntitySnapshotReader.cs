@@ -19,10 +19,12 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var properties = new Dictionary<DrawingPropertyId, DrawingValue?>();
+        var properties = new Dictionary<DrawingPropertyKey, DrawingValue?>();
         var displayColor = ReadAppearance(entity, properties);
         ReadArea(entity, properties);
         var metric = ReadPrimitiveProperties(entity, properties);
+
+        ReadBlockProperties(entity, properties);
 
         return new EntitySnapshot(
             new EntityId(entity.ObjectId),
@@ -30,12 +32,10 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             entity.GetRXClass().Name,
             properties.ToImmutableDictionary(),
             metric,
-            entity is BlockReference block ? ReadBlockAttributes(block) : default,
-            entity is BlockReference dynamicBlock ? ReadDynamicBlockProperties(dynamicBlock) : default,
             displayColor);
     }
 
-    private static int? ReadAppearance(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static int? ReadAppearance(Entity entity, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         using var color = ReadOptional(() => entity.Color);
         properties[DrawingPropertyId.Color] = color is null
@@ -121,7 +121,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return new DrawingTransparencyValue(value);
     }
 
-    private static void ReadArea(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static void ReadArea(Entity entity, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         Func<double>? getArea = entity switch
         {
@@ -148,7 +148,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
 
     private DrawingPropertyId? ReadPrimitiveProperties(
         Entity entity,
-        Dictionary<DrawingPropertyId, DrawingValue?> properties) =>
+        Dictionary<DrawingPropertyKey, DrawingValue?> properties) =>
         entity switch
         {
             Polyline polyline => ReadPolyline(polyline, properties),
@@ -168,7 +168,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
 
     private static DrawingPropertyId ReadPolyline(
         Polyline polyline,
-        Dictionary<DrawingPropertyId, DrawingValue?> properties)
+        Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.Vertices] = ReadCount(() => polyline.NumberOfVertices);
         properties[DrawingPropertyId.Closed] = ReadBoolean(() => polyline.Closed);
@@ -189,7 +189,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return width;
     }
 
-    private DrawingPropertyId ReadPolyline(Polyline2d polyline, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private DrawingPropertyId ReadPolyline(Polyline2d polyline, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.Vertices] = ReadCount(() => CountLiveObjects<Vertex2d>(polyline));
         properties[DrawingPropertyId.Closed] = ReadBoolean(() => polyline.Closed);
@@ -200,7 +200,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.Vertices;
     }
 
-    private DrawingPropertyId ReadPolyline(Polyline3d polyline, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private DrawingPropertyId ReadPolyline(Polyline3d polyline, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.Vertices] = ReadCount(() => CountLiveObjects<PolylineVertex3d>(polyline));
         properties[DrawingPropertyId.Closed] = ReadBoolean(() => polyline.Closed);
@@ -224,7 +224,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return count;
     }
 
-    private DrawingPropertyId ReadBlock(BlockReference block, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private DrawingPropertyId ReadBlock(BlockReference block, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         var isDynamic = ReadScalar(() => block.IsDynamicBlock);
         properties[DrawingPropertyId.Dynamic] = isDynamic is { } dynamicBlock
@@ -255,58 +255,81 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.DefinitionEntities;
     }
 
-    private ImmutableArray<BlockAttributeSnapshot> ReadBlockAttributes(BlockReference block)
+    private void ReadBlockProperties(Entity entity, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
+    {
+        if (entity is not BlockReference block)
+            return;
+
+        ReadBlockAttributes(block, properties);
+        ReadDynamicBlockProperties(block, properties);
+    }
+
+    private void ReadBlockAttributes(BlockReference block, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         try
         {
-            var attributes = new List<BlockAttributeSnapshot>();
+            var attributes = new Dictionary<DrawingPropertyKey, DrawingValue?>();
 
             foreach (ObjectId id in block.AttributeCollection)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var attribute = ReadOptional(() => id.GetObject<AttributeReference>());
-                attributes.Add(attribute is null
-                    ? new BlockAttributeSnapshot(null, null)
-                    : new BlockAttributeSnapshot(
-                        ReadOptional(() => attribute.Tag),
-                        ReadOptional(() => ReadAttributeValue(attribute))));
+
+                if (attribute is null)
+                    continue;
+
+                var tag = ReadOptional(() => attribute.Tag);
+
+                if (tag is not {Length: > 0})
+                    continue;
+
+                var text = ReadOptional(() => ReadAttributeValue(attribute));
+                AddNamedProperty(attributes, DrawingPropertyKey.ForAttribute(tag), text is null ? null : new DrawingTextValue(text));
             }
 
-            return [.. attributes];
+            foreach (var pair in attributes)
+                properties.Add(pair.Key, pair.Value);
         }
         catch (Exception exception) when (IsUnavailable(exception))
         {
-            return default;
+            properties[DrawingPropertyId.Attributes] = null;
         }
     }
 
-    private ImmutableArray<DynamicBlockPropertySnapshot> ReadDynamicBlockProperties(BlockReference block)
+    private void ReadDynamicBlockProperties(BlockReference block, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         try
         {
             if (!block.IsDynamicBlock)
-                return [];
+                return;
 
             using var nativeProperties = block.DynamicBlockReferencePropertyCollection;
-            var properties = new List<DynamicBlockPropertySnapshot>();
+            var dynamicProperties = new Dictionary<DrawingPropertyKey, DrawingValue?>();
 
             foreach (DynamicBlockReferenceProperty property in nativeProperties)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                properties.Add(new DynamicBlockPropertySnapshot(
-                    ReadDynamicProperty(() => property.PropertyName),
-                    ReadDynamicProperty(() => ReadDynamicPropertyValue(property))));
+                var name = ReadDynamicProperty(() => property.PropertyName);
+
+                if (name is not {Length: > 0})
+                    continue;
+
+                AddNamedProperty(dynamicProperties, DrawingPropertyKey.ForDynamicBlock(name), ReadDynamicProperty(() => ReadDynamicPropertyValue(property)));
             }
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            return [.. properties];
+            foreach (var pair in dynamicProperties)
+                properties.Add(pair.Key, pair.Value);
         }
         catch (Exception)
         {
-            return default;
+            // Native collection failures do not publish a partial set of dynamic properties.
         }
     }
+
+    private static void AddNamedProperty(Dictionary<DrawingPropertyKey, DrawingValue?> properties, DrawingPropertyKey key, DrawingValue? value) =>
+        properties[key] = properties.ContainsKey(key) ? null : value;
 
     private static T? ReadDynamicProperty<T>(Func<T?> getter) where T : class
     {
@@ -367,7 +390,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return count;
     }
 
-    private static DrawingPropertyId ReadHatch(Hatch hatch, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadHatch(Hatch hatch, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.BoundaryLoops] = ReadCount(() => hatch.NumberOfLoops);
         var isGradient = ReadScalar(() => hatch.IsGradient);
@@ -397,7 +420,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.BoundaryLoops;
     }
 
-    private static DrawingPropertyId ReadSpline(Spline spline, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadSpline(Spline spline, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.ControlPoints] = ReadCount(() => spline.NumControlPoints);
         properties[DrawingPropertyId.FitPoints] = ReadCount(() => spline.NumFitPoints);
@@ -407,14 +430,14 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.ControlPoints;
     }
 
-    private static DrawingPropertyId ReadMline(Mline mline, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadMline(Mline mline, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.Vertices] = ReadCount(() => mline.NumberOfVertices);
 
         return DrawingPropertyId.Vertices;
     }
 
-    private static DrawingPropertyId ReadLine(Line line, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadLine(Line line, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.Length] = ReadNumber(() => line.Length);
         properties[DrawingPropertyId.Thickness] = ReadNumber(() => line.Thickness);
@@ -422,7 +445,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.Length;
     }
 
-    private static DrawingPropertyId ReadCircle(Circle circle, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadCircle(Circle circle, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.Radius] = ReadNumber(() => circle.Radius);
         properties[DrawingPropertyId.Length] = ReadNumber(() => circle.Circumference);
@@ -431,7 +454,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.Radius;
     }
 
-    private static DrawingPropertyId ReadArc(Arc arc, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadArc(Arc arc, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.Radius] = ReadNumber(() => arc.Radius);
         properties[DrawingPropertyId.Length] = ReadNumber(() => arc.Length);
@@ -442,7 +465,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.Radius;
     }
 
-    private static DrawingPropertyId ReadText(DBText text, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadText(DBText text, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.TextHeight] = ReadNumber(() => text.Height);
         properties[DrawingPropertyId.Text] = ReadText(() => text.TextString);
@@ -451,7 +474,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.TextHeight;
     }
 
-    private static DrawingPropertyId ReadText(MText text, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static DrawingPropertyId ReadText(MText text, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
         properties[DrawingPropertyId.TextHeight] = ReadNumber(() => text.TextHeight);
         properties[DrawingPropertyId.Text] = ReadText(() => text.Text);

@@ -379,7 +379,7 @@ public sealed class PropertyFilterTests
             new TestEntityId(id),
             layer,
             "AcDbPolyline",
-            new Dictionary<DrawingPropertyId, DrawingValue?>
+            new Dictionary<DrawingPropertyKey, DrawingValue?>
             {
                 [DrawingPropertyId.Length] = length is { } value ? new DrawingNumberValue(value, DrawingUnit.Distance) : null,
                 [DrawingPropertyId.StartAngle] = new DrawingNumberValue((id - 1) * Math.PI / 2, DrawingUnit.Angle),

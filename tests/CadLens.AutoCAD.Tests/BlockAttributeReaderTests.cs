@@ -8,6 +8,32 @@ namespace CadLens.AutoCAD;
 /// <summary>Exercises insertion attribute capture in the production reader against native API doubles.</summary>
 public sealed class BlockAttributeReaderTests
 {
+    /// <summary>
+    /// Keeps origins distinct in one dictionary and marks duplicate named values unavailable.
+    /// </summary>
+    [Fact]
+    public void UnifiedPropertiesKeepSourcesAndDuplicateValuesDistinct()
+    {
+        var database = new Database();
+        var block = new BlockReference {IsDynamicBlock = true};
+        database.Add(block);
+        block.AttributeCollection.Add(database.Add(new AttributeReference {Tag = "Color", TextString = "A"}));
+        block.AttributeCollection.Add(database.Add(new AttributeReference {Tag = "Color", TextString = "B"}));
+        block.AttributeCollection.Add(database.Add(new AttributeReference {Tag = "Width", TextString = "001"}));
+        var dynamicProperties = block.DynamicBlockReferencePropertyCollection.Properties;
+        dynamicProperties.Add(new DynamicBlockReferenceProperty {PropertyName = "Color", Value = 3d});
+        dynamicProperties.Add(new DynamicBlockReferenceProperty {PropertyName = "Width", Value = 1d});
+        dynamicProperties.Add(new DynamicBlockReferenceProperty {PropertyName = "Width", Value = 2d});
+
+        var properties = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).Properties!;
+
+        Assert.IsType<DrawingColorValue>(properties[DrawingPropertyId.Color]);
+        Assert.Null(properties[DrawingPropertyKey.ForAttribute("Color")]);
+        Assert.Equal(new DrawingNumberValue(3, DrawingUnit.Scale), properties[DrawingPropertyKey.ForDynamicBlock("Color")]);
+        Assert.Equal(new DrawingTextValue("001"), properties[DrawingPropertyKey.ForAttribute("Width")]);
+        Assert.Null(properties[DrawingPropertyKey.ForDynamicBlock("Width")]);
+    }
+
     /// <summary>Repeated and dynamic insertions keep independent values, effective names, and structural counts.</summary>
     [Fact]
     public void CapturesPerInsertionValuesAndRefreshesWithoutChangingTargets()
@@ -32,9 +58,9 @@ public sealed class BlockAttributeReaderTests
         firstAttribute.TextString = "Updated";
         var refreshed = reader.Read(first);
 
-        Assert.Equal(new BlockAttributeSnapshot("MARK", "P-01"), Assert.Single(firstSnapshot.BlockAttributes));
-        Assert.Equal(new BlockAttributeSnapshot("MARK", "P-02"), Assert.Single(secondSnapshot.BlockAttributes));
-        Assert.Equal(new BlockAttributeSnapshot("MARK", "Updated"), Assert.Single(refreshed.BlockAttributes));
+        Assert.Equal(new DrawingTextValue("P-01"), firstSnapshot.Properties![DrawingPropertyKey.ForAttribute("MARK")]);
+        Assert.Equal(new DrawingTextValue("P-02"), secondSnapshot.Properties![DrawingPropertyKey.ForAttribute("MARK")]);
+        Assert.Equal(new DrawingTextValue("Updated"), refreshed.Properties![DrawingPropertyKey.ForAttribute("MARK")]);
         Assert.Equal(firstSnapshot.Id, refreshed.Id);
         Assert.NotEqual(firstSnapshot.Id, secondSnapshot.Id);
         Assert.Equal(new DrawingBooleanValue(true), secondSnapshot.Properties![DrawingPropertyId.Dynamic]);
@@ -44,7 +70,7 @@ public sealed class BlockAttributeReaderTests
         Assert.All(database.TransactionManager.TopTransaction.OpenRequests, request => Assert.Equal(OpenMode.ForRead, request.Mode));
     }
 
-    /// <summary>Blank, failed value, failed tag, and unreadable attributes do not collapse into the same state.</summary>
+    /// <summary>Blank text remains distinct from unavailable values; unnamed attributes have no dictionary key.</summary>
     [Fact]
     public void PreservesPartialAttributesAndBlankValues()
     {
@@ -54,16 +80,12 @@ public sealed class BlockAttributeReaderTests
         block.AttributeCollection.Add(database.Add(new AttributeReference {TagError = ErrorStatus.NotApplicable, TextString = "Read value"}));
         block.AttributeCollection.Add(default);
 
-        var attributes = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).BlockAttributes;
+        var attributes = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).Properties!
+            .Where(pair => pair.Key.Source == DrawingPropertySource.Attribute).ToList();
 
-        Assert.Equal<BlockAttributeSnapshot>(
-            [
-                new BlockAttributeSnapshot("BLANK", ""),
-                new BlockAttributeSnapshot("MISSING", null),
-                new BlockAttributeSnapshot(null, "Read value"),
-                new BlockAttributeSnapshot(null, null)
-            ],
-            attributes);
+        Assert.Equal(2, attributes.Count);
+        Assert.Equal(new DrawingTextValue(""), attributes.Single(pair => pair.Key.Name == "BLANK").Value);
+        Assert.Null(attributes.Single(pair => pair.Key.Name == "MISSING").Value);
     }
 
     /// <summary>Multiline text uses complete plain MText contents and disposes the returned native wrapper.</summary>
@@ -80,9 +102,9 @@ public sealed class BlockAttributeReaderTests
             MTextAttribute = text
         });
 
-        var attribute = Assert.Single(new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).BlockAttributes);
+        var attribute = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).Properties![DrawingPropertyKey.ForAttribute("DESCRIPTION")];
 
-        Assert.Equal(text.Text, attribute.Value);
+        Assert.Equal(new DrawingTextValue(text.Text), attribute);
         Assert.True(text.IsDisposed);
     }
 
@@ -97,8 +119,8 @@ public sealed class BlockAttributeReaderTests
         database.Add(unavailable);
         var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
 
-        Assert.True(reader.Read(empty).BlockAttributes.IsEmpty);
-        Assert.True(reader.Read(unavailable).BlockAttributes.IsDefault);
+        Assert.Equal(new DrawingNumberValue(0, DrawingUnit.Count), reader.Read(empty).Properties![DrawingPropertyId.Attributes]);
+        Assert.Null(reader.Read(unavailable).Properties![DrawingPropertyId.Attributes]);
     }
 
     private static BlockReference AddBlock(Database database, ObjectId definition, AttributeReference attribute)

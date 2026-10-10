@@ -40,15 +40,11 @@ public sealed class BlockPropertyTests
     [Fact]
     public void DiscoveryKeepsSourcesAndExactNamesSeparate()
     {
-        var entity = Block("1") with
-        {
-            BlockAttributes =
-            [
-                new BlockAttributeSnapshot("Layer", "Attribute layer"), new BlockAttributeSnapshot("layer", "Lowercase"), new BlockAttributeSnapshot(null, "ignored"),
-                new BlockAttributeSnapshot("", "ignored"), new BlockAttributeSnapshot(" ", "Whitespace tag")
-            ],
-            DynamicBlockProperties = [new DynamicBlockPropertySnapshot("Layer", new DrawingTextValue("Dynamic layer")), new DynamicBlockPropertySnapshot(null, null), new DynamicBlockPropertySnapshot("", null)]
-        };
+        var entity = Block("1",
+            (DrawingPropertyKey.ForAttribute("Layer"), new DrawingTextValue("Attribute layer")),
+            (DrawingPropertyKey.ForAttribute("layer"), new DrawingTextValue("Lowercase")),
+            (DrawingPropertyKey.ForAttribute(" "), new DrawingTextValue("Whitespace tag")),
+            (DrawingPropertyKey.ForDynamicBlock("Layer"), new DrawingTextValue("Dynamic layer")));
         var available = DrawingProperties.GetAvailableFields([entity]);
         DrawingPropertyKey builtIn = DrawingPropertyId.Layer;
         var attribute = DrawingPropertyKey.ForAttribute("Layer");
@@ -68,7 +64,7 @@ public sealed class BlockPropertyTests
         Assert.Equal("Layer", DrawingProperties.GetLabel(attribute));
     }
 
-    /// <summary>Duplicate tags are unavailable scalars while every attached value remains visible in details.</summary>
+    /// <summary>Unavailable, missing, and blank attribute scalars remain distinct in the unified dictionary.</summary>
     [Theory]
     [InlineData(DrawingGrouping.Layers)]
     [InlineData(DrawingGrouping.ObjectTypes)]
@@ -77,12 +73,12 @@ public sealed class BlockPropertyTests
         var key = DrawingPropertyKey.ForAttribute("MARK");
         ImmutableArray<EntitySnapshot> entities =
         [
-            Block("duplicate", [new BlockAttributeSnapshot("MARK", "A"), new BlockAttributeSnapshot("MARK", "A")]),
+            Block("duplicate", (key, null)),
             Block("missing"),
-            Block("unreadable", [new BlockAttributeSnapshot("MARK", null)]),
-            Block("blank", [new BlockAttributeSnapshot("MARK", "")]),
-            Block("uppercase", [new BlockAttributeSnapshot("MARK", "Yes")]),
-            Block("lowercase", [new BlockAttributeSnapshot("MARK", "yes")])
+            Block("unreadable", (key, null)),
+            Block("blank", (key, new DrawingTextValue(""))),
+            Block("uppercase", (key, new DrawingTextValue("Yes"))),
+            Block("lowercase", (key, new DrawingTextValue("yes")))
         ];
         var type = GetType(Build(entities, grouping, [key]), grouping);
         var unavailable = type.Children.Single(node => node.Properties[0].Value is null);
@@ -91,8 +87,7 @@ public sealed class BlockPropertyTests
 
         Assert.Equal(4, type.Children.Length);
         Assert.Equal(["duplicate", "missing", "unreadable"], unavailable.Objects.Select(id => id.DisplayId));
-        Assert.Equal(2, details.Count);
-        Assert.All(details, field => Assert.Equal("A", field.Value));
+        Assert.Equal("Unavailable", Assert.Single(details).Value);
         Assert.Equal(new DrawingTextValue(""), DrawingProperties.GetValue(entities[3], Layer, key));
         Assert.Equal(6, type.Children.SelectMany(node => node.Objects).Distinct().Count());
         Assert.All(type.Children, node => Assert.Equal(key, node.Fields[0].PropertyKey));
@@ -134,11 +129,7 @@ public sealed class BlockPropertyTests
         var key = DrawingPropertyKey.ForDynamicBlock("Width");
         ImmutableArray<EntitySnapshot> entities =
         [
-            Dynamic("duplicate", "Width", new DrawingNumberValue(2, DrawingUnit.Distance)) with
-            {
-                DynamicBlockProperties =
-                [new DynamicBlockPropertySnapshot("Width", new DrawingNumberValue(2, DrawingUnit.Distance)), new DynamicBlockPropertySnapshot("Width", new DrawingNumberValue(2, DrawingUnit.Distance))]
-            },
+            Dynamic("duplicate", "Width", null),
             Dynamic("null", "Width", null),
             Dynamic("nan", "Width", new DrawingNumberValue(double.NaN, DrawingUnit.Distance)),
             Block("missing")
@@ -159,11 +150,10 @@ public sealed class BlockPropertyTests
         var attribute = DrawingPropertyKey.ForAttribute("MARK");
         var angle = DrawingPropertyKey.ForDynamicBlock("Rotation");
         var visible = DrawingPropertyKey.ForDynamicBlock("Visible");
-        var entity = Block("1", [new BlockAttributeSnapshot("MARK", " 001\nYes ")]) with
-        {
-            DynamicBlockProperties =
-            [new DynamicBlockPropertySnapshot("Rotation", new DrawingNumberValue(0.123456789, DrawingUnit.Angle)), new DynamicBlockPropertySnapshot("Visible", new DrawingBooleanValue(false))]
-        };
+        var entity = Block("1",
+            (attribute, new DrawingTextValue(" 001\nYes ")),
+            (angle, new DrawingNumberValue(0.123456789, DrawingUnit.Angle)),
+            (visible, new DrawingBooleanValue(false)));
 
         Assert.Equal(new DrawingTextValue(" 001\nYes "), DrawingProperties.GetValue(entity, Layer, attribute));
         Assert.True(new DrawingPropertyFilter(attribute, DrawingFilterOperator.Contains, new DrawingTextValue("001\nyes")).Matches(entity, Layer));
@@ -178,10 +168,10 @@ public sealed class BlockPropertyTests
     {
         var attribute = DrawingPropertyKey.ForAttribute("MARK;text:False:WA==;dynamic:Width");
         var dynamic = DrawingPropertyKey.ForDynamicBlock(attribute.Name);
-        var entity = Block("1", [new BlockAttributeSnapshot(attribute.Name, "X"), new BlockAttributeSnapshot("MARK", "X")]) with
-        {
-            DynamicBlockProperties = [new DynamicBlockPropertySnapshot(dynamic.Name, new DrawingTextValue("X"))]
-        };
+        var entity = Block("1",
+            (attribute, new DrawingTextValue("X")),
+            (DrawingPropertyKey.ForAttribute("MARK"), new DrawingTextValue("X")),
+            (dynamic, new DrawingTextValue("X")));
         var culture = CultureInfo.CurrentCulture;
 
         try
@@ -216,12 +206,12 @@ public sealed class BlockPropertyTests
         filter is null ? null : new Dictionary<string, DrawingPropertyFilter> {[BlockType] = filter});
 
     private static EntitySnapshot Dynamic(string id, string name, DrawingValue? value) =>
-        Block(id) with {DynamicBlockProperties = [new DynamicBlockPropertySnapshot(name, value)]};
+        Block(id, (DrawingPropertyKey.ForDynamicBlock(name), value));
 
-    private static EntitySnapshot Block(string id, ImmutableArray<BlockAttributeSnapshot> attributes = default) => new(
+    private static EntitySnapshot Block(string id, params (DrawingPropertyKey Key, DrawingValue? Value)[] properties) => new(
         new TestEntityId(id),
         Layer.Id,
         BlockType,
-        ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(DrawingPropertyId.Attributes, new DrawingNumberValue(0, DrawingUnit.Count)),
-        BlockAttributes: attributes);
+        properties.ToImmutableDictionary(pair => pair.Key, pair => pair.Value)
+            .Add(DrawingPropertyId.Attributes, new DrawingNumberValue(0, DrawingUnit.Count)));
 }

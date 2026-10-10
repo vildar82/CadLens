@@ -274,13 +274,12 @@ public sealed class DrawingPresentationTests
                         new TestEntityId(index),
                         layer,
                         "AcDbBlockReference",
-                        ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty
+                        ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty
                             .Add(DrawingPropertyId.BlockName, new DrawingTextValue("Door"))
-                            .Add(DrawingPropertyId.Attributes, new DrawingNumberValue(index, DrawingUnit.Count)),
-                        DrawingPropertyId.Attributes,
-                        BlockAttributes: [new BlockAttributeSnapshot("MARK", index == 1 ? "A" : "B")],
-                        DynamicBlockProperties: [new DynamicBlockPropertySnapshot(
-                            "Width", new DrawingNumberValue(index == 1 ? 42.5 : 125.25, DrawingUnit.Distance))]))]);
+                            .Add(DrawingPropertyId.Attributes, new DrawingNumberValue(index, DrawingUnit.Count))
+                            .Add(attribute, new DrawingTextValue(index == 1 ? "A" : "B"))
+                            .Add(dynamic, new DrawingNumberValue(index == 1 ? 42.5 : 125.25, DrawingUnit.Distance)),
+                        DrawingPropertyId.Attributes))]);
                 using var lens = new ObjectExplorerLens(new Actions(inventory), grouping);
                 using var shell = new ExplorerViewModel([lens]);
                 shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
@@ -376,7 +375,7 @@ public sealed class DrawingPresentationTests
         {
             const string rawText = "Drawing text: a long sentence kept exactly as stored in the drawing.";
             var layer = new LayerId("Text layer");
-            var properties = ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty
+            var properties = ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty
                 .Add(DrawingPropertyId.Text, new DrawingTextValue(rawText))
                 .Add(DrawingPropertyId.TextStyle, new DrawingTextValue("Layers"))
                 .Add(DrawingPropertyId.TextHeight, new DrawingNumberValue(2.5, DrawingUnit.Distance));
@@ -652,7 +651,7 @@ public sealed class DrawingPresentationTests
     private static DrawingInventory Inventory()
     {
         var layer = new LayerId("Raw layer");
-        var properties = ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty
+        var properties = ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty
             .Add(DrawingPropertyId.Color, new DrawingColorValue(new AssignedColor(AssignedColorKind.ByLayer)))
             .Add(DrawingPropertyId.Linetype, new DrawingTextValue("Layers"))
             .Add(

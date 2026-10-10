@@ -396,7 +396,7 @@ public sealed class DrawingPropertyTests
     private static EntitySnapshot Entity(
         string id,
         string typeKey,
-        ImmutableDictionary<DrawingPropertyId, DrawingValue?>? properties = null) =>
+        ImmutableDictionary<DrawingPropertyKey, DrawingValue?>? properties = null) =>
         new(new TestEntityId(id), Layer.Id, typeKey, properties);
 
     private static EntitySnapshot Metric(
@@ -404,21 +404,21 @@ public sealed class DrawingPropertyTests
         string typeKey,
         DrawingPropertyId metric,
         double? value,
-        ImmutableDictionary<DrawingPropertyId, DrawingValue?>? properties = null) =>
+        ImmutableDictionary<DrawingPropertyKey, DrawingValue?>? properties = null) =>
         new(
             new TestEntityId(id),
             Layer.Id,
             typeKey,
-            (properties ?? ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty).SetItem(
+            (properties ?? ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty).SetItem(
                 metric,
                 value is null ? null : new DrawingNumberValue(value.Value, DrawingUnit.Count)),
             metric);
 
-    private static ImmutableDictionary<DrawingPropertyId, DrawingValue?> Properties(
-        params (DrawingPropertyId Id, DrawingValue? Value)[] values) =>
+    private static ImmutableDictionary<DrawingPropertyKey, DrawingValue?> Properties(
+        params (DrawingPropertyKey Id, DrawingValue? Value)[] values) =>
         values.ToImmutableDictionary(pair => pair.Id, pair => pair.Value);
 
-    private static ImmutableDictionary<DrawingPropertyId, DrawingValue?> Appearance(AssignedColor color) => Properties(
+    private static ImmutableDictionary<DrawingPropertyKey, DrawingValue?> Appearance(AssignedColor color) => Properties(
         (DrawingPropertyId.Color, new DrawingColorValue(color)),
         (DrawingPropertyId.Linetype, new DrawingTextValue("Continuous")),
         (DrawingPropertyId.Lineweight,

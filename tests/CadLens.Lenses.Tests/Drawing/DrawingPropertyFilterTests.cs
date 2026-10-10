@@ -245,7 +245,7 @@ public sealed class DrawingPropertyFilterTests
         new TestEntityId(id),
         new TestLayerId(layerId),
         typeKey,
-        new Dictionary<DrawingPropertyId, DrawingValue?>
+        new Dictionary<DrawingPropertyKey, DrawingValue?>
         {
             [DrawingPropertyId.Length] = new DrawingNumberValue(length, DrawingUnit.Distance),
             [DrawingPropertyId.Closed] = new DrawingBooleanValue(false)

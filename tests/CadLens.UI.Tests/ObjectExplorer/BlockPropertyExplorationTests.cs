@@ -172,7 +172,7 @@ public sealed class BlockPropertyExplorationTests : IDisposable
         {
             Entities = [.. inventory.Entities.Take(4).Select((entity, index) => entity with
             {
-                DynamicBlockProperties = [new DynamicBlockPropertySnapshot("Mixed", values[index])]
+                Properties = entity.Properties!.Add(key, values[index])
             })]
         };
         using var model = new ObjectExplorerViewModel(
@@ -209,7 +209,7 @@ public sealed class BlockPropertyExplorationTests : IDisposable
     private static DrawingInventory Inventory()
     {
         var layer = new LayerId("source-layer-id");
-        var properties = ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty
+        var properties = ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty
             .Add(DrawingPropertyId.BlockName, new DrawingTextValue("Door"))
             .Add(DrawingPropertyId.Attributes, new DrawingNumberValue(1, DrawingUnit.Count))
             .Add(DrawingPropertyId.Dynamic, new DrawingBooleanValue(true));
@@ -218,17 +218,21 @@ public sealed class BlockPropertyExplorationTests : IDisposable
         double[] numbers = [10, 2, 0];
         for (var index = 0; index < 5; index++)
         {
+            var observed = index switch
+            {
+                < 3 => properties
+                    .Add(DrawingPropertyKey.ForAttribute("Layer"), new DrawingTextValue(text[index]))
+                    .Add(DrawingPropertyKey.ForDynamicBlock("Layer"), new DrawingTextValue(index == 0 ? "Open" : "Closed"))
+                    .Add(DrawingPropertyKey.ForDynamicBlock("Length"), new DrawingNumberValue(numbers[index], DrawingUnit.Distance)),
+                4 => properties.Add(DrawingPropertyKey.ForAttribute("Layer"), null),
+                _ => properties
+            };
+
             entities.Add(new EntitySnapshot(
                 new ObjectId((index + 1).ToString()),
                 layer,
                 "AcDbBlockReference",
-                properties,
-                BlockAttributes: index < 3 ? [new BlockAttributeSnapshot("Layer", text[index])] : index == 4
-                    ? [new BlockAttributeSnapshot("Layer", "X"), new BlockAttributeSnapshot("Layer", "Y")] : [],
-                DynamicBlockProperties: index < 3
-                    ? [new DynamicBlockPropertySnapshot("Layer", new DrawingTextValue(index == 0 ? "Open" : "Closed")),
-                        new DynamicBlockPropertySnapshot("Length", new DrawingNumberValue(numbers[index], DrawingUnit.Distance))]
-                    : []));
+                observed));
         }
 
         return new DrawingInventory("Model", [new LayerSnapshot(layer, "Floor", false, false, false, false)], [.. entities]);

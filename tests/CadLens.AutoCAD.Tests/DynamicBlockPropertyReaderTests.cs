@@ -28,20 +28,17 @@ public sealed class DynamicBlockPropertyReaderTests
         firstValue.Value = 3d;
         var refreshed = reader.Read(first);
 
-        Assert.Equal(
-            new DynamicBlockPropertySnapshot("Width", new DrawingNumberValue(1, DrawingUnit.Scale)),
-            Assert.Single(original.DynamicBlockProperties));
-        Assert.Equal(new DrawingNumberValue(2, DrawingUnit.Scale), Assert.Single(other.DynamicBlockProperties).Value);
-        Assert.Equal(
-            new DrawingNumberValue(3, DrawingUnit.Scale),
-            Assert.Single(refreshed.DynamicBlockProperties).Value);
+        var width = DrawingPropertyKey.ForDynamicBlock("Width");
+        Assert.Equal(new DrawingNumberValue(1, DrawingUnit.Scale), original.Properties![width]);
+        Assert.Equal(new DrawingNumberValue(2, DrawingUnit.Scale), other.Properties![width]);
+        Assert.Equal(new DrawingNumberValue(3, DrawingUnit.Scale), refreshed.Properties![width]);
         Assert.Equal(original.Id, refreshed.Id);
         Assert.NotEqual(original.Id, other.Id);
         Assert.Equal(new DrawingTextValue("Door"), original.Properties![DrawingPropertyId.BlockName]);
         Assert.Equal(
             new DrawingNumberValue(1, DrawingUnit.Count),
             original.Properties[DrawingPropertyId.DefinitionEntities]);
-        Assert.Equal(new BlockAttributeSnapshot("MARK", "A"), Assert.Single(original.BlockAttributes));
+        Assert.Equal(new DrawingTextValue("A"), original.Properties[DrawingPropertyKey.ForAttribute("MARK")]);
         Assert.Equal(0, Assert.Single(nested.DynamicBlockReferencePropertyCollection.Properties).ValueReadCount);
         Assert.All(
             database.TransactionManager.TopTransaction.OpenRequests,
@@ -83,9 +80,7 @@ public sealed class DynamicBlockPropertyReaderTests
             var block = AddBlock(new Database(), property);
             var snapshot = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block);
 
-            Assert.Equal(
-                new DynamicBlockPropertySnapshot("  Длина / A  ", expected),
-                Assert.Single(snapshot.DynamicBlockProperties));
+            Assert.Equal(expected, snapshot.Properties![DrawingPropertyKey.ForDynamicBlock("  Длина / A  ")]);
             Assert.True(property.ReadOnly);
             Assert.Equal(1, property.ValueReadCount);
         }
@@ -106,11 +101,8 @@ public sealed class DynamicBlockPropertyReaderTests
             var block = AddBlock(
                 new Database(),
                 new DynamicBlockReferenceProperty {PropertyName = "Value", Value = value});
-            var property = Assert.Single(
-                new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).DynamicBlockProperties);
-
-            Assert.Equal("Value", property.Name);
-            Assert.Null(property.Value);
+            Assert.Null(new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block)
+                .Properties![DrawingPropertyKey.ForDynamicBlock("Value")]);
         }
 
         var unknownUnits = AddBlock(
@@ -121,10 +113,8 @@ public sealed class DynamicBlockPropertyReaderTests
                 Value = 1d,
                 UnitsType = (DynamicBlockReferencePropertyUnitsType) 999
             });
-        Assert.Null(
-            Assert.Single(
-                    new AutoCadEntitySnapshotReader(CancellationToken.None).Read(unknownUnits).DynamicBlockProperties)
-                .Value);
+        Assert.Null(new AutoCadEntitySnapshotReader(CancellationToken.None).Read(unknownUnits)
+            .Properties![DrawingPropertyKey.ForDynamicBlock("Future units")]);
     }
 
     /// <summary>Read errors preserve other property names and values, and string or boolean values do not require units.</summary>
@@ -147,22 +137,18 @@ public sealed class DynamicBlockPropertyReaderTests
             new DynamicBlockReferenceProperty
                 {PropertyName = "Bool", Value = false, UnitsError = ErrorStatus.InvalidInput});
 
-        var values = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).DynamicBlockProperties;
+        var values = new AutoCadEntitySnapshotReader(CancellationToken.None).Read(block).Properties!
+            .Where(pair => pair.Key.Source == DrawingPropertySource.DynamicBlock).ToList();
 
-        Assert.Equal<DynamicBlockPropertySnapshot>(
-            [
-                new DynamicBlockPropertySnapshot("", new DrawingTextValue("")),
-                new DynamicBlockPropertySnapshot("Unavailable", null),
-                new DynamicBlockPropertySnapshot(null, new DrawingTextValue("Readable")),
-                new DynamicBlockPropertySnapshot("Units", null),
-                new DynamicBlockPropertySnapshot("Text", new DrawingTextValue("0")),
-                new DynamicBlockPropertySnapshot("Bool", new DrawingBooleanValue(false))
-            ],
-            values);
+        Assert.Equal(4, values.Count);
+        Assert.Null(values.Single(pair => pair.Key.Name == "Unavailable").Value);
+        Assert.Null(values.Single(pair => pair.Key.Name == "Units").Value);
+        Assert.Equal(new DrawingTextValue("0"), values.Single(pair => pair.Key.Name == "Text").Value);
+        Assert.Equal(new DrawingBooleanValue(false), values.Single(pair => pair.Key.Name == "Bool").Value);
         Assert.True(block.DynamicBlockReferencePropertyCollection.IsDisposed);
     }
 
-    /// <summary>Ordinary and empty dynamic blocks differ from failed reads, and failed enumeration releases the collection.</summary>
+    /// <summary>Ordinary, empty, and unavailable collections publish no dynamic keys; native wrappers are released.</summary>
     [Fact]
     public void DistinguishesEmptyCollectionsFromNativeFailures()
     {
@@ -178,11 +164,8 @@ public sealed class DynamicBlockPropertyReaderTests
             database.Add(block);
 
         var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
-        Assert.False(reader.Read(ordinary).DynamicBlockProperties.IsDefault);
-        Assert.Empty(reader.Read(ordinary).DynamicBlockProperties);
-        Assert.Empty(reader.Read(empty).DynamicBlockProperties);
-        Assert.True(reader.Read(unavailable).DynamicBlockProperties.IsDefault);
-        Assert.True(reader.Read(failedEnumeration).DynamicBlockProperties.IsDefault);
+        foreach (var block in new[] {ordinary, empty, unavailable, failedEnumeration})
+            Assert.DoesNotContain(reader.Read(block).Properties!.Keys, key => key.Source == DrawingPropertySource.DynamicBlock);
         Assert.True(enumeration.IsDisposed);
         Assert.True(empty.DynamicBlockReferencePropertyCollection.IsDisposed);
     }

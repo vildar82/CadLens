@@ -216,7 +216,7 @@ public sealed class DrawingPrecisionTests
             new TestEntityId(id),
             layer,
             "AcDbArc",
-            ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty
+            ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty
                 .Add(DrawingPropertyId.Length, new DrawingNumberValue(length, DrawingUnit.Distance))
                 .Add(DrawingPropertyId.Radius, new DrawingNumberValue(5, DrawingUnit.Distance))
                 .Add(
