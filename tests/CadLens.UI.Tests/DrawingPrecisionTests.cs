@@ -236,7 +236,8 @@ public sealed class DrawingPrecisionTests
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int? maximumObjects = null)
         {
             ReadCount++;
             return Task.FromResult<HostResult<LensPresentation>>(

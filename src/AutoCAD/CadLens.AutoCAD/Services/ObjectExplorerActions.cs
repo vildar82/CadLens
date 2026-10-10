@@ -147,8 +147,9 @@ internal sealed class ObjectExplorerActions(
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
-        CancellationToken cancellationToken) =>
-        lens.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
+        CancellationToken cancellationToken,
+        int? maximumObjects = null) =>
+        lens.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
 
     public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
         isolation.ClearAsync(cancellationToken);

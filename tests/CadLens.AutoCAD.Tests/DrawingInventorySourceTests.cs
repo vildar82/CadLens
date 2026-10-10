@@ -13,6 +13,38 @@ namespace CadLens.AutoCAD;
 [Collection("AutoCAD")]
 public sealed class DrawingInventorySourceTests
 {
+    /// <summary>
+    /// Automatic reads stop above the limit; explicit full and selected reads remain available.
+    /// </summary>
+    /// <param name="limit">Automatic loading threshold.</param>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task AutomaticReadHonorsThreshold(int limit)
+    {
+        var document = CreateDocument();
+        var selected = AddEntity(document.Database);
+        AddEntity(document.Database);
+        var tasks = new HostTasks();
+        var source = new AutoCadDrawingInventorySource(tasks);
+        var automatic = source.ReadAsync(null, CancellationToken.None, limit);
+        tasks.Execute();
+
+        if (limit < 2)
+            Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await automatic);
+        else
+            Assert.Equal(2, Assert.IsType<HostResult<DrawingInventory>.Success>(await automatic).Value.Entities.Length);
+
+        var explicitRead = source.ReadAsync(null, CancellationToken.None);
+        tasks.Execute();
+        Assert.Equal(2, Assert.IsType<HostResult<DrawingInventory>.Success>(await explicitRead).Value.Entities.Length);
+
+        var selection = source.ReadAsync([new EntityId(selected)], CancellationToken.None, 0);
+        tasks.Execute();
+        Assert.Single(Assert.IsType<HostResult<DrawingInventory>.Success>(await selection).Value.Entities);
+    }
+
     /// <summary>Preselection remains detached after CAD selection changes or clears.</summary>
     [Fact]
     public async Task PreselectionIsDetachedFromLaterEditorChanges()

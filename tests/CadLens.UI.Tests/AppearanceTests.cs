@@ -350,7 +350,8 @@ public sealed class AppearanceTests
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int? maximumObjects = null)
         {
             ReadCount++;
             ImmutableArray<LensNode> nodes =

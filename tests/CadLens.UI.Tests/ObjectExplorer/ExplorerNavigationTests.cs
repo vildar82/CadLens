@@ -952,7 +952,7 @@ public sealed class ExplorerNavigationTests
         internal TaskCompletionSource<string>? PendingFocus { get; init; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
 
-        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlyCollection<string> enabledFilters, ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
+        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlyCollection<string> enabledFilters, ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null)
         {
             ReadCount++;
             Enabled = enabledFilters;

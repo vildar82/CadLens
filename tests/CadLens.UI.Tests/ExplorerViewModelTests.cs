@@ -329,7 +329,8 @@ public sealed class ExplorerViewModelTests
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken) => DelayInventory
+            CancellationToken cancellationToken,
+            int? maximumObjects = null) => DelayInventory
             ? InventoryCompletion.Task
             : Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(Presentation()));
 

@@ -39,6 +39,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private bool _hasDrawing = true;
     private bool _spaceIsDrawingData;
     private bool _saveFailed;
+    private int _autoLoadObjectLimit = LensPreferences.DefaultAutoLoadObjectLimit;
     private UiMessage _status = new("Activate a lens to explore the drawing.");
 
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
@@ -587,6 +588,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
         IsSelectedObjectsOnly = false;
+        _emptyMessage = "Refresh to explore the active space.";
+        OnPropertyChanged(nameof(EmptyMessage));
         _propertyFilters.Clear();
         _unfilteredGroups = [];
         _inventory = null;
@@ -668,6 +671,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         IsCountSortActive = preferences.IsCountSortActive;
         _sortDescending = preferences.SortDescending;
         _searchText = preferences.SearchText ?? "";
+        _autoLoadObjectLimit = preferences.AutoLoadObjectLimit >= 0
+            ? preferences.AutoLoadObjectLimit
+            : LensPreferences.DefaultAutoLoadObjectLimit;
 
         foreach (var pair in preferences.PropertyGrouping ?? [])
         {
@@ -703,7 +709,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             IsCountSortActive,
             _sortDescending,
             _propertyGrouping.ToDictionary(pair => pair.Key, pair => pair.Value.Select(id => id.ToString()).ToArray()),
-            _displayProperties.ToDictionary(pair => pair.Key, pair => pair.Value.ToString()));
+            _displayProperties.ToDictionary(pair => pair.Key, pair => pair.Value.ToString()),
+            _autoLoadObjectLimit);
         _saveFailed = !_settings.Save(_settingsFileName, preferences);
         OnPropertyChanged(nameof(Status));
     }
@@ -763,9 +770,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         _needsCleanup = true;
         IsLensActive = true;
 
-        return ExecuteActionAsync(token => IsSelectedObjectsOnly && _inventory is { } retained
+        return ExecuteActionAsync(token => _inventory is { } retained
             ? RebuildInventoryAsync(retained, token)
-            : ReadInventoryAsync(token));
+            : ReadAutomaticInventoryAsync(token));
     }
 
     /// <summary>Cancels drawing work and settles it before clearing lens effects.</summary>
@@ -815,7 +822,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         await previous;
 
         if (ReferenceEquals(previous, _operation))
-            await ExecuteActionAsync(ReadInventoryAsync);
+            await ExecuteActionAsync(ReadAutomaticInventoryAsync);
     }
 
     private async Task<UiMessage> ClearEffectsAsync(CancellationToken cancellationToken) =>
@@ -886,7 +893,13 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private Task<UiMessage> ReadInventoryAsync(CancellationToken cancellationToken) =>
         ReadInventoryAsync(IsSelectedObjectsOnly, cancellationToken);
 
-    private async Task<UiMessage> ReadInventoryAsync(bool selectedOnly, CancellationToken cancellationToken)
+    private Task<UiMessage> ReadAutomaticInventoryAsync(CancellationToken cancellationToken) =>
+        ReadInventoryAsync(IsSelectedObjectsOnly, cancellationToken, _autoLoadObjectLimit);
+
+    private async Task<UiMessage> ReadInventoryAsync(
+        bool selectedOnly,
+        CancellationToken cancellationToken,
+        int? maximumObjects = null)
     {
         ImmutableArray<IPlacedObjectId>? selectedObjects = null;
 
@@ -916,7 +929,12 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             NotifyNavigation();
         }
 
-        var result = await _actions.ReadAsync(_grouping, _enabledFilters, selectedObjects, cancellationToken);
+        var result = await _actions.ReadAsync(
+            _grouping,
+            _enabledFilters,
+            selectedObjects,
+            cancellationToken,
+            maximumObjects);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (result is HostResult<LensPresentation>.Success success)
@@ -930,7 +948,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         _spaceIsDrawingData = false;
         SpaceLabel = "Unavailable";
         OnPropertyChanged(nameof(DisplaySpaceLabel));
-        return ((HostResult<LensPresentation>.Unavailable) result).Reason;
+        _emptyMessage = ((HostResult<LensPresentation>.Unavailable) result).Reason;
+        OnPropertyChanged(nameof(EmptyMessage));
+        return _emptyMessage;
     }
 
     private async Task<UiMessage> RebuildInventoryAsync(DrawingInventory inventory, CancellationToken cancellationToken)
@@ -1113,9 +1133,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         try
         {
-            return IsSelectedObjectsOnly && _inventory is { } retained
+            return _inventory is { } retained
                 ? await RebuildInventoryAsync(retained, cancellationToken)
-                : await ReadInventoryAsync(cancellationToken);
+                : await ReadAutomaticInventoryAsync(cancellationToken);
         }
         catch
         {

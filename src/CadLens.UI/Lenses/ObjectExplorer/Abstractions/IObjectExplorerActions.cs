@@ -26,11 +26,13 @@ public interface IObjectExplorerActions
     /// <param name="enabledFilters">Enabled lens option identities.</param>
     /// <param name="selectedObjects">Captured selection, or null for all direct current-space objects.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
+    /// <param name="maximumObjects">Maximum direct-space objects for automatic loading; null allows an explicit full read. Selected scope ignores the limit.</param>
     Task<HostResult<LensPresentation>> ReadAsync(
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        int? maximumObjects = null);
 
     /// <summary>Isolates the panel selection; empty targets clear it.</summary>
     /// <param name="objects">Current group or object targets.</param>

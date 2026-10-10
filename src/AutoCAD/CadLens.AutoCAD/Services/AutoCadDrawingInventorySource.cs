@@ -10,26 +10,31 @@ namespace CadLens.AutoCAD;
 
 internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) : IDrawingInventorySource
 {
-    public Task<HostResult<DrawingInventory>> ReadAsync(
+    public async Task<HostResult<DrawingInventory>> ReadAsync(
         ImmutableArray<IPlacedObjectId>? selectedObjects,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? maximumObjects = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var document = Application.DocumentManager.MdiActiveDocument;
 
         if (document is null)
-            return Task.FromResult<HostResult<DrawingInventory>>(
-                new HostResult<DrawingInventory>.Unavailable("The active drawing is no longer available."));
+            return new HostResult<DrawingInventory>.Unavailable("The active drawing is no longer available.");
 
         var spaceId = document.Database.CurrentSpaceId;
 
-        return hostTasks.RunAsync(() => Read(document, spaceId, selectedObjects, cancellationToken), cancellationToken);
+        var result = await hostTasks.RunAsync(
+            () => Read(document, spaceId, selectedObjects, maximumObjects, cancellationToken),
+            cancellationToken);
+
+        return result.Bind(inventory => inventory);
     }
 
-    private static DrawingInventory Read(
+    private static HostResult<DrawingInventory> Read(
         Document document,
         ObjectId spaceId,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
+        int? maximumObjects,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -42,6 +47,11 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         using var transaction = database.TransactionManager.StartTransaction();
 
         var space = database.GetActiveSpace();
+
+        if (selectedObjects is null && maximumObjects is { } limit && ExceedsLimit(space, limit, cancellationToken))
+            return new HostResult<DrawingInventory>.Unavailable(
+                "Large drawing. Use Refresh to load all objects, or choose Selected objects.");
+
         var frozenLayers = ReadViewportFrozenLayers(document);
         var layers = ReadLayers(database, frozenLayers, cancellationToken);
         var reader = new AutoCadEntitySnapshotReader(cancellationToken);
@@ -56,7 +66,23 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         cancellationToken.ThrowIfCancellationRequested();
         transaction.Commit();
 
-        return new DrawingInventory(spaceLabel, layers, entities, Precision: precision);
+        return new HostResult<DrawingInventory>.Success(
+            new DrawingInventory(spaceLabel, layers, entities, Precision: precision));
+    }
+
+    private static bool ExceedsLimit(BlockTableRecord space, int limit, CancellationToken cancellationToken)
+    {
+        var count = 0;
+
+        foreach (var id in space.Cast<ObjectId>())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (id.IsValid && ++count > limit)
+                return true;
+        }
+
+        return false;
     }
 
     private static IEnumerable<Entity> ReadEntities(

@@ -231,7 +231,8 @@ public sealed class LensSettingsTests
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int? maximumObjects = null)
         {
             NativeCalls++;
             Reads.Add([.. enabledFilters]);

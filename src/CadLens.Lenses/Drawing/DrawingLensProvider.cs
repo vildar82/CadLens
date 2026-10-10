@@ -31,12 +31,13 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? maximumObjects = null)
     {
         // Capture options before awaiting: later UI changes belong to the next request.
         var includeFrozen = enabledFilters.Contains(IncludeFrozen);
         var includeOff = enabledFilters.Contains(IncludeOff);
-        var result = await source.ReadAsync(selectedObjects, cancellationToken).ConfigureAwait(false);
+        var result = await source.ReadAsync(selectedObjects, cancellationToken, maximumObjects).ConfigureAwait(false);
 
         return result.Bind(snapshot => new HostResult<LensPresentation>.Success(
             Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken)));

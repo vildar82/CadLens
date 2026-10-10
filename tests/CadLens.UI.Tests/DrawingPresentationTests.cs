@@ -700,7 +700,8 @@ public sealed class DrawingPresentationTests
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            int? maximumObjects = null) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Success(
                     DrawingLensProvider.Build(inventory ?? Inventory(), grouping, enabledFilters)));
