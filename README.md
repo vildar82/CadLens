@@ -1,5 +1,7 @@
 ﻿# CAD Lens
 
+English | [Русский](README.ru.md)
+
 <img src="src/CadLens.UI/Resources/CadLens.png" alt="CAD Lens icon" width="96">
 
 Explore an AutoCAD drawing by layer, object type, and property. CAD Lens helps you find, select,
@@ -34,16 +36,17 @@ to move the panel.
 The current bundle targets **64-bit Windows, AutoCAD 2019–2027, and Civil 3D 2019–2027**, using WPF.
 It includes separate payloads selected automatically by the host:
 
-| Host version | AutoCAD series | Bundle payload |
-| --- | --- | --- |
-| AutoCAD / Civil 3D 2019–2020 | R23.0–R23.1 | `Contents/net47` |
-| AutoCAD / Civil 3D 2021–2024 | R24.0–R24.3 | `Contents/net48` |
-| AutoCAD / Civil 3D 2025 | R25.0 | `Contents/net8.0-windows` |
-| AutoCAD / Civil 3D 2026 | R25.1 | `Contents/net8.0-windows` |
-| AutoCAD / Civil 3D 2027 | R26.0 | `Contents/net10.0-windows` |
+| Host version                 | AutoCAD series | Bundle payload             |
+|------------------------------|----------------|----------------------------|
+| AutoCAD / Civil 3D 2019–2020 | R23.0–R23.1    | `Contents/net47`           |
+| AutoCAD / Civil 3D 2021–2024 | R24.0–R24.3    | `Contents/net48`           |
+| AutoCAD / Civil 3D 2025      | R25.0          | `Contents/net8.0-windows`  |
+| AutoCAD / Civil 3D 2026      | R25.1          | `Contents/net8.0-windows`  |
+| AutoCAD / Civil 3D 2027      | R26.0          | `Contents/net10.0-windows` |
 
 The 2019, 2021, and 2025 APIs cover their respective version ranges; AutoCAD 2027 uses the 2027 API and .NET 10.
-See Autodesk's [managed .NET compatibility table](https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-Customization/files/GUID-A6C680F2-DE2E-418A-A182-E4884073338A.htm).
+See
+Autodesk's [managed .NET compatibility table](https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-Customization/files/GUID-A6C680F2-DE2E-418A-A182-E4884073338A.htm).
 The 2019–2020 payload requires .NET Framework 4.7; the 2021–2024 payload requires .NET Framework 4.8.
 A compatible later .NET Framework 4.x runtime also satisfies these requirements; see Microsoft's
 [version and dependency guide](https://learn.microsoft.com/en-us/dotnet/framework/install/versions-and-dependencies).
@@ -57,7 +60,8 @@ interface and do not establish behavior inside AutoCAD or Civil 3D. See [Verific
 
 ### Download and install
 
-1. Open the [latest GitHub release](https://github.com/vildar82/CadLens/releases) and download **CadLens.bundle.zip** from **Assets**.
+1. Open the [latest GitHub release](https://github.com/vildar82/CadLens/releases) and download **CadLens.bundle.zip**
+   from **Assets**.
 2. Extract the ZIP and copy the complete `CadLens.bundle` directory to `%PROGRAMFILES%\Autodesk\ApplicationPlugins`.
 3. Restart AutoCAD or Civil 3D, open a DWG, and click **CAD Lens** on the **Plug-Ins** ribbon tab or run `CADLENS`.
 4. Press **Layers** or **Objects** in the compact bar to explore the active drawing space.
@@ -78,7 +82,13 @@ The .NET Framework reference assemblies are restored through NuGet; a separate d
 dotnet build CadLens.slnx -c Debug
 ```
 
-Debug builds copy the plugin and its dependencies to `%APPDATA%\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\<TargetFramework>`. For manual `NETLOAD`, select `CadLens.AutoCAD.dll` from `net47` for 2019–2020, `net48` for 2021–2024, `net8.0-windows` for 2025–2026, or `net10.0-windows` for 2027, then enter `CADLENS`. Library and test project outputs stay in their local build directories. If the build directory is not in `TRUSTEDPATHS`, copy the complete matching output directory, including its `ru` satellite-resource subdirectory, into an existing trusted directory without disabling `SECURELOAD`. Restart the host before loading rebuilt assemblies from a previously loaded plugin.
+Debug builds copy the plugin and its dependencies to
+`%APPDATA%\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\<TargetFramework>`. For manual `NETLOAD`, select
+`CadLens.AutoCAD.dll` from `net47` for 2019–2020, `net48` for 2021–2024, `net8.0-windows` for 2025–2026, or
+`net10.0-windows` for 2027, then enter `CADLENS`. Library and test project outputs stay in their local build
+directories. If the build directory is not in `TRUSTEDPATHS`, copy the complete matching output directory, including its
+`ru` satellite-resource subdirectory, into an existing trusted directory without disabling `SECURELOAD`. Restart the
+host before loading rebuilt assemblies from a previously loaded plugin.
 
 ## Language
 
@@ -98,8 +108,13 @@ when selected again. A Windows display-language change usually also requires Win
 
 ## Use the Layers lens
 
-A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space automatically when it has at most 10,000 direct objects.
-For a larger space, use Refresh to load all objects or choose Selected objects. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
+A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space
+automatically when it has at most 10,000 direct objects.
+For a larger space, use Refresh to load all objects or choose Selected objects. Browse layers, object types, and objects
+with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the
+panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or
+failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the
+existing panel forward.
 
 ### Object scope
 
@@ -116,19 +131,19 @@ and keep the previous view. Only live direct objects in the active space are inc
 off/frozen inclusion filters still apply.
 
 Navigation, grouping, inclusion-filter changes, Reset, and Select/Auto Select keep the captured inventory.
-Collapsing the panel or switching lenses also keeps each lens's selected inventory and navigation.
-**Refresh selected objects** also uses the current CAD selection or asks you to select objects, then
+Collapsing the panel or switching lenses also keeps each lens's selected inventory and navigation. **Refresh selected
+objects** also uses the current CAD selection or asks you to select objects, then
 updates the list immediately. It can replace the inventory with a selection made by Select/Auto Select.
 Switching drawings or spaces clears the old inventory and returns the scope to All objects. Each new
 panel session starts with All objects.
 
 ### Drawing controls
 
-| Action | Effect | Auto default |
-| --- | --- | --- |
-| Focus | Fits the current target in the active camera | Off |
-| Select | Replaces the CAD selection | Off |
-| Isolate | Temporarily hides other direct active-space objects | Off |
+| Action  | Effect                                              | Auto default |
+|---------|-----------------------------------------------------|--------------|
+| Focus   | Fits the current target in the active camera        | Off          |
+| Select  | Replaces the CAD selection                          | Off          |
+| Isolate | Temporarily hides other direct active-space objects | Off          |
 
 Each action has its own Auto toggle. All three default to off; saved choices are restored for each lens.
 Enabled actions follow navigation. For selection without camera movement, turn Auto Select on and leave
@@ -136,9 +151,15 @@ Auto Focus off. Select remains available when Focus cannot use bounds or the vie
 
 ### Temporary isolation
 
-Press Isolate on a layer, type, or object to keep its direct active-space objects in their original appearance and temporarily hide the other direct active-space objects. Auto Isolate repeats this as you browse; with Auto Isolate off, the next navigation clears a manual isolation. Objects on off or frozen layers stay hidden even when included in the list. Isolation uses the same target set in every viewport where those objects are visible, without moving cameras or changing CAD selection.
+Press Isolate on a layer, type, or object to keep its direct active-space objects in their original appearance and
+temporarily hide the other direct active-space objects. Auto Isolate repeats this as you browse; with Auto Isolate off,
+the next navigation clears a manual isolation. Objects on off or frozen layers stay hidden even when included in the
+list. Isolation uses the same target set in every viewport where those objects are visible, without moving cameras or
+changing CAD selection.
 
-Turning Auto Isolate off, returning to the root list, pressing Reset, collapsing or closing the panel, or switching drawings or spaces restores the ordinary display. Isolation does not write entity or layer visibility properties to the DWG.
+Turning Auto Isolate off, returning to the root list, pressing Reset, collapsing or closing the panel, or switching
+drawings or spaces restores the ordinary display. Isolation does not write entity or layer visibility properties to the
+DWG.
 
 Reset also clears CAD selection and turns off all Auto modes while keeping the camera, navigation,
 and inclusion filters. It saves the Auto modes as off. Effects stay clear during later navigation until
@@ -154,15 +175,22 @@ that size within the current monitor's work area. Window position is not saved.
 Restored Auto modes apply when you choose a target. If saving fails, the controls remain usable for
 the current session and the lens status explains that the preferences could not be saved.
 
-CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or spaces clears old data and automatically reloads the active lens within its size threshold. These actions do not change stored DWG geometry or properties.
+CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or
+spaces clears old data and automatically reloads the active lens within its size threshold. These actions do not change
+stored DWG geometry or properties.
 
 ## Use the Object Types lens
 
-Press Objects to browse object types across all included layers in the current model or paper space and see their counts. Search the type names or sort by name/count, then browse Type → Object; each object shows its own layer and visibility details. A block insertion counts as one object. Nested block and external-reference contents are not traversed.
+Press Objects to browse object types across all included layers in the current model or paper space and see their
+counts. Search the type names or sort by name/count, then browse Type → Object; each object shows its own layer and
+visibility details. A block insertion counts as one object. Nested block and external-reference contents are not
+traversed.
 
 ![Object Types lens with sample object properties and grouping controls](docs/images/objects-preview.png)
 
-Object Types shares the drawing controls and inclusion filters described above. Switching lenses clears the previous lens's selection/isolation and restores the destination lens's valid navigation and settings. Counts include off-screen objects and stay unchanged when panning or zooming. Use Refresh after drawing edits.
+Object Types shares the drawing controls and inclusion filters described above. Switching lenses clears the previous
+lens's selection/isolation and restores the destination lens's valid navigation and settings. Counts include off-screen
+objects and stay unchanged when panning or zooming. Use Refresh after drawing edits.
 
 Within a primitive type in either lens, object rows show a useful measurement: vertices for polylines,
 direct definition entities for blocks, boundary loops for hatches, control points for splines, length for
@@ -245,7 +273,8 @@ CAD Lens uses defaults; if it cannot be saved, the choices still work for the cu
 Appearance changes do not change AutoCAD's theme, the drawing, navigation, or temporary effects.
 
 Click **CAD Lens ⓘ** in the compact bar to read about the program, open the GitHub project,
-read the privacy policy, or submit questions and suggestions through GitHub Issues. The links open in your default browser.
+read the privacy policy, or submit questions and suggestions through GitHub Issues. The links open in your default
+browser.
 
 ## Development
 
@@ -259,23 +288,31 @@ From the repository root, run:
 
 The script publishes all four target frameworks, generates a version-specific `PackageContents.xml`, and creates
 `artifacts/bundle/CadLens.bundle.zip`, including the partial ribbon CUIX, offline help, and privacy policy.
-A successful GitHub Actions run also provides the ZIP as a build artifact; GitHub Releases provide the versioned download for users.
+A successful GitHub Actions run also provides the ZIP as a build artifact; GitHub Releases provide the versioned
+download for users.
 
 ### Project map
 
-- `CadLens.Common` contains host results, typed ID contracts, and the object visualization contract without WPF or AutoCAD.
-- `CadLens.Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary visual isolation, Focus, and bounds reading.
+- `CadLens.Common` contains host results, typed ID contracts, and the object visualization contract without WPF or
+  AutoCAD.
+- `CadLens.Common.AutoCAD` owns queued AutoCAD work, database helpers, temporary visual isolation, Focus, and bounds
+  reading.
 - `CadLens.Lenses` groups detached drawing inventories by layer or object type and owns navigation state.
 - `CadLens.UI` owns the window, lens switching, and the shared object explorer view and view model.
 - `CadLens.AutoCAD` connects the UI to AutoCAD and owns plugin and panel lifetime.
 
-Both lenses use `ObjectExplorerViewModel` and `ObjectExplorerView`. A refresh requests its grouping through `IObjectExplorerActions`; the AutoCAD adapter invokes `DrawingLensProvider`, which reads a detached `DrawingInventory` and builds either Layer → Type → Object or Type → Object groups. Drawing actions use the same `IObjectVisualizationService`. Analysis runs over ordinary .NET models after the inventory is read in the proper document context.
+Both lenses use `ObjectExplorerViewModel` and `ObjectExplorerView`. A refresh requests its grouping through
+`IObjectExplorerActions`; the AutoCAD adapter invokes `DrawingLensProvider`, which reads a detached `DrawingInventory`
+and builds either Layer → Type → Object or Type → Object groups. Drawing actions use the same
+`IObjectVisualizationService`. Analysis runs over ordinary .NET models after the inventory is read in the proper
+document context.
 
 All objects use the same `EntitySnapshot` model with one immutable `DrawingPropertyKey` → `DrawingValue?`
 dictionary for built-in properties, attached attributes, and dynamic block properties, plus an optional
 primary row measurement. `DrawingPropertyKey.Source` distinguishes BuiltIn, Attribute, and DynamicBlock,
 so identical names from different sources stay separate. Duplicate same-source names become one
-unavailable value; native properties with no readable name are omitted. Native extraction lives in `AutoCadEntitySnapshotReader`; `DrawingProperties` provides shared
+unavailable value; native properties with no readable name are omitted. Native extraction lives in
+`AutoCadEntitySnapshotReader`; `DrawingProperties` provides shared
 property access, and `DrawingLensProvider` builds both exploration trees. Details, combined grouping,
 and numeric sorting use these same detached values. A new primitive reader does not require a new UI
 model or a separate grouping implementation.
@@ -286,9 +323,12 @@ sorting, and filters.
 
 ### Host and lens lifetime
 
-`CadLens.AutoCAD` owns plugin and panel lifetime, cleanup, snapshot construction, and panel messages. Create `AutoCadTaskService` on the host UI thread. Capture preselection on that thread before queuing interactive selection work. Clear temporary isolation when leaving the drawing context, then stop and drain the queue before disposing it.
+`CadLens.AutoCAD` owns plugin and panel lifetime, cleanup, snapshot construction, and panel messages. Create
+`AutoCadTaskService` on the host UI thread. Capture preselection on that thread before queuing interactive selection
+work. Clear temporary isolation when leaving the drawing context, then stop and drain the queue before disposing it.
 
-A lens implements `ILens` in `CadLens.UI`. It supplies a descriptor and WPF view, handles activation and deactivation, and receives context-change and close notifications. Register its own dependencies and the lens in the composition root:
+A lens implements `ILens` in `CadLens.UI`. It supplies a descriptor and WPF view, handles activation and deactivation,
+and receives context-change and close notifications. Register its own dependencies and the lens in the composition root:
 
 ```csharp
 services.AddScoped<MyLensService>();
@@ -296,7 +336,10 @@ services.AddScoped<MyLensViewModel>();
 services.AddScoped<ILens, MyLens>();
 ```
 
-The shell discovers `ILens` registrations, creates their views lazily on the UI thread, and shows one active module at a time. Descriptor IDs must be unique. Deactivation must settle module work and remove its effects; failed cleanup blocks switching until a retry succeeds. Context changes invalidate saved targets, and Close cancels work and removes effects before the host queue stops. Module services are scoped to the panel session.
+The shell discovers `ILens` registrations, creates their views lazily on the UI thread, and shows one active module at a
+time. Descriptor IDs must be unique. Deactivation must settle module work and remove its effects; failed cleanup blocks
+switching until a retry succeeds. Context changes invalidate saved targets, and Close cancels work and removes effects
+before the host queue stops. Module services are scoped to the panel session.
 
 Production registers two `ObjectExplorerLens` instances with different groupings. Each owns its navigation,
 filters, search, and Auto settings; both reuse one scoped inventory provider and host-action adapter.
@@ -307,14 +350,23 @@ supports other modules.
 
 ### CI and releases
 
-Current code and tests describe the supported behavior. Keep documentation for usage, important decisions, and host constraints; ordinary changes do not require separate planning artifacts.
+Current code and tests describe the supported behavior. Keep documentation for usage, important decisions, and host
+constraints; ordinary changes do not require separate planning artifacts.
 
-On every push, the Windows GitHub Actions workflow installs the .NET 8 and .NET 10 SDKs, restores dependencies, builds the solution, runs managed tests for all four target frameworks, packages the bundle, checks legacy dependency loading, and uploads the ZIP. Native AutoCAD rendering and lifecycle checks are separate.
+On every push, the Windows GitHub Actions workflow installs the .NET 8 and .NET 10 SDKs, restores dependencies, builds
+the solution, runs managed tests for all four target frameworks, packages the bundle, checks legacy dependency loading,
+and uploads the ZIP. Native AutoCAD rendering and lifecycle checks are separate.
 
-To publish a prerelease, update `Version` in `Directory.Build.props` and merge it into `main`. After a successful build, the workflow creates the `v<Version>` tag and attaches `CadLens.bundle.zip` to the GitHub Release. Runs with an existing release version leave that release unchanged. You can also start the workflow with **Run workflow** or `gh workflow run build.yml --ref main`.
+To publish a prerelease, update `Version` in `Directory.Build.props` and merge it into `main`. After a successful build,
+the workflow creates the `v<Version>` tag and attaches `CadLens.bundle.zip` to the GitHub Release. Runs with an existing
+release version leave that release unchanged. You can also start the workflow with **Run workflow** or
+`gh workflow run build.yml --ref main`.
 
-GitHub generates the release description from merged pull request titles, contributors, and a link to the full commit history. Use descriptive pull request titles for changes users should see in release notes.
+GitHub generates the release description from merged pull request titles, contributors, and a link to the full commit
+history. Use descriptive pull request titles for changes users should see in release notes.
 
 ## Verification
 
-See the [verification guide](docs/verification.md) for managed checks, native AutoCAD scenarios, and the current evidence limits. Build and test results do not establish native rendering, lifecycle, or host compatibility. Earlier Layers and Highlight acceptance does not verify the current Isolate behavior.
+See the [verification guide](docs/verification.md) for managed checks, native AutoCAD scenarios, and the current
+evidence limits. Build and test results do not establish native rendering, lifecycle, or host compatibility. Earlier
+Layers and Highlight acceptance does not verify the current Isolate behavior.
