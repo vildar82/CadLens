@@ -36,6 +36,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     internal sealed class LayerTable(params ObjectId[] ids) : SymbolTable(ids);
     internal sealed class LayerTableRecord : DBObject
     {
+        internal Colors.Color Color { get; init; } = new();
         internal string Name => "Layer";
         internal bool IsOff => false;
         internal bool IsFrozen => false;

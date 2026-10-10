@@ -107,11 +107,17 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         return viewport is null ? [] : [.. viewport.GetFrozenLayers().Cast<ObjectId>()];
     }
 
-    private static LayerSnapshot ReadLayer(LayerTableRecord layer, HashSet<ObjectId> frozenLayers) => new(
-        new LayerId(layer.ObjectId),
-        layer.Name,
-        layer.IsOff,
-        layer.IsFrozen,
-        frozenLayers.Contains(layer.ObjectId),
-        layer.IsLocked);
+    private static LayerSnapshot ReadLayer(LayerTableRecord layer, HashSet<ObjectId> frozenLayers)
+    {
+        using var color = layer.Color;
+
+        return new LayerSnapshot(
+            new LayerId(layer.ObjectId),
+            layer.Name,
+            layer.IsOff,
+            layer.IsFrozen,
+            frozenLayers.Contains(layer.ObjectId),
+            layer.IsLocked,
+            AutoCadEntitySnapshotReader.ReadDisplayColor(color));
+    }
 }

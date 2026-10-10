@@ -23,6 +23,9 @@
 
 ## Pull requests
 
+- Work on a focused feature branch using the `codex/` prefix, then push it and open a pull request. Do not implement changes directly on `main`.
+- The user reviews and merges pull requests. Do not merge or publish a release unless the user explicitly requests it.
+
 - Keep each PR focused on one coherent change. Put unrelated fixes, cleanup, and experiments in separate PRs.
 - Use a specific English title that describes the result and reads well in release notes. Avoid generic titles such as "Fix", "Update", or "Bundle".
 - Describe the final diff: why the change is needed, what it changes, and how it was verified. Link the relevant issue when there is one.

@@ -21,19 +21,26 @@ namespace Autodesk.AutoCAD.Runtime
 
 namespace Autodesk.AutoCAD.Colors
 {
+    internal readonly struct EntityColor
+    {
+        internal static int LookUpRgb(byte colorIndex) => colorIndex == 1
+            ? unchecked((int) 0xC3FF0000)
+            : throw new NotSupportedException("Only the tested palette entry is available in this API double.");
+    }
+
     internal enum ColorMethod { ByLayer }
 
     internal sealed class Color : IDisposable
     {
-        internal bool IsByLayer => true;
-        internal bool IsByBlock => false;
-        internal bool IsByAci => false;
-        internal bool IsByColor => false;
-        internal bool HasBookName => false;
-        internal short ColorIndex => 0;
-        internal byte Red => 0;
-        internal byte Green => 0;
-        internal byte Blue => 0;
+        internal bool IsByLayer { get; init; } = true;
+        internal bool IsByBlock { get; init; }
+        internal bool IsByAci { get; init; }
+        internal bool IsByColor { get; init; }
+        internal bool HasBookName { get; init; }
+        internal short ColorIndex { get; init; }
+        internal byte Red { get; init; }
+        internal byte Green { get; init; }
+        internal byte Blue { get; init; }
         internal string ColorName => "";
         internal string BookName => "";
         internal ColorMethod ColorMethod => ColorMethod.ByLayer;
@@ -55,7 +62,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     public partial class Entity
     {
-        internal Colors.Color Color => new();
+        internal Colors.Color Color { get; init; } = new();
         internal LineWeight LineWeight => LineWeight.ByLayer;
         internal string Linetype => "ByLayer";
         internal double LinetypeScale => 1;

@@ -705,44 +705,51 @@
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type lenses:LensNode}">
-                            <Button
-                                Margin="0,0,0,4"
-                                AutomationProperties.Name="{ui:DrawingValueFormatter Binding={Binding}}"
-                                Command="{Binding DataContext.EnterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                CommandParameter="{Binding}"
-                                Style="{StaticResource ModeRow}"
-                                ToolTip="{ui:DrawingValueFormatter Binding={Binding}}">
-                                <DockPanel>
-                                    <TextBlock
-                                        Margin="8,0,0,0"
-                                        VerticalAlignment="Center"
-                                        DockPanel.Dock="Right"
-                                        Foreground="{DynamicResource QuietAccent}"
-                                        Text="›" />
-                                    <TextBlock
-                                        MaxWidth="120"
-                                        MaxHeight="18"
-                                        Margin="8,0,0,0"
-                                        VerticalAlignment="Center"
-                                        DockPanel.Dock="Right"
-                                        Foreground="{DynamicResource QuietMuted}"
-                                        Text="{ui:DrawingValueFormatter Binding={Binding},
-                                                                        Metric=True,
-                                                                        PropertyBinding={Binding DataContext.DisplayPropertyId,
-                                                                                                 RelativeSource={RelativeSource AncestorType=UserControl}}}"
-                                        TextTrimming="CharacterEllipsis"
-                                        ToolTip="{ui:DrawingValueFormatter Binding={Binding},
-                                                                           ValueToolTip=True,
-                                                                           PropertyBinding={Binding DataContext.DisplayPropertyId,
-                                                                                                    RelativeSource={RelativeSource AncestorType=UserControl}}}" />
-                                    <TextBlock
-                                        MaxHeight="34"
-                                        VerticalAlignment="Center"
-                                        Text="{ui:DrawingValueFormatter Binding={Binding}}"
-                                        TextTrimming="CharacterEllipsis"
-                                        TextWrapping="Wrap" />
-                                </DockPanel>
-                            </Button>
+                            <Grid Margin="0,0,0,4">
+                                <Button
+                                    AutomationProperties.Name="{ui:DrawingValueFormatter Binding={Binding}}"
+                                    Command="{Binding DataContext.EnterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource ModeRow}"
+                                    ToolTip="{ui:DrawingValueFormatter Binding={Binding}}">
+                                    <DockPanel>
+                                        <TextBlock
+                                            Margin="8,0,0,0"
+                                            VerticalAlignment="Center"
+                                            DockPanel.Dock="Right"
+                                            Foreground="{DynamicResource QuietAccent}"
+                                            Text="›" />
+                                        <TextBlock
+                                            MaxWidth="120"
+                                            MaxHeight="18"
+                                            Margin="8,0,0,0"
+                                            VerticalAlignment="Center"
+                                            DockPanel.Dock="Right"
+                                            Foreground="{DynamicResource QuietMuted}"
+                                            Text="{ui:DrawingValueFormatter Binding={Binding},
+                                                                            Metric=True,
+                                                                            PropertyBinding={Binding DataContext.DisplayPropertyId,
+                                                                                                     RelativeSource={RelativeSource AncestorType=UserControl}}}"
+                                            TextTrimming="CharacterEllipsis"
+                                            ToolTip="{ui:DrawingValueFormatter Binding={Binding},
+                                                                               ValueToolTip=True,
+                                                                               PropertyBinding={Binding DataContext.DisplayPropertyId,
+                                                                                                        RelativeSource={RelativeSource AncestorType=UserControl}}}" />
+                                        <TextBlock
+                                            MaxHeight="34"
+                                            VerticalAlignment="Center"
+                                            Text="{ui:DrawingValueFormatter Binding={Binding}}"
+                                            TextTrimming="CharacterEllipsis"
+                                            TextWrapping="Wrap" />
+                                    </DockPanel>
+                                </Button>
+                                <Border
+                                    Margin="2"
+                                    BorderBrush="{ui:DrawingColorBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="2"
+                                    IsHitTestVisible="False" />
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>

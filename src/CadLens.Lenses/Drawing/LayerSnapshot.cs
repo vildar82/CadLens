@@ -9,10 +9,12 @@ namespace CadLens.Lenses;
 /// <param name="IsFrozen">Global frozen state.</param>
 /// <param name="IsViewportFrozen">Frozen in the currently active layout viewport.</param>
 /// <param name="IsLocked">Locked status, which does not affect inclusion.</param>
+/// <param name="DisplayColor">Resolved RGB layer color, or null when unavailable.</param>
 public sealed record LayerSnapshot(
     ILayerId Id,
     string Name,
     bool IsOff,
     bool IsFrozen,
     bool IsViewportFrozen,
-    bool IsLocked);
+    bool IsLocked,
+    int? DisplayColor = null);

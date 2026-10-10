@@ -1,0 +1,5 @@
+<Project>
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">        
+        <OutputPath>$(AppData)\Autodesk\ApplicationPlugins\CadLens.bundle\Contents\</OutputPath>        
+    </PropertyGroup>
+</Project>

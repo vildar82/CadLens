@@ -264,6 +264,48 @@ public sealed class DrawingLensTests
         Assert.Equal("No drawing.", Assert.IsType<HostResult<LensPresentation>.Unavailable>(result).Reason);
     }
 
+    /// <summary>Row colors reuse each layer snapshot while explicit colors and assignment identities remain intact.</summary>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers)]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    public async Task RowColorsResolveByLayerInBothLenses(DrawingGrouping grouping)
+    {
+        var layers = ImmutableArray.Create(
+            new LayerSnapshot(new TestLayerId("a"), "A", false, false, false, false, 0x123456),
+            new LayerSnapshot(new TestLayerId("b"), "B", false, false, false, false, 0xABCDEF));
+        var entities = ImmutableArray.Create(
+            ColoredEntity("1", "a", AssignedColorKind.ByLayer, null),
+            ColoredEntity("2", "b", AssignedColorKind.ByLayer, null),
+            ColoredEntity("3", "a", AssignedColorKind.TrueColor, 0x654321),
+            ColoredEntity("4", "a", AssignedColorKind.Index, 0xFF0000),
+            ColoredEntity("5", "a", AssignedColorKind.ColorBook, 0x00FF00),
+            ColoredEntity("6", "a", AssignedColorKind.ByBlock, null),
+            Entity("7", "a", "AcDbLine"));
+        var result = await Load(layers, entities, new HashSet<string>(), grouping);
+        var types = grouping == DrawingGrouping.Layers
+            ? result.Groups.SelectMany(node => node.Children).ToList()
+            : result.Groups.ToList();
+        var objects = types.SelectMany(node => node.Children).OrderBy(node => node.Id).ToList();
+
+        Assert.Equal(
+            [0x123456, 0xABCDEF, 0x654321, 0xFF0000, 0x00FF00, null, null],
+            objects.Select(node => node.DisplayColor));
+        Assert.All(types, node => Assert.Null(node.DisplayColor));
+        Assert.Equal(new DrawingColorValue(new AssignedColor(AssignedColorKind.ByLayer)),
+            DrawingProperties.GetValue(objects[0], DrawingPropertyId.Color));
+
+        if (grouping == DrawingGrouping.Layers)
+            Assert.Equal(layers.Select(layer => layer.DisplayColor), result.Groups.Select(node => node.DisplayColor));
+    }
+
+    private static EntitySnapshot ColoredEntity(string key, string layer, AssignedColorKind kind, int? rgb) =>
+        Entity(key, layer, "AcDbLine") with
+        {
+            Properties = ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
+                DrawingPropertyId.Color, new DrawingColorValue(new AssignedColor(kind))),
+            DisplayColor = rgb
+        };
+
     private static EntitySnapshot Entity(string key, string layer, string type) =>
         new(new TestEntityId(key), new TestLayerId(layer), type);
 

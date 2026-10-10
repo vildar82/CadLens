@@ -81,6 +81,39 @@ public sealed class DrawingInventorySourceTests
         Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await request);
     }
 
+    /// <summary>Native RGB values are detached while indexed and inherited assignments keep their identity.</summary>
+    [Fact]
+    public async Task ReadsLayerAndExplicitEntityColors()
+    {
+        var document = CreateDocument();
+        var layer = document.Database.Objects.Values.OfType<LayerTableRecord>().Single();
+        document.Database.Objects[layer.ObjectId.Value] = new LayerTableRecord
+        {
+            ObjectId = layer.ObjectId,
+            Color = new Autodesk.AutoCAD.Colors.Color {IsByLayer = false, IsByAci = true, ColorIndex = 1}
+        };
+        var tasks = new HostTasks();
+        var read = new AutoCadDrawingInventorySource(tasks).ReadAsync([], CancellationToken.None);
+        tasks.Execute();
+        var inventory = Assert.IsType<HostResult<DrawingInventory>.Success>(await read).Value;
+        Assert.Equal(0xFF0000, Assert.Single(inventory.Layers).DisplayColor);
+
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+        var explicitColor = reader.Read(new Entity
+        {
+            Color = new Autodesk.AutoCAD.Colors.Color {IsByLayer = false, IsByAci = true, ColorIndex = 1}
+        });
+        Assert.Equal(0xFF0000, explicitColor.DisplayColor);
+        Assert.Equal(
+            new DrawingColorValue(new AssignedColor(AssignedColorKind.Index, 1)),
+            explicitColor.Properties![DrawingPropertyId.Color]);
+        Assert.Null(reader.Read(new Entity()).DisplayColor);
+        Assert.Null(reader.Read(new Entity
+        {
+            Color = new Autodesk.AutoCAD.Colors.Color {IsByLayer = false, IsByBlock = true}
+        }).DisplayColor);
+    }
+
     private static Document CreateDocument()
     {
         Application.DocumentManager = new DocumentCollection();

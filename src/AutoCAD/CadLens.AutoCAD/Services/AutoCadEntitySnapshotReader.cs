@@ -6,6 +6,7 @@ using Autodesk.AutoCAD.Runtime;
 using CadLens.Lenses;
 using CadLens.Common;
 using CadLens.Common.AutoCAD;
+using JetBrains.Annotations;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace CadLens.AutoCAD;
@@ -19,7 +20,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         cancellationToken.ThrowIfCancellationRequested();
 
         var properties = new Dictionary<DrawingPropertyId, DrawingValue?>();
-        ReadAppearance(entity, properties);
+        var displayColor = ReadAppearance(entity, properties);
         ReadArea(entity, properties);
         var metric = ReadPrimitiveProperties(entity, properties);
 
@@ -30,23 +31,27 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             properties.ToImmutableDictionary(),
             metric,
             entity is BlockReference block ? ReadBlockAttributes(block) : default,
-            entity is BlockReference dynamicBlock ? ReadDynamicBlockProperties(dynamicBlock) : default);
+            entity is BlockReference dynamicBlock ? ReadDynamicBlockProperties(dynamicBlock) : default,
+            displayColor);
     }
 
-    private static void ReadAppearance(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
+    private static int? ReadAppearance(Entity entity, Dictionary<DrawingPropertyId, DrawingValue?> properties)
     {
-        properties[DrawingPropertyId.Color] = ReadOptional(() => new DrawingColorValue(ReadColor(entity)));
+        using var color = ReadOptional(() => entity.Color);
+        properties[DrawingPropertyId.Color] = color is null
+            ? null
+            : ReadOptional(() => new DrawingColorValue(ReadColor(color)));
         properties[DrawingPropertyId.Linetype] = ReadLinetype(entity);
         properties[DrawingPropertyId.Lineweight] =
             ReadOptional(() => new DrawingLineweightValue(ReadLineweight(entity.LineWeight)));
         properties[DrawingPropertyId.LinetypeScale] = ReadNumber(() => entity.LinetypeScale, DrawingUnit.Scale);
         properties[DrawingPropertyId.Transparency] = ReadOptional(() => ReadTransparency(entity));
+
+        return color is null ? null : ReadDisplayColor(color);
     }
 
-    private static AssignedColor ReadColor(Entity entity)
+    private static AssignedColor ReadColor(Color color)
     {
-        using var color = entity.Color;
-
         if (color.IsByLayer)
             return new AssignedColor(AssignedColorKind.ByLayer);
 
@@ -62,6 +67,17 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return color.IsByColor
             ? new AssignedColor(AssignedColorKind.TrueColor, ReadRgb(color))
             : new AssignedColor(AssignedColorKind.Other, (int) color.ColorMethod, color.ColorMethod.ToString());
+    }
+
+    internal static int? ReadDisplayColor(Color color)
+    {
+        if (color.IsByLayer || color.IsByBlock)
+            return null;
+
+        if (color.IsByAci)
+            return ReadScalar(() => EntityColor.LookUpRgb((byte) color.ColorIndex) & 0xFFFFFF);
+
+        return color.IsByColor || color.HasBookName ? ReadScalar(() => ReadRgb(color)) : null;
     }
 
     private static int ReadRgb(Color color) => color.Red << 16 | color.Green << 8 | color.Blue;
@@ -470,7 +486,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         }
     }
 
-    private static T? ReadOptional<T>(Func<T?> getter) where T : class
+    private static T? ReadOptional<T>([InstantHandle] Func<T?> getter) where T : class
     {
         try
         {

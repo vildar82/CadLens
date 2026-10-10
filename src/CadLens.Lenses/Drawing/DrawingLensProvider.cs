@@ -171,7 +171,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             types,
             CreateLayerDetails(layer),
             [LensAction.Focus],
-            LensNodeKind.Layer);
+            LensNodeKind.Layer,
+            DisplayColor: layer.DisplayColor);
     }
 
     private static ImmutableArray<LensNode> CreateTypeGroups(
@@ -256,7 +257,11 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 .. DrawingProperties.GetAvailableFields([entity]).Select(id =>
                     new DrawingProperty(id, DrawingProperties.GetValue(entity, layer, id)))
             ],
-            RowMetric: DrawingProperties.GetPrimaryMetric(entity));
+            RowMetric: DrawingProperties.GetPrimaryMetric(entity),
+            DisplayColor: entity.Properties?.GetValueOrDefault(DrawingPropertyId.Color) is DrawingColorValue
+                {Color.Kind: AssignedColorKind.ByLayer}
+                ? layer.DisplayColor
+                : entity.DisplayColor);
     }
 
     private static IEnumerable<DetailField> CreateAttributeDetails(EntitySnapshot entity)
