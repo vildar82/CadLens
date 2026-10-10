@@ -253,7 +253,7 @@ public sealed class ExplorerCompositionTests : IDisposable
 
         internal DrawingInventory Inventory { get; set; } = new("Model", [], []);
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(Inventory));
 
         public void Dispose() => DisposeCount++;
@@ -282,8 +282,9 @@ public sealed class ExplorerCompositionTests : IDisposable
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken) =>
-            provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
+            CancellationToken cancellationToken,
+            int? maximumObjects = null) =>
+            provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
 
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,

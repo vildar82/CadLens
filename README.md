@@ -98,11 +98,18 @@ when selected again. A Windows display-language change usually also requires Win
 
 ## Use the Layers lens
 
-A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
+A new `CADLENS` session opens as a compact bar with both lenses inactive. Press Layers to read the active drawing space automatically when it has at most 10,000 direct objects.
+For a larger space, use Refresh to load all objects or choose Selected objects. Browse layers, object types, and objects with the list, breadcrumbs, Back, and Previous/Next. Use Refresh after drawing edits. Press Layers again to collapse the panel; reopen it to restore valid navigation, inclusion filters, and Auto settings without moving the camera. Pending or failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the existing panel forward.
 
 ### Object scope
 
 Both lenses start with **All objects**, which reads direct objects in the active model or paper space.
+Automatic loading stops above 10,000 objects before reading their properties. Refresh and explicit scope
+changes can load the full space. Selected objects are read immediately regardless of the full-space size.
+To change the threshold, close the panel and set `AutoLoadObjectLimit` in each lens settings file
+(`%LOCALAPPDATA%\CadLens\lens-layers.json` or `lens-object-types.json`). Zero defers every nonempty space;
+negative values use the default threshold. Loaded inventories are reused when reopening a lens or changing
+inclusion filters; use Refresh after drawing edits.
 Every click on **Selected objects**, including when already checked, uses the current CAD selection
 or asks you to select objects when nothing is selected, then reads them immediately. Press Escape to cancel selection
 and keep the previous view. Only live direct objects in the active space are included. The existing
@@ -147,7 +154,7 @@ that size within the current monitor's work area. Window position is not saved.
 Restored Auto modes apply when you choose a target. If saving fails, the controls remain usable for
 the current session and the lens status explains that the preferences could not be saved.
 
-CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or spaces reloads the active lens. These actions do not change stored DWG geometry or properties.
+CAD Lens uses one exploration session for the active drawing. Focus moves only the active view. Switching drawings or spaces clears old data and automatically reloads the active lens within its size threshold. These actions do not change stored DWG geometry or properties.
 
 ## Use the Object Types lens
 

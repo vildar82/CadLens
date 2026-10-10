@@ -791,4 +791,7 @@
   <data name="Boolean" xml:space="preserve">
     <value>Логическое значение</value>
   </data>
+  <data name="Large drawing. Use Refresh to load all objects, or choose Selected objects." xml:space="preserve">
+    <value>Большой чертёж. Нажмите «Обновить», чтобы загрузить все объекты, или выберите «Выбранные объекты».</value>
+  </data>
 </root>

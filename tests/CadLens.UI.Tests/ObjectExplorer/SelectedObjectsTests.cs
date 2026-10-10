@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -13,6 +14,63 @@ namespace CadLens.UI.Tests;
 [Collection("Language changes")]
 public sealed class SelectedObjectsTests
 {
+    /// <summary>
+    /// Large drawings wait for an explicit read, retain loaded data, and check again after a context change.
+    /// </summary>
+    /// <param name="grouping">Lens organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers)]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    public async Task LargeDrawingRequiresExplicitLoad(DrawingGrouping grouping)
+    {
+        var actions = new Actions {RefuseAutomaticRead = true};
+        using var model = new ObjectExplorerViewModel(actions, grouping);
+        await model.ActivateAsync(CancellationToken.None);
+
+        Assert.Empty(model.Groups);
+        Assert.Equal(10_000, actions.LastMaximumObjects);
+        Assert.Contains("Refresh", model.EmptyMessage);
+        Assert.True(model.ReadCommand.CanExecute(null));
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.Null(actions.LastMaximumObjects);
+        Assert.NotEmpty(model.Groups);
+
+        var reads = actions.ReadCount;
+        await model.ToggleFilterCommand.ExecuteAsync(model.Filters[0]);
+        await model.DeactivateAsync(CancellationToken.None);
+        await model.ActivateAsync(CancellationToken.None);
+        Assert.Equal(reads, actions.ReadCount);
+
+        await model.ResetContextAsync();
+        Assert.Equal(reads + 1, actions.ReadCount);
+        Assert.Equal(10_000, actions.LastMaximumObjects);
+        Assert.Empty(model.Groups);
+
+        actions.NativeSelection = [new TestEntityId(1)];
+        await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
+        Assert.Single(model.Groups.SelectMany(group => group.Objects));
+        Assert.Null(actions.LastMaximumObjects);
+    }
+
+    /// <summary>
+    /// The automatic loading threshold is restored and preserved when other preferences are saved.
+    /// </summary>
+    [Fact]
+    public async Task AutomaticLoadLimitIsConfigurable()
+    {
+        using var file = new SettingsFile();
+        file.Service.Save("lens-layers.json", new {AutoLoadObjectLimit = 25});
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers, file.Service);
+        await model.ActivateAsync(CancellationToken.None);
+
+        Assert.Equal(25, actions.LastMaximumObjects);
+        Assert.NotEmpty(model.Groups);
+        model.SearchText = "Line";
+        var saved = file.Service.Load<Dictionary<string, JsonElement>>("lens-layers.json")!;
+        Assert.Equal(25, saved["AutoLoadObjectLimit"].GetInt32());
+    }
+
     /// <summary>The real radio click requests objects and either switches scope or displays the host failure.</summary>
     [Theory]
     [InlineData(null)]
@@ -499,6 +557,8 @@ public sealed class SelectedObjectsTests
         internal ImmutableArray<IPlacedObjectId> Isolated { get; private set; } = [];
         internal List<string> Calls { get; } = [];
         internal int ReadCount { get; private set; }
+        internal int? LastMaximumObjects { get; private set; }
+        internal bool RefuseAutomaticRead { get; init; }
         internal int RequestCount { get; private set; }
         internal CancellationToken LastReadToken { get; private set; }
         internal CancellationToken LastRequestToken { get; private set; }
@@ -522,12 +582,19 @@ public sealed class SelectedObjectsTests
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int? maximumObjects = null)
         {
             Calls.Add("read");
             ReadCount++;
             LastReadToken = cancellationToken;
-            return Pending?.Task ?? _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
+            LastMaximumObjects = maximumObjects;
+
+            if (RefuseAutomaticRead && maximumObjects is not null && selectedObjects is null)
+                return Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Unavailable(
+                    "Large drawing. Use Refresh to load all objects, or choose Selected objects."));
+
+            return Pending?.Task ?? _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
         }
 
         public void ClearImmediately(bool hostTerminating)
@@ -571,7 +638,8 @@ public sealed class SelectedObjectsTests
         {
             public Task<HostResult<DrawingInventory>> ReadAsync(
                 ImmutableArray<IPlacedObjectId>? selectedObjects,
-                CancellationToken cancellationToken) =>
+                CancellationToken cancellationToken,
+                int? maximumObjects = null) =>
                 Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(
                     selectedObjects is { } selected
                         ? Inventory with {Entities = [.. Inventory.Entities.Where(entity => selected.Contains(entity.Id))]}

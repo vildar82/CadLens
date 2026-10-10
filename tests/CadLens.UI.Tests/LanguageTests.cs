@@ -336,7 +336,7 @@ public sealed partial class LanguageTests : IDisposable
 
     private sealed class Source(string spaceLabel) : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null)
         {
             var layer = new LayerId("1");
             var inventory = new DrawingInventory(
@@ -363,10 +363,11 @@ public sealed partial class LanguageTests : IDisposable
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int? maximumObjects = null)
         {
             Calls++;
-            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
+            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
         }
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)

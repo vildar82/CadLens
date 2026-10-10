@@ -385,7 +385,7 @@ public sealed class ObjectTypesTests
 
         internal CancellationToken Token { get; private set; }
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken)
+        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null)
         {
             Token = cancellationToken;
             return Pending?.Task ?? Task.FromResult(Result);
@@ -411,10 +411,11 @@ public sealed class ObjectTypesTests
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int? maximumObjects = null)
         {
             ReadCount++;
-            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken);
+            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
         }
 
         public Task<HostResult<bool>> SelectAsync(

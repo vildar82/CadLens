@@ -10,4 +10,8 @@ internal sealed record LensPreferences(
     bool IsCountSortActive = false,
     bool SortDescending = false,
     Dictionary<string, string[]>? PropertyGrouping = null,
-    Dictionary<string, string>? DisplayProperties = null);
+    Dictionary<string, string>? DisplayProperties = null,
+    int AutoLoadObjectLimit = LensPreferences.DefaultAutoLoadObjectLimit)
+{
+    internal const int DefaultAutoLoadObjectLimit = 10_000;
+}
