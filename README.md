@@ -271,8 +271,11 @@ A successful GitHub Actions run also provides the ZIP as a build artifact; GitHu
 
 Both lenses use `ObjectExplorerViewModel` and `ObjectExplorerView`. A refresh requests its grouping through `IObjectExplorerActions`; the AutoCAD adapter invokes `DrawingLensProvider`, which reads a detached `DrawingInventory` and builds either Layer → Type → Object or Type → Object groups. Drawing actions use the same `IObjectVisualizationService`. Analysis runs over ordinary .NET models after the inventory is read in the proper document context.
 
-All objects use the same `EntitySnapshot` model with a property dictionary and an optional primary row
-measurement. Native extraction lives in `AutoCadEntitySnapshotReader`; `DrawingProperties` provides shared
+All objects use the same `EntitySnapshot` model with one immutable `DrawingPropertyKey` → `DrawingValue?`
+dictionary for built-in properties, attached attributes, and dynamic block properties, plus an optional
+primary row measurement. `DrawingPropertyKey.Source` distinguishes BuiltIn, Attribute, and DynamicBlock,
+so identical names from different sources stay separate. Duplicate same-source names become one
+unavailable value; native properties with no readable name are omitted. Native extraction lives in `AutoCadEntitySnapshotReader`; `DrawingProperties` provides shared
 property access, and `DrawingLensProvider` builds both exploration trees. Details, combined grouping,
 and numeric sorting use these same detached values. A new primitive reader does not require a new UI
 model or a separate grouping implementation.

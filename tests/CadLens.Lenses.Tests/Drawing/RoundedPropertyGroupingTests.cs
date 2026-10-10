@@ -82,14 +82,8 @@ public sealed class RoundedPropertyGroupingTests
         var key = DrawingPropertyKey.ForDynamicBlock("Rotation");
         ImmutableArray<EntitySnapshot> entities =
         [
-            Dynamic("distance", new DrawingNumberValue(0.0000001, DrawingUnit.Distance)) with
-            {
-                BlockAttributes = [new BlockAttributeSnapshot("VALUE", "0")]
-            },
-            Dynamic("area", new DrawingNumberValue(0.0000001, DrawingUnit.Area)) with
-            {
-                BlockAttributes = [new BlockAttributeSnapshot("VALUE", "0.0000001")]
-            },
+            Dynamic("distance", new DrawingNumberValue(0.0000001, DrawingUnit.Distance), "0"),
+            Dynamic("area", new DrawingNumberValue(0.0000001, DrawingUnit.Area), "0.0000001"),
             Dynamic("scale", new DrawingNumberValue(0.0000001, DrawingUnit.Scale)),
             Dynamic("text", new DrawingTextValue("0")),
             Dynamic("boolean", new DrawingBooleanValue(false)),
@@ -219,13 +213,15 @@ public sealed class RoundedPropertyGroupingTests
         new TestEntityId(id),
         Layer.Id,
         Type,
-        ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
+        ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty.Add(
             DrawingPropertyId.Area,
             value is { } number ? new DrawingNumberValue(number, DrawingUnit.Area) : null));
 
-    private static EntitySnapshot Dynamic(string id, DrawingValue? value) => new(
+    private static EntitySnapshot Dynamic(string id, DrawingValue? value, string? attribute = null) => new(
         new TestEntityId(id),
         Layer.Id,
         Type,
-        DynamicBlockProperties: [new DynamicBlockPropertySnapshot("Rotation", value)]);
+        ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty
+            .Add(DrawingPropertyKey.ForDynamicBlock("Rotation"), value)
+            .Add(DrawingPropertyKey.ForAttribute("VALUE"), attribute is null ? null : new DrawingTextValue(attribute)));
 }

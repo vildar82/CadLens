@@ -301,7 +301,7 @@ public sealed class DrawingLensTests
     private static EntitySnapshot ColoredEntity(string key, string layer, AssignedColorKind kind, int? rgb) =>
         Entity(key, layer, "AcDbLine") with
         {
-            Properties = ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
+            Properties = ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty.Add(
                 DrawingPropertyId.Color, new DrawingColorValue(new AssignedColor(kind))),
             DisplayColor = rgb
         };

@@ -85,7 +85,7 @@ public sealed class DrawingValueSortingTests
             new TestEntityId("1"),
             layer.Id,
             "Custom.Object",
-            new Dictionary<DrawingPropertyId, DrawingValue?>
+            new Dictionary<DrawingPropertyKey, DrawingValue?>
             {
                 [DrawingPropertyId.Text] = new DrawingTextValue("Drawing-owned name"),
                 [DrawingPropertyId.Length] = new DrawingNumberValue(12, DrawingUnit.Distance),
@@ -121,7 +121,7 @@ public sealed class DrawingValueSortingTests
             new TestEntityId("1"),
             layer.Id,
             "AcDbLine",
-            new Dictionary<DrawingPropertyId, DrawingValue?>
+            new Dictionary<DrawingPropertyKey, DrawingValue?>
             {
                 [DrawingPropertyId.Length] = new DrawingNumberValue(12.3412, DrawingUnit.Distance),
                 [DrawingPropertyId.PatternAngle] = new DrawingNumberValue(0.123456, DrawingUnit.Angle)
@@ -173,7 +173,7 @@ public sealed class DrawingValueSortingTests
             new TestEntityId("2"),
             layer.Id,
             "Custom.Curve",
-            new Dictionary<DrawingPropertyId, DrawingValue?>
+            new Dictionary<DrawingPropertyKey, DrawingValue?>
                 {[DrawingPropertyId.Length] = new DrawingNumberValue(12, DrawingUnit.Distance)}.ToImmutableDictionary(),
             DrawingPropertyId.Length);
         var presentation = DrawingLensProvider.Build(

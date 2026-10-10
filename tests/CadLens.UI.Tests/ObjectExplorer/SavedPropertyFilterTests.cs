@@ -278,7 +278,7 @@ public sealed class SavedPropertyFilterTests
             "Model",
             [new LayerSnapshot(layer, "Roads", false, false, false, false)],
             [new EntitySnapshot(new ObjectId("secret-object-id"), layer, "AcDbPolyline",
-                new Dictionary<DrawingPropertyId, DrawingValue?> { [property] = value }.ToImmutableDictionary())]);
+                new Dictionary<DrawingPropertyKey, DrawingValue?> { [property] = value }.ToImmutableDictionary())]);
     }
 
     private sealed class LanguageScope : IDisposable

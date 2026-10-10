@@ -121,8 +121,8 @@ public sealed class BlockAttributeDetailsTests
             UiText.Current.Select(language, persist: false);
             var inventory = CreateInventory("P-01");
             var block = inventory.Entities[0];
-            var empty = block with {BlockAttributes = []};
-            var unavailable = block with {BlockAttributes = default};
+            var empty = block with {Properties = ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty.Add(DrawingPropertyId.Attributes, new DrawingNumberValue(0, DrawingUnit.Count))};
+            var unavailable = block with {Properties = ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty.Add(DrawingPropertyId.Attributes, null)};
             var ordinary = new EntitySnapshot(block.Id, Layer, "AcDbLine");
 
             Assert.Equal(UiText.Current.Get("No attached attributes"), State(empty));
@@ -164,19 +164,16 @@ public sealed class BlockAttributeDetailsTests
         new TestEntityId(id),
         Layer,
         "AcDbBlockReference",
-        new Dictionary<DrawingPropertyId, DrawingValue?>
+        new Dictionary<DrawingPropertyKey, DrawingValue?>
         {
             [DrawingPropertyId.BlockName] = new DrawingTextValue("Equipment"),
-            [DrawingPropertyId.Attributes] = new DrawingNumberValue(5, DrawingUnit.Count)
-        }.ToImmutableDictionary(),
-        BlockAttributes:
-        [
-            new BlockAttributeSnapshot("MARK", mark),
-            new BlockAttributeSnapshot("Layer", "Layers"),
-            new BlockAttributeSnapshot("BLANK", ""),
-            new BlockAttributeSnapshot("MISSING", null),
-            new BlockAttributeSnapshot("LONG_TAG_DESCRIPTION", LongValue)
-        ]);
+            [DrawingPropertyId.Attributes] = new DrawingNumberValue(5, DrawingUnit.Count),
+            [DrawingPropertyKey.ForAttribute("MARK")] = new DrawingTextValue(mark),
+            [DrawingPropertyKey.ForAttribute("Layer")] = new DrawingTextValue("Layers"),
+            [DrawingPropertyKey.ForAttribute("BLANK")] = new DrawingTextValue(""),
+            [DrawingPropertyKey.ForAttribute("MISSING")] = null,
+            [DrawingPropertyKey.ForAttribute("LONG_TAG_DESCRIPTION")] = new DrawingTextValue(LongValue)
+        }.ToImmutableDictionary());
 
     private sealed record LayerId(string DisplayId) : ILayerId;
 

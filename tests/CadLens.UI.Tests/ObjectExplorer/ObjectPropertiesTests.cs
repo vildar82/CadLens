@@ -78,7 +78,7 @@ public sealed class ObjectPropertiesTests
                 new TestEntityId(id),
                 layer,
                 typeKey,
-                ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
+                ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty.Add(
                     DrawingPropertyId.Area,
                     area is { } value ? new DrawingNumberValue(value, DrawingUnit.Area) : null));
         }
@@ -114,7 +114,7 @@ public sealed class ObjectPropertiesTests
                     new TestEntityId(index + 1),
                     layer,
                     "AcDbHatch",
-                    ImmutableDictionary<DrawingPropertyId, DrawingValue?>.Empty.Add(
+                    ImmutableDictionary<DrawingPropertyKey, DrawingValue?>.Empty.Add(
                         DrawingPropertyId.Area,
                         area is { } value ? new DrawingNumberValue(value, DrawingUnit.Area) : null)))],
                 DrawingPrecision.Default);
@@ -307,7 +307,7 @@ public sealed class ObjectPropertiesTests
         static EntitySnapshot Hatch(
             int id,
             LayerId layer,
-            params (DrawingPropertyId Id, DrawingValue? Value)[] properties) =>
+            params (DrawingPropertyKey Id, DrawingValue? Value)[] properties) =>
             new(
                 new TestEntityId(id),
                 layer,
@@ -465,7 +465,7 @@ public sealed class ObjectPropertiesTests
                     new TestEntityId(5),
                     layer,
                     "AcDbHatch",
-                    new Dictionary<DrawingPropertyId, DrawingValue?>
+                    new Dictionary<DrawingPropertyKey, DrawingValue?>
                     {
                         [DrawingPropertyId.BoundaryLoops] = new DrawingNumberValue(2, DrawingUnit.Count),
                         [DrawingPropertyId.Pattern] = new DrawingTextValue("ANSI31"),
@@ -479,7 +479,7 @@ public sealed class ObjectPropertiesTests
             new TestEntityId(id),
             layer,
             "AcDbPolyline",
-            new Dictionary<DrawingPropertyId, DrawingValue?>
+            new Dictionary<DrawingPropertyKey, DrawingValue?>
             {
                 [DrawingPropertyId.Color] = new DrawingColorValue(new AssignedColor(AssignedColorKind.Index, color)),
                 [DrawingPropertyId.Linetype] = new DrawingTextValue(linetype),

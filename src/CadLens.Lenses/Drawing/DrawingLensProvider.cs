@@ -267,26 +267,30 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
     private static IEnumerable<DetailField> CreateAttributeDetails(EntitySnapshot entity)
     {
-        if (entity.BlockAttributes.IsDefault && entity.Properties?.ContainsKey(DrawingPropertyId.Attributes) is not true)
+        var attributes = entity.Properties?
+            .Where(pair => pair.Key.Source == DrawingPropertySource.Attribute)
+            .Select(pair => (pair.Key, pair.Value))
+            .ToList() ?? [];
+        var hasCount = entity.Properties?.ContainsKey(DrawingPropertyId.Attributes) == true;
+        var count = entity.Properties?.GetValueOrDefault(DrawingPropertyId.Attributes);
+
+        if (!hasCount && attributes.Count == 0)
             yield break;
 
-        var attributes = entity.BlockAttributes;
         yield return new DetailField(
             "Attribute values",
-            attributes.IsDefault ? "Unavailable" : attributes.IsEmpty ? "No attached attributes" : "",
+            attributes.Count != 0 ? "" : count is DrawingNumberValue {Value: 0} ? "No attached attributes" : "Unavailable",
             DetailValueKind.ApplicationText);
 
-        if (attributes.IsDefaultOrEmpty)
-            yield break;
-
-        foreach (var (tag, value) in attributes)
+        foreach (var (key, value) in attributes)
         {
+            var text = (value as DrawingTextValue)?.Text;
             yield return new DetailField(
-                tag ?? "Unavailable",
-                value is null ? "Unavailable" : value.Length == 0 ? "(blank)" : value,
-                string.IsNullOrEmpty(value) ? DetailValueKind.ApplicationText : DetailValueKind.RawText,
-                IsLabelRaw: tag is not null,
-                PropertyKey: tag is {Length: > 0} ? DrawingPropertyKey.ForAttribute(tag) : null);
+                key.Name,
+                text is null ? "Unavailable" : text.Length == 0 ? "(blank)" : text,
+                string.IsNullOrEmpty(text) ? DetailValueKind.ApplicationText : DetailValueKind.RawText,
+                IsLabelRaw: true,
+                PropertyKey: key);
         }
     }
 
