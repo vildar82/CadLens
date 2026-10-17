@@ -12,6 +12,47 @@ namespace Autodesk.AutoCAD.Runtime
 
 namespace Autodesk.AutoCAD.GraphicsInterface
 {
+    internal enum TransientDrawingMode
+    {
+        Main
+    }
+
+    internal sealed class TransientManager
+    {
+        internal static TransientManager CurrentTransientManager { get; set; } = new();
+        internal HashSet<DatabaseServices.Entity> Registered { get; } = [];
+        internal Func<DatabaseServices.Entity, int, bool>? OnAdd { get; set; }
+        internal Func<DatabaseServices.Entity, bool>? OnErase { get; set; }
+        internal int AddCount { get; private set; }
+
+        internal bool AddTransient(
+            DatabaseServices.Entity drawable,
+            TransientDrawingMode mode,
+            int subDrawingMode,
+            Geometry.IntegerCollection viewportNumbers)
+        {
+            if (mode != TransientDrawingMode.Main || subDrawingMode != 128 || viewportNumbers is null)
+                throw new InvalidOperationException("Unexpected transient registration.");
+
+            Registered.Add(drawable);
+            AddCount++;
+
+            if (OnAdd?.Invoke(drawable, AddCount) != false)
+                return true;
+
+            Registered.Remove(drawable);
+            return false;
+        }
+
+        internal bool EraseTransient(DatabaseServices.Entity drawable, Geometry.IntegerCollection viewportNumbers)
+        {
+            if (viewportNumbers is null)
+                throw new InvalidOperationException("Unexpected transient removal.");
+
+            return OnErase?.Invoke(drawable) != false && Registered.Remove(drawable);
+        }
+    }
+
     /// <summary>Test double for native drawable graphics.</summary>
     public class Drawable;
 
@@ -31,6 +72,8 @@ namespace Autodesk.AutoCAD.GraphicsInterface
     {
         internal static bool Overruling { get; set; }
         internal static HashSet<DrawableOverrule> Registered { get; } = [];
+        internal bool CustomFilter { get; private set; }
+
         internal static void AddOverrule(Type type, DrawableOverrule rule, bool addAtLast)
         {
             if (type != typeof(DatabaseServices.Entity) || addAtLast)
@@ -46,7 +89,7 @@ namespace Autodesk.AutoCAD.GraphicsInterface
 
             Registered.Remove(rule);
         }
-        internal void SetCustomFilter() { }
+        internal void SetCustomFilter() => CustomFilter = true;
 
         /// <summary>Tests whether the native object is affected by this overrule.</summary>
         public virtual bool IsApplicable(Runtime.RXObject subject) => false;

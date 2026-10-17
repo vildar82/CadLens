@@ -1,6 +1,6 @@
 using System.Collections;
 
-// ReSharper disable MemberCanBeMadeStatic.Global -- Native API doubles must preserve instance member signatures.
+// ReSharper disable MemberCanBeMadeStatic.Global, MemberCanBeMadeStatic.Local -- Native instance APIs.
 
 // These doubles let the production snapshot reader run without native AutoCAD binaries.
 namespace Autodesk.AutoCAD.Runtime
@@ -28,7 +28,9 @@ namespace Autodesk.AutoCAD.Colors
             : throw new NotSupportedException("Only the tested palette entry is available in this API double.");
     }
 
-    internal enum ColorMethod { ByLayer }
+    internal enum ColorMethod { ByLayer,
+        ByAci
+    }
 
     internal sealed class Color : IDisposable
     {
@@ -41,18 +43,26 @@ namespace Autodesk.AutoCAD.Colors
         internal byte Red { get; init; }
         internal byte Green { get; init; }
         internal byte Blue { get; init; }
-        internal string ColorName => "";
-        internal string BookName => "";
-        internal ColorMethod ColorMethod => ColorMethod.ByLayer;
+        internal string ColorName { get; init; } = "";
+        internal string BookName { get; init; } = "";
+        internal ColorMethod ColorMethod { get; init; } = ColorMethod.ByLayer;
+
+        internal static Color FromColorIndex(ColorMethod method, short index) =>
+            new()
+            {
+                IsByLayer = method == ColorMethod.ByLayer, IsByAci = method == ColorMethod.ByAci, ColorIndex = index
+            };
+
         public void Dispose() { }
     }
 
-    internal readonly struct Transparency
+    internal readonly struct Transparency(byte alpha = byte.MaxValue)
     {
-        internal bool IsInvalid => false;
-        internal bool IsByLayer => true;
-        internal bool IsByBlock => false;
-        internal byte Alpha => 255;
+        public Transparency() : this(byte.MaxValue) { }
+        internal bool IsInvalid { get; init; }
+        internal bool IsByLayer { get; init; } = true;
+        internal bool IsByBlock { get; init; }
+        internal byte Alpha => alpha;
     }
 }
 
@@ -62,12 +72,34 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     public partial class Entity
     {
-        internal Colors.Color Color { get; init; } = new();
-        internal LineWeight LineWeight => LineWeight.ByLayer;
-        internal string Linetype => "ByLayer";
-        internal double LinetypeScale => 1;
-        internal Colors.Transparency Transparency => new();
+        internal Colors.Color Color { get; set; } = new();
+        internal LineWeight LineWeight { get; set; } = LineWeight.ByLayer;
+        internal string Linetype { get; set; } = "ByLayer";
+        internal double LinetypeScale { get; set; } = 1;
+        internal Colors.Transparency Transparency { get; set; } = new();
         internal Runtime.RXClass GetRXClass() => new("AcDb" + GetType().Name);
+        internal Func<Geometry.Matrix3d, Entity>? TransformedCopy { get; init; }
+        internal Entity? LastTransformedCopy { get; private set; }
+        internal Geometry.Matrix3d AppliedTransform { get; private set; } = Geometry.Matrix3d.Identity;
+
+        internal Entity GetTransformedCopy(Geometry.Matrix3d transform)
+        {
+            var copy = TransformedCopy?.Invoke(transform) ?? (Entity) Clone();
+            copy.TransformBy(transform);
+            LastTransformedCopy = copy;
+
+            return copy;
+        }
+
+        internal object Clone()
+        {
+            var copy = (Entity) MemberwiseClone();
+            copy.ObjectId = default;
+
+            return copy;
+        }
+
+        internal void TransformBy(Geometry.Matrix3d transform) => AppliedTransform = transform * AppliedTransform;
     }
 
     internal class Curve : Entity
@@ -103,11 +135,12 @@ namespace Autodesk.AutoCAD.DatabaseServices
     internal sealed class Vertex2d : Entity;
     internal sealed class PolylineVertex3d : Entity;
 
-    internal sealed class BlockReference : Entity
+    internal class BlockReference : Entity
     {
         internal bool IsDynamicBlock { get; init; }
         internal ObjectId BlockTableRecord { get; init; }
         internal ObjectId DynamicBlockTableRecord { get; init; }
+        internal Geometry.Matrix3d BlockTransform { get; init; } = Geometry.Matrix3d.Identity;
         internal Runtime.ErrorStatus? AttributesError { get; init; }
         internal List<ObjectId> AttributeCollection
         {
@@ -119,6 +152,14 @@ namespace Autodesk.AutoCAD.DatabaseServices
             get => DynamicPropertiesError is { } error ? throw new Runtime.Exception(error) : field;
             init;
         } = new();
+    }
+
+    internal sealed class MInsertBlock : BlockReference;
+
+    internal sealed class AttributeDefinition : DBText
+    {
+        internal bool Invisible { get; init; }
+        internal bool Constant { get; init; }
     }
 
     internal enum DynamicBlockReferencePropertyUnitsType { NoUnits, Angular, Distance, Area }
@@ -230,6 +271,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     internal sealed class AttributeReference : DBText
     {
+        internal bool Invisible { get; init; }
         internal Runtime.ErrorStatus? TagError { get; init; }
         internal string Tag
         {
@@ -240,12 +282,36 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal MText MTextAttribute { get; init; } = new();
     }
 
-    internal sealed class MText : Entity, IDisposable
+    internal sealed class MText : Entity
     {
-        internal bool IsDisposed { get; private set; }
         internal double TextHeight { get; init; }
         internal string Text { get; init; } = "";
         internal string TextStyleName { get; init; } = "";
-        public void Dispose() => IsDisposed = true;
+    }
+}
+
+namespace Autodesk.AutoCAD.Geometry
+{
+    internal readonly record struct Point3d(double X, double Y, double Z)
+    {
+        internal static Point3d Origin => default;
+    }
+
+    internal readonly record struct Vector3d(double X, double Y, double Z);
+
+    internal readonly record struct Matrix3d(double Scale, double X = 0, double Y = 0, double Z = 0)
+    {
+        internal static Matrix3d Identity => new(1);
+
+        internal static Matrix3d Scaling(double scale, Point3d center) =>
+            new(scale, center.X * (1 - scale), center.Y * (1 - scale), center.Z * (1 - scale));
+
+        internal static Matrix3d Displacement(Vector3d vector) => new(1, vector.X, vector.Y, vector.Z);
+
+        public static Matrix3d operator *(Matrix3d left, Matrix3d right) => new(
+            left.Scale * right.Scale,
+            left.Scale * right.X + left.X,
+            left.Scale * right.Y + left.Y,
+            left.Scale * right.Z + left.Z);
     }
 }

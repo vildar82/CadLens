@@ -11,6 +11,12 @@ public interface IEntityIsolationService
     /// <param name="inventory">Entities affected by the effect.</param>
     void Apply(Database database, ObjectId[] targets, ObjectId[] inventory);
 
+    /// <summary>Shows nested targets with temporary graphics and returns the number of valid occurrences.</summary>
+    /// <param name="database">Active document database.</param>
+    /// <param name="targets">Direct objects or occurrence paths captured by the caller.</param>
+    /// <param name="inventory">Direct active-space entities affected by the effect.</param>
+    int ApplyOccurrences(Database database, EntityId[] targets, ObjectId[] inventory);
+
     /// <summary>Temporarily removes isolation and returns an action that restores it if its drawing context is still valid.</summary>
     Action Suspend();
 

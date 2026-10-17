@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-// ReSharper disable MemberCanBeMadeStatic.Global -- Native API doubles must preserve instance member signatures.
+// ReSharper disable MemberCanBeMadeStatic.Global, MemberCanBeMadeStatic.Local -- Native instance APIs.
 
 // Test doubles for native API boundaries; these do not certify behavior inside AutoCAD.
 namespace Autodesk.AutoCAD.ApplicationServices
@@ -26,7 +26,7 @@ namespace Autodesk.AutoCAD.ApplicationServices
         }
     }
 
-    internal sealed class Editor
+    internal sealed partial class Editor
     {
         internal bool IsQuiescent { get; set; } = true;
         internal DatabaseServices.ObjectId CurrentViewportObjectId { get; set; }
@@ -87,9 +87,12 @@ namespace Autodesk.AutoCAD.ApplicationServices.Core
         internal static DrawingWindow MainWindow => DocumentManager.MainWindow;
         internal static event EventHandler? Idle;
         internal static void RaiseIdle() => Idle?.Invoke(null, EventArgs.Empty);
-        internal static object GetSystemVariable(string name) => name == "CMDACTIVE"
-            ? DocumentManager.ActiveCommand
-            : throw new ArgumentOutOfRangeException(nameof(name));
+        internal static object GetSystemVariable(string name) => name switch
+        {
+            "CMDACTIVE" => DocumentManager.ActiveCommand,
+            "CVPORT" => 1,
+            _ => throw new ArgumentOutOfRangeException(nameof(name))
+        };
     }
 }
 
@@ -116,11 +119,20 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     // ReSharper disable once InconsistentNaming -- Matches the native AutoCAD API type.
     /// <summary>Test double for the native DBObject type.</summary>
-    public class DBObject : Runtime.RXObject
+    public class DBObject : Runtime.RXObject, IDisposable
     {
         internal bool IsErased { get; init; }
         internal ObjectId ObjectId { get; set; }
+        internal ObjectId ExtensionDictionary { get; init; }
         internal Database Database => ObjectId.Database;
+        internal bool IsDisposed { get; private set; }
+
+        /// <inheritdoc />
+        public virtual void Dispose()
+        {
+            IsDisposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 
     /// <summary>Test double for the native Database type.</summary>
@@ -129,9 +141,10 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal Dictionary<int, DBObject> Objects { get; } = [];
         internal ObjectId CurrentSpaceId { get; set; }
         internal ObjectId LayerTableId { get; set; }
-        internal bool TileMode => true;
-        internal int Luprec => 4;
-        internal int Auprec => 2;
+        internal ObjectId ContinuousLinetype { get; init; }
+        internal bool TileMode { get; set; } = true;
+        internal int Luprec { get; init; } = 4;
+        internal int Auprec { get; init; } = 2;
         internal TransactionManager TransactionManager { get; } = new();
 
         internal ObjectId Add(DBObject value)
@@ -151,7 +164,8 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     internal sealed class Transaction : IDisposable
     {
-        internal void Commit() { }
+        internal int CommitCount { get; private set; }
+        internal void Commit() => CommitCount++;
         public void Dispose() { }
         internal List<(OpenMode Mode, bool OpenErased, bool ForceOpenOnLockedLayer)> OpenRequests { get; } = [];
 
@@ -170,7 +184,9 @@ namespace Autodesk.AutoCAD.DatabaseServices
     public partial class Entity : DBObject
     {
         internal ObjectId OwnerId { get; init; }
-        internal ObjectId LayerId { get; init; }
+        internal ObjectId LayerId { get; set; }
+        internal ObjectId LinetypeId { get; set; }
+        internal bool Visible { get; init; } = true;
     }
 
     /// <summary>Test double for the native SymbolTable type.</summary>
@@ -186,7 +202,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
         internal ObjectId LayoutId { get; init; }
-        internal bool IsLayout => false;
+        internal bool IsLayout { get; init; }
         internal string Name { get; init; } = "Model";
         internal bool IsFromExternalReference { get; init; }
         internal bool IsFromOverlayReference { get; init; }

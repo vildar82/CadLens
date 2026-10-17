@@ -16,6 +16,9 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     /// <summary>Option identity for switched-off layers.</summary>
     public const string IncludeOff = "include-off";
 
+    /// <summary>Option identity for recursively showing local block contents.</summary>
+    public const string ShowBlockContents = "show-block-contents";
+
     private static readonly ImmutableArray<BooleanFilter> Filters =
     [
         new(
@@ -24,6 +27,16 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             "Include globally and viewport-frozen layers without revealing them.",
             IconRole.Snowflake),
         new(IncludeOff, "Include off", "Include switched-off layers without switching them on.", IconRole.Lightbulb)
+    ];
+
+    private static readonly ImmutableArray<BooleanFilter> LayerFilters =
+    [
+        .. Filters,
+        new(
+            ShowBlockContents,
+            "Show block contents",
+            "Show objects inside local blocks, including nested blocks, without changing the drawing.",
+            IconRole.Group)
     ];
 
     /// <inheritdoc />
@@ -37,7 +50,12 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         // Capture options before awaiting: later UI changes belong to the next request.
         var includeFrozen = enabledFilters.Contains(IncludeFrozen);
         var includeOff = enabledFilters.Contains(IncludeOff);
-        var result = await source.ReadAsync(selectedObjects, cancellationToken, maximumObjects).ConfigureAwait(false);
+        var showBlockContents = grouping == DrawingGrouping.Layers && enabledFilters.Contains(ShowBlockContents);
+        var result = await source.ReadAsync(
+            selectedObjects,
+            cancellationToken,
+            maximumObjects,
+            showBlockContents).ConfigureAwait(false);
 
         return result.Bind(snapshot => new HostResult<LensPresentation>.Success(
             Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken)));
@@ -78,7 +96,11 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         var layers = snapshot.Layers
             .Where(layer => IsIncluded(layer, includeFrozen, includeOff))
             .ToDictionary(layer => layer.Id);
-        var entities = snapshot.Entities.Where(entity => layers.ContainsKey(entity.LayerId)).ToList();
+        var entities = snapshot.Entities
+            .Where(entity => layers.ContainsKey(entity.LayerId) &&
+                             (entity.ContainerLayers.IsDefaultOrEmpty ||
+                              entity.ContainerLayers.All(layers.ContainsKey)))
+            .ToList();
         var precision = snapshot.Precision ?? DrawingPrecision.Default;
         var groups = grouping switch
         {
@@ -104,7 +126,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             isLayers ? "Layers" : "Object Types",
             snapshot.SpaceLabel,
             groups,
-            Filters,
+            isLayers ? LayerFilters : Filters,
             isLayers
                 ? "No layers contain included objects in the current space."
                 : "No types contain included objects in the current space.",

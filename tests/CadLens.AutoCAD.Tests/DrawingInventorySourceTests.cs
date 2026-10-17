@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using CadLens.Lenses;
 using CadLens.Common;
 using CadLens.Common.AutoCAD;
@@ -146,6 +147,385 @@ public sealed class DrawingInventorySourceTests
         }).DisplayColor);
     }
 
+    /// <summary>Opt-in flattening preserves independent nested placements and effective layers.</summary>
+    [Fact]
+    public async Task BlockContentsKeepEveryOccurrenceAndInheritLayerZero()
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var zero = AddLayer(database, "0");
+        var outerLayer = AddLayer(database, "Outer");
+        var ownLayer = AddLayer(database, "Own");
+        var definition = database.Add(new BlockTableRecord());
+        var inherited = database.Add(new Line
+        {
+            OwnerId = definition, LayerId = zero, Length = 3,
+            Color = new Autodesk.AutoCAD.Colors.Color {IsByLayer = false, IsByBlock = true}
+        });
+        var own = database.Add(new Line {OwnerId = definition, LayerId = ownLayer, Length = 5});
+        SetContents(database, definition, inherited, own);
+        var outerDefinition = database.Add(new BlockTableRecord());
+        var nested = database.Add(new BlockReference
+        {
+            OwnerId = outerDefinition, LayerId = zero, BlockTableRecord = definition,
+            Color = new Autodesk.AutoCAD.Colors.Color {IsByLayer = false, IsByBlock = true}
+        });
+        SetContents(database, outerDefinition, nested);
+        var first = AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, LayerId = outerLayer, BlockTableRecord = outerDefinition,
+            Color = new Autodesk.AutoCAD.Colors.Color {IsByLayer = false, IsByAci = true, ColorIndex = 1}
+        });
+        var second = AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, LayerId = ownLayer, BlockTableRecord = outerDefinition
+        });
+
+        var original = await ReadInventory(false);
+        var flattened = await ReadInventory(true);
+
+        Assert.Equal([new EntityId(first), new EntityId(second)], original.Entities.Select(entity => entity.Id));
+        Assert.Equal(4, flattened.Entities.Length);
+        Assert.Equal(
+            [outerLayer, ownLayer, ownLayer, ownLayer],
+            flattened.Entities.Select(entity => Assert.IsType<LayerId>(entity.LayerId).NativeId));
+        var firstLeaf = new EntityId(inherited, new EntityId(nested, new EntityId(first)));
+        var secondLeaf = new EntityId(inherited, new EntityId(nested, new EntityId(second)));
+        Assert.Equal(firstLeaf, flattened.Entities[0].Id);
+        Assert.Equal(secondLeaf, flattened.Entities[2].Id);
+        Assert.Equal(0xFF0000, flattened.Entities[0].DisplayColor);
+        Assert.Equal(
+            [outerLayer, outerLayer],
+            flattened.Entities[0].ContainerLayers.Cast<LayerId>().Select(layer => layer.NativeId));
+        Assert.NotEqual(firstLeaf, secondLeaf);
+        Assert.Equal($"{first.Handle}/{nested.Handle}/{inherited.Handle}", firstLeaf.DisplayId);
+        Assert.Equal(first, firstLeaf.RootId);
+    }
+
+    /// <summary>Selected inserts expand only inside their captured roots and ignore automatic loading limits.</summary>
+    [Fact]
+    public async Task SelectedBlockContentsUseCapturedRootsAndSkipErasedMembers()
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var definition = database.Add(new BlockTableRecord());
+        var live = database.Add(new Line {OwnerId = definition});
+        var erased = database.Add(new Line {OwnerId = definition, IsErased = true});
+        SetContents(database, definition, live, erased, default);
+        var selected = AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, BlockTableRecord = definition
+        });
+        AddRoot(database, new BlockReference {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition});
+
+        var inventory = await ReadInventory(true, [new EntityId(selected), new EntityId(selected)], 0);
+
+        Assert.Equal(new EntityId(live, new EntityId(selected)), Assert.Single(inventory.Entities).Id);
+    }
+
+    /// <summary>Dynamic inserts enumerate their evaluated record rather than the authoring definition.</summary>
+    [Fact]
+    public async Task DynamicBlocksReadTheirEvaluatedDefinition()
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var original = database.Add(new BlockTableRecord());
+        var evaluated = database.Add(new BlockTableRecord());
+        SetContents(database, original, database.Add(new Line {OwnerId = original}));
+        var visible = database.Add(new Circle {OwnerId = evaluated});
+        var hidden = database.Add(new Line {OwnerId = evaluated, Visible = false});
+        var nestedDefinition = database.Add(new BlockTableRecord());
+        SetContents(database, nestedDefinition, database.Add(new Line {OwnerId = nestedDefinition}));
+        var hiddenNested = database.Add(new BlockReference
+        {
+            OwnerId = evaluated, BlockTableRecord = nestedDefinition, Visible = false
+        });
+        SetContents(database, evaluated, visible, hidden, hiddenNested);
+        var block = AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId,
+            IsDynamicBlock = true,
+            DynamicBlockTableRecord = original,
+            BlockTableRecord = evaluated
+        });
+        AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, BlockTableRecord = evaluated, Visible = false
+        });
+
+        var inventory = await ReadInventory(true);
+
+        Assert.Equal(new EntityId(visible, new EntityId(block)), Assert.Single(inventory.Entities).Id);
+        Assert.Equal(2, (await ReadInventory(false)).Entities.Length);
+    }
+
+    /// <summary>A recursive definition terminates locally without suppressing the next placement.</summary>
+    [Fact]
+    public async Task RecursiveDefinitionsDoNotSuppressOtherOccurrences()
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var definition = database.Add(new BlockTableRecord());
+        var recursive = database.Add(new BlockReference {OwnerId = definition, BlockTableRecord = definition});
+        var leaf = database.Add(new Line {OwnerId = definition});
+        SetContents(database, definition, recursive, leaf);
+        var first = AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, BlockTableRecord = definition
+        });
+        var second = AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, BlockTableRecord = definition
+        });
+
+        var inventory = await ReadInventory(true);
+
+        Assert.Equal(
+            [new EntityId(recursive, new EntityId(first)), new EntityId(leaf, new EntityId(first)),
+                new EntityId(recursive, new EntityId(second)), new EntityId(leaf, new EntityId(second))],
+            inventory.Entities.Select(entity => entity.Id));
+    }
+
+    /// <summary>External references and insertion arrays retain their atomic representation.</summary>
+    [Theory]
+    [InlineData(true, false, false, false)]
+    [InlineData(false, true, false, false)]
+    [InlineData(false, false, true, false)]
+    [InlineData(false, false, false, true)]
+    public async Task UnsupportedInsertionsRemainAtomic(bool external, bool overlay, bool array, bool clipped)
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var definition = database.Add(new BlockTableRecord());
+        var leaf = database.Add(new Line {OwnerId = definition});
+        database.Objects[definition.Value] = new BlockTableRecord(leaf)
+        {
+            ObjectId = definition, IsFromExternalReference = external, IsFromOverlayReference = overlay
+        };
+        var dictionary = clipped ? database.Add(new DBDictionary("ACAD_FILTER")) : default;
+        var block = array
+            ? new MInsertBlock {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition}
+            : new BlockReference
+            {
+                OwnerId = database.CurrentSpaceId, BlockTableRecord = definition, ExtensionDictionary = dictionary
+            };
+        var root = AddRoot(database, block);
+
+        var inventory = await ReadInventory(true);
+
+        Assert.Equal(new EntityId(root), Assert.Single(inventory.Entities).Id);
+    }
+
+    /// <summary>Automatic expansion stops during traversal; explicit refresh can still read the full block.</summary>
+    [Fact]
+    public async Task AutomaticLimitStopsInsideOneLargeBlock()
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var definition = database.Add(new BlockTableRecord());
+        var measured = 0;
+        var children = Enumerable.Range(0, 5).Select(_ => database.Add(new Line
+        {
+            OwnerId = definition, ReadArea = () => ++measured
+        })).ToArray();
+        SetContents(database, definition, children);
+        AddRoot(database, new BlockReference {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition});
+        var tasks = new HostTasks();
+        var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(null, CancellationToken.None, 2, true);
+        tasks.Execute();
+
+        Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await request);
+        Assert.Equal(1, measured);
+        Assert.Equal(5, (await ReadInventory(true)).Entities.Length);
+    }
+
+    /// <summary>Cancellation interrupts block expansion before another definition member is measured.</summary>
+    [Fact]
+    public async Task CancellationStopsNestedExpansion()
+    {
+        var database = CreateDocument().Database;
+        var definition = database.Add(new BlockTableRecord());
+        using var cancellation = new CancellationTokenSource();
+        var measured = 0;
+        var first = database.Add(new Line
+        {
+            OwnerId = definition,
+            ReadArea = () =>
+            {
+                measured++;
+                // ReSharper disable once AccessToDisposedClosure -- The awaited read finishes before source disposal.
+                cancellation.Cancel();
+                return 1;
+            }
+        });
+        var second = database.Add(new Line {OwnerId = definition, ReadArea = () => ++measured});
+        SetContents(database, definition, first, second);
+        AddRoot(database, new BlockReference {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition});
+        var tasks = new HostTasks();
+        var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(null, cancellation.Token, null, true);
+
+        tasks.Execute();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.Equal(1, measured);
+    }
+
+    /// <summary>Placed measurements use composed transforms and release their temporary native copies.</summary>
+    [Fact]
+    public async Task NestedMeasurementsUseComposedTransformsAndDisposeCopies()
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var definition = database.Add(new BlockTableRecord());
+        Matrix3d? observed = null;
+        var line = new Line
+        {
+            OwnerId = definition,
+            Length = 2,
+            TransformedCopy = transform =>
+            {
+                observed = transform;
+                return new Line {Length = 12, ReadArea = () => 36};
+            }
+        };
+        SetContents(database, definition, database.Add(line));
+        var parent = database.Add(new BlockTableRecord());
+        SetContents(database, parent, database.Add(new BlockReference
+        {
+            OwnerId = parent, BlockTableRecord = definition,
+            BlockTransform = Matrix3d.Scaling(3, Point3d.Origin)
+        }));
+        AddRoot(database, new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, BlockTableRecord = parent,
+            BlockTransform = Matrix3d.Scaling(2, Point3d.Origin)
+        });
+
+        var snapshot = Assert.Single((await ReadInventory(true)).Entities);
+
+        Assert.Equal(Matrix3d.Scaling(6, Point3d.Origin), observed);
+        Assert.Equal(new DrawingNumberValue(12, DrawingUnit.Distance), snapshot.Properties![DrawingPropertyId.Length]);
+        Assert.Equal(new DrawingNumberValue(36, DrawingUnit.Area), snapshot.Properties[DrawingPropertyId.Area]);
+        Assert.True(line.LastTransformedCopy!.IsDisposed);
+        Assert.Equal(2, line.Length);
+    }
+
+    /// <summary>Unsafe complex clones and rejected transforms retain rows without invented placed dimensions.</summary>
+    [Fact]
+    public void UnavailableTransformsRetainRowsAndCountFacts()
+    {
+        var database = CreateDocument().Database;
+        var first = database.Add(new Vertex2d());
+        var second = database.Add(new Vertex2d());
+        var complex = new Polyline2d(first, second)
+        {
+            Length = 5,
+            ReadArea = () => 4,
+            TransformedCopy = _ => throw new InvalidOperationException("Owned vertices must never be cloned.")
+        };
+        var rejected = new Line
+        {
+            Length = 5,
+            TransformedCopy = _ => throw new Autodesk.AutoCAD.Runtime.Exception(
+                Autodesk.AutoCAD.Runtime.ErrorStatus.InvalidInput)
+        };
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+        var transform = Matrix3d.Scaling(2, Point3d.Origin);
+
+        var complexSnapshot = reader.ReadOccurrence(complex, new EntityId(first), default, transform);
+        var rejectedSnapshot = reader.ReadOccurrence(rejected, new EntityId(second), default, transform);
+
+        Assert.Equal(
+            new DrawingNumberValue(2, DrawingUnit.Count),
+            complexSnapshot.Properties![DrawingPropertyId.Vertices]);
+        Assert.Null(complexSnapshot.Properties[DrawingPropertyId.Length]);
+        Assert.Null(complexSnapshot.Properties[DrawingPropertyId.Area]);
+        Assert.Null(rejectedSnapshot.Properties![DrawingPropertyId.Length]);
+        Assert.Equal(new EntityId(second), rejectedSnapshot.Id);
+    }
+
+    /// <summary>Flattened attributes show actual values and constant definitions, without placeholders.</summary>
+    [Fact]
+    public async Task AttributesUseActualValuesAndTheirOwnerCoordinateSpace()
+    {
+        var database = CreateDocument().Database;
+        var definition = database.Add(new BlockTableRecord());
+        var placeholder = database.Add(new AttributeDefinition {OwnerId = definition, TextString = "Template"});
+        var constant = database.Add(new AttributeDefinition
+        {
+            OwnerId = definition, TextString = "Constant", Constant = true
+        });
+        var invisibleConstant = database.Add(new AttributeDefinition
+        {
+            OwnerId = definition, Constant = true, Invisible = true
+        });
+        SetContents(database, definition, placeholder, constant, invisibleConstant);
+        var block = new BlockReference
+        {
+            OwnerId = database.CurrentSpaceId, BlockTableRecord = definition,
+            BlockTransform = Matrix3d.Scaling(2, Point3d.Origin)
+        };
+        var root = AddRoot(database, block);
+        var attribute = database.Add(new AttributeReference
+        {
+            OwnerId = root, TextString = "Actual", Height = 4,
+            TransformedCopy = _ => throw new InvalidOperationException("Root attributes already use world coordinates.")
+        });
+        block.AttributeCollection.Add(attribute);
+        block.AttributeCollection.Add(database.Add(new AttributeReference {OwnerId = root, Invisible = true}));
+
+        var inventory = await ReadInventory(true);
+
+        Assert.Equal(2, inventory.Entities.Length);
+        Assert.DoesNotContain(inventory.Entities, entity => Assert.IsType<EntityId>(entity.Id).NativeId == placeholder);
+        var actual = Assert.Single(
+            inventory.Entities,
+            entity => Assert.IsType<EntityId>(entity.Id).NativeId == attribute);
+        Assert.Equal(new EntityId(attribute, new EntityId(root)), actual.Id);
+        Assert.Equal(new DrawingTextValue("Actual"), actual.Properties![DrawingPropertyId.Text]);
+        Assert.Equal(new DrawingNumberValue(4, DrawingUnit.Distance), actual.Properties[DrawingPropertyId.TextHeight]);
+    }
+
+    private static async Task<DrawingInventory> ReadInventory(
+        bool includeBlockContents,
+        ImmutableArray<IPlacedObjectId>? selection = null,
+        int? maximumObjects = null)
+    {
+        var tasks = new HostTasks();
+        var read = new AutoCadDrawingInventorySource(tasks).ReadAsync(
+            selection,
+            CancellationToken.None,
+            maximumObjects,
+            includeBlockContents);
+        tasks.Execute();
+
+        return Assert.IsType<HostResult<DrawingInventory>.Success>(await read).Value;
+    }
+
+    private static ObjectId AddLayer(Database database, string name)
+    {
+        var id = database.Add(new LayerTableRecord {Name = name});
+        database.Objects[database.LayerTableId.Value] = new LayerTable(
+            [.. database.Objects.Values.OfType<LayerTableRecord>().Select(layer => layer.ObjectId)]);
+
+        return id;
+    }
+
+    private static ObjectId AddRoot(Database database, Entity entity)
+    {
+        var root = database.Add(entity);
+        SetContents(
+            database,
+            database.CurrentSpaceId,
+            [.. database.Objects.Values.OfType<Entity>()
+                .Where(item => item.OwnerId == database.CurrentSpaceId).Select(item => item.ObjectId)]);
+
+        return root;
+    }
+
+    private static void SetContents(Database database, ObjectId definition, params ObjectId[] children) =>
+        database.Objects[definition.Value] = new BlockTableRecord(children) {ObjectId = definition};
+
     private static Document CreateDocument()
     {
         Application.DocumentManager = new DocumentCollection();
@@ -182,6 +562,14 @@ public sealed class DrawingInventorySourceTests
                 try
                 {
                     completion.SetResult(new HostResult<T>.Success(action()));
+                }
+                catch (OperationCanceledException)
+                {
+#if NETFRAMEWORK
+                    completion.SetCanceled();
+#else
+                    completion.SetCanceled(cancellationToken);
+#endif
                 }
                 catch (Exception exception)
                 {

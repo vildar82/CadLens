@@ -6,6 +6,7 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.GraphicsInterface;
 using CadLens.Common;
 using CadLens.Common.AutoCAD;
+using CadLens.UI;
 using Xunit;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
@@ -47,7 +48,9 @@ public sealed class ObjectSelectionTests
 
             Assert.Equal(hidden, Assert.IsType<EntityId>(Assert.Single(selected)).NativeId);
             Assert.Equal(1, document.Editor.PromptCount);
-            Assert.EndsWith("Select objects to explore:", Assert.IsType<PromptSelectionOptions>(requestedOptions).MessageForAdding);
+            Assert.EndsWith(
+                UiText.Current.Get("Select objects to explore:"),
+                Assert.IsType<PromptSelectionOptions>(requestedOptions).MessageForAdding);
             Assert.Empty(document.Editor.Selection);
             Assert.True(graphics.IsApplicable(document.Database.Objects[hidden.Value]));
         }

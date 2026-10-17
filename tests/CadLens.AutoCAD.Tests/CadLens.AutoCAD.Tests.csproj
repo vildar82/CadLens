@@ -18,6 +18,10 @@
         <Compile Include="../../src/CadLens.Common.AutoCAD/Abstractions/IHostTaskService.cs" Link="IHostTaskService.cs" />
         <Compile Include="../../src/CadLens.Common.AutoCAD/Services/AutoCadTaskService.cs" Link="AutoCadTaskService.cs" />
         <Compile Include="../../src/CadLens.Common.AutoCAD/Services/EntityIsolationService.cs" Link="EntityIsolationService.cs" />
+        <Compile Include="../../src/CadLens.Common.AutoCAD/Services/EntityIsolationActions.cs" Link="EntityIsolationActions.cs"/>
+        <Compile Include="../../src/CadLens.Common.AutoCAD/Services/AutoCadObjectVisualizationService.cs" Link="AutoCadObjectVisualizationService.cs"/>
+        <Compile Include="../../src/CadLens.Common.AutoCAD/Extensions/EntityOccurrence.cs" Link="EntityOccurrence.cs"/>
+        <Compile Include="../../src/CadLens.Common.AutoCAD/Extensions/DatabaseExtensions.cs" Link="DatabaseExtensions.cs"/>
         <Compile Include="../../src/CadLens.Common.AutoCAD/Extensions/DatabaseObjectExtensions.cs" Link="DatabaseObjectExtensions.cs" />
     </ItemGroup>
 </Project>

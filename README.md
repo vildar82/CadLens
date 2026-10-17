@@ -116,6 +116,20 @@ panel; reopen it to restore valid navigation, inclusion filters, and Auto settin
 failed cleanup appears in the compact status tooltip and can delay reactivation. Running `CADLENS` again brings the
 existing panel forward.
 
+### Objects inside blocks
+
+Enable **Show block contents** in Layers to browse objects inside local blocks, including nested blocks,
+under their effective layers. The switch is off by default and its setting is saved. Each insertion is
+counted separately; objects on layer `0` inherit their containing insertion's layer. External references,
+clipped blocks, and block arrays remain whole insertions. Object Types keeps its ordinary direct-object view.
+
+Changing this switch rereads the captured scope. With Selected objects, it expands the captured block
+insertions without asking for a new selection. Unsupported transformed measurements display a dash.
+Focus uses the inner object's placed bounds; native CAD selection selects its containing insertion.
+Inner isolation in model space is a display preview and does not edit the block definition or visibility
+properties. Unsupported preview types report an error and clear temporary hiding. Use Reset to restore
+the ordinary display.
+
 ### Object scope
 
 Both lenses start with **All objects**, which reads direct objects in the active model or paper space.
@@ -254,8 +268,8 @@ color-book entries. Numeric group keys use drawing precision while retaining the
 units; localized captions never determine identity. Lineweight, constant polyline width, and extrusion
 thickness are separate properties.
 
-A block insertion remains one drawing target. Its structural measurement counts live direct entities in
-the referenced definition, including attribute definitions; a nested insertion counts once. Attached
+With Show block contents off, a block insertion remains one drawing target. Its structural measurement
+counts live direct entities in the referenced definition, including attribute definitions; a nested insertion counts once. Attached
 insertion attributes are reported separately. Dynamic blocks use their original name and the referenced
 definition's count. This does not promise a visible-geometry count. Xref contents are not counted.
 

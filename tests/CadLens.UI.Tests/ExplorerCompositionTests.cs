@@ -87,6 +87,8 @@ public sealed class ExplorerCompositionTests : IDisposable
             await shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]);
             var layers = DrawingViewModel(scope.ServiceProvider, "layers");
             await layers.ToggleFilterCommand.ExecuteAsync(layers.Filters[0]);
+            await layers.ToggleFilterCommand.ExecuteAsync(
+                layers.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.ShowBlockContents));
             await shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[1]);
             var types = DrawingViewModel(scope.ServiceProvider, "object-types");
             await types.ToggleFilterCommand.ExecuteAsync(types.Filters[1]);
@@ -100,10 +102,13 @@ public sealed class ExplorerCompositionTests : IDisposable
         var layerFilters = DrawingViewModel(reopened.ServiceProvider, "layers").Filters;
         Assert.True(layerFilters[0].IsEnabled);
         Assert.False(layerFilters[1].IsEnabled);
+        Assert.True(
+            layerFilters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.ShowBlockContents).IsEnabled);
         await current.ToggleLensCommand.ExecuteAsync(current.Lenses[1]);
         var typeFilters = DrawingViewModel(reopened.ServiceProvider, "object-types").Filters;
         Assert.False(typeFilters[0].IsEnabled);
         Assert.True(typeFilters[1].IsEnabled);
+        Assert.DoesNotContain(typeFilters, filter => filter.Descriptor.Id == DrawingLensProvider.ShowBlockContents);
     }
 
     /// <summary>Appearance is scoped with the panel and saves through the host's isolated settings service.</summary>
@@ -253,7 +258,11 @@ public sealed class ExplorerCompositionTests : IDisposable
 
         internal DrawingInventory Inventory { get; set; } = new("Model", [], []);
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            bool includeBlockContents = false) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(Inventory));
 
         public void Dispose() => DisposeCount++;
