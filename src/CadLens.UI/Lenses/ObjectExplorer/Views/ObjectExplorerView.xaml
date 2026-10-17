@@ -20,6 +20,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Border
             Padding="12,9,12,9"
@@ -53,6 +54,7 @@
                     <Button
                         Width="28"
                         Padding="0"
+                        VerticalAlignment="Center"
                         AutomationProperties.Name="{ui:Localize Binding={Binding RefreshLabel}}"
                         Command="{Binding ReadCommand}"
                         Content="↻"
@@ -1020,5 +1022,19 @@
                 </TextBlock>
             </StackPanel>
         </Border>
+        <ProgressBar
+            x:Name="DrawingReadProgressBar"
+            Grid.Row="3"
+            Height="3"
+            AutomationProperties.Name="{Binding ReadProgressText}"
+            Background="{DynamicResource QuietBorder}"
+            BorderThickness="0"
+            Foreground="{DynamicResource QuietAccent}"
+            IsIndeterminate="{Binding IsReadProgressIndeterminate}"
+            Maximum="{Binding ReadProgress.TotalRoots, FallbackValue=1}"
+            Minimum="0"
+            ToolTip="{Binding ReadProgressText}"
+            Value="{Binding ReadProgress.CompletedRoots, FallbackValue=0}"
+            Visibility="{Binding IsReading, Converter={StaticResource BooleanVisibility}}" />
     </Grid>
 </UserControl>

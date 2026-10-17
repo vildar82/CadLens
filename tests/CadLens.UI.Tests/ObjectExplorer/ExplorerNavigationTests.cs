@@ -955,11 +955,18 @@ public sealed class ExplorerNavigationTests
         public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
             IPlacedObjectId block,
             IReadOnlyCollection<string> enabledFilters,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
 
-        public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlyCollection<string> enabledFilters, ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null)
+        public Task<HostResult<LensPresentation>> ReadAsync(
+            DrawingGrouping grouping,
+            IReadOnlyCollection<string> enabledFilters,
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             ReadCount++;
             Enabled = enabledFilters;

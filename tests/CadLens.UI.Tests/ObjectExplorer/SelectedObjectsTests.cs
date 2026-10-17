@@ -204,6 +204,7 @@ public sealed class SelectedObjectsTests
         var selected = Assert.IsType<RadioButton>(view.FindName("SelectedObjectsScope"));
         var all = Assert.IsType<RadioButton>(view.FindName("AllObjectsScope"));
         var refresh = WpfTest.Descendants(view).OfType<Button>().Single(button => ReferenceEquals(button.Command, model.ReadCommand));
+        Assert.Equal(refresh.MinHeight, refresh.ActualHeight);
         var previous = UiText.Current.Preference;
 
         try
@@ -643,7 +644,8 @@ public sealed class SelectedObjectsTests
         public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
             IPlacedObjectId block,
             IReadOnlyCollection<string> enabledFilters,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
 
@@ -652,7 +654,8 @@ public sealed class SelectedObjectsTests
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
-            int? maximumObjects = null)
+            int? maximumObjects = null,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             Calls.Add("read");
             ReadCount++;
@@ -664,7 +667,13 @@ public sealed class SelectedObjectsTests
                 return Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Unavailable(
                     "Large drawing. Use Refresh to load all objects, or choose Selected objects."));
 
-            return Pending?.Task ?? _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
+            return Pending?.Task ?? _provider.LoadAsync(
+                grouping,
+                enabledFilters,
+                selectedObjects,
+                cancellationToken,
+                maximumObjects,
+                progress);
         }
 
         public void ClearImmediately(bool hostTerminating)
@@ -710,7 +719,8 @@ public sealed class SelectedObjectsTests
                 ImmutableArray<IPlacedObjectId>? selectedObjects,
                 CancellationToken cancellationToken,
                 int? maximumObjects = null,
-                bool includeBlockContents = false) =>
+                bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null) =>
                 Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(
                     selectedObjects is { } selected
                         ? Inventory with {Entities = [.. Inventory.Entities.Where(entity => selected.Contains(entity.Id))]}

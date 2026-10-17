@@ -842,4 +842,7 @@
   <data name="Block contents are no longer available. Refresh to try again." xml:space="preserve">
     <value>Block contents are no longer available. Refresh to try again.</value>
   </data>
+  <data name="Processed {0:N0} objects" xml:space="preserve">
+    <value>Processed {0:N0} objects</value>
+  </data>
 </root>

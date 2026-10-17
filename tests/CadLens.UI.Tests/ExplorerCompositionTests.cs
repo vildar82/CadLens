@@ -262,7 +262,8 @@ public sealed class ExplorerCompositionTests : IDisposable
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
             int? maximumObjects = null,
-            bool includeBlockContents = false) =>
+            bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(Inventory));
 
         public void Dispose() => DisposeCount++;
@@ -290,16 +291,18 @@ public sealed class ExplorerCompositionTests : IDisposable
         public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
             IPlacedObjectId block,
             IReadOnlyCollection<string> enabledFilters,
-            CancellationToken cancellationToken) =>
-            provider.LoadBlockContentsAsync(block, enabledFilters, cancellationToken);
+            CancellationToken cancellationToken,
+            IProgress<DrawingReadProgress>? progress = null) =>
+            provider.LoadBlockContentsAsync(block, enabledFilters, cancellationToken, progress);
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
-            int? maximumObjects = null) =>
-            provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
+            int? maximumObjects = null,
+            IProgress<DrawingReadProgress>? progress = null) =>
+            provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects, progress);
 
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,

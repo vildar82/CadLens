@@ -15,6 +15,7 @@ namespace CadLens.AutoCAD;
 internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellationToken)
 {
     private readonly Dictionary<ObjectId, DrawingNumberValue?> _blockEntityCounts = new();
+    private readonly Dictionary<(ObjectId Id, Matrix3d Transform), EntitySnapshot> _snapshots = new();
 
     internal EntitySnapshot Read(Entity entity)
     {
@@ -38,9 +39,39 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
 
     internal EntitySnapshot ReadOccurrence(Entity entity, EntityId id, ObjectId layerId, Matrix3d transform)
     {
-        var snapshot = transform.Equals(Matrix3d.Identity) ? Read(entity) : ReadTransformed(entity, transform);
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshot = ReadOccurrenceSnapshot(entity, transform);
 
         return snapshot with {Id = id, LayerId = new LayerId(layerId), TypeKey = entity.GetRXClass().Name};
+    }
+
+    private EntitySnapshot ReadOccurrenceSnapshot(Entity entity, Matrix3d transform)
+    {
+        var measurementTransform = WithoutTranslation(transform);
+
+        if (entity.ObjectId.IsValid &&
+            _snapshots.TryGetValue((entity.ObjectId, measurementTransform), out var cached))
+            return cached;
+
+        var snapshot = measurementTransform.Equals(Matrix3d.Identity)
+            ? Read(entity)
+            : ReadTransformed(entity, transform);
+
+        if (entity.ObjectId.IsValid)
+            _snapshots.Add((entity.ObjectId, measurementTransform), snapshot);
+
+        return snapshot;
+    }
+
+    private static Matrix3d WithoutTranslation(Matrix3d transform)
+    {
+        // Published properties contain dimensions and appearance, so translations do not change their values.
+        // Keep the full matrix for native measurements, but reuse them for identically scaled/rotated placements.
+        var values = transform.ToArray();
+        values[3] = 0;
+        values[7] = 0;
+        values[11] = 0;
+        return new Matrix3d(values);
     }
 
     private EntitySnapshot ReadTransformed(Entity entity, Matrix3d transform)

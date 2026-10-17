@@ -136,7 +136,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     }
 
     /// <summary>Test double for the native Database type.</summary>
-    public sealed class Database
+    public sealed partial class Database
     {
         internal Dictionary<int, DBObject> Objects { get; } = [];
         internal ObjectId CurrentSpaceId { get; set; }
@@ -201,12 +201,17 @@ namespace Autodesk.AutoCAD.DatabaseServices
     /// <param name="ids">Contained test identifiers.</param>
     public sealed class BlockTableRecord(params ObjectId[] ids) : DBObject, IEnumerable
     {
+        internal int EnumerationCount { get; private set; }
         internal ObjectId LayoutId { get; init; }
         internal bool IsLayout { get; init; }
         internal string Name { get; init; } = "Model";
         internal bool IsFromExternalReference { get; init; }
         internal bool IsFromOverlayReference { get; init; }
         /// <inheritdoc />
-        public IEnumerator GetEnumerator() => ids.GetEnumerator();
+        public IEnumerator GetEnumerator()
+        {
+            EnumerationCount++;
+            return ids.GetEnumerator();
+        }
     }
 }

@@ -28,13 +28,15 @@ public sealed class BlockContentsTests
                 Entity("insert/circle", "AcDbCircle")]));
         var provider = new DrawingLensProvider(source);
         using var cancellation = new CancellationTokenSource();
+        var progress = new Progress<DrawingReadProgress>();
 
-        var result = await provider.LoadBlockContentsAsync(Block, [], cancellation.Token);
+        var result = await provider.LoadBlockContentsAsync(Block, [], cancellation.Token, progress);
 
         Assert.Equal<IPlacedObjectId>([Block], source.SelectedObjects!.Value);
         Assert.True(source.IncludeBlockContents);
         Assert.Null(source.MaximumObjects);
         Assert.Equal(cancellation.Token, source.CancellationToken);
+        Assert.Same(progress, source.Progress);
         var presentation = Assert.IsType<HostResult<LensPresentation>.Success>(result).Value;
         Assert.Equal("Object Types", presentation.Label);
         Assert.DoesNotContain(presentation.Filters, filter => filter.Id == DrawingLensProvider.ShowBlockContents);
@@ -140,13 +142,16 @@ public sealed class BlockContentsTests
         internal bool IncludeBlockContents { get; private set; }
         internal int? MaximumObjects { get; private set; }
         internal CancellationToken CancellationToken { get; private set; }
+        internal IProgress<DrawingReadProgress>? Progress { get; private set; }
 
         public Task<HostResult<DrawingInventory>> ReadAsync(
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
             int? maximumObjects = null,
-            bool includeBlockContents = false)
+            bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null)
         {
+            Progress = progress;
             SelectedObjects = selectedObjects;
             CancellationToken = cancellationToken;
             MaximumObjects = maximumObjects;

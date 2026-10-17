@@ -27,12 +27,14 @@ public interface IObjectExplorerActions
     /// <param name="selectedObjects">Captured selection, or null for all direct current-space objects.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     /// <param name="maximumObjects">Maximum direct-space objects for automatic loading; null allows an explicit full read. Selected scope ignores the limit.</param>
+    /// <param name="progress">Optional progress through root objects and their placed contents.</param>
     Task<HostResult<LensPresentation>> ReadAsync(
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken,
-        int? maximumObjects = null);
+        int? maximumObjects = null,
+        IProgress<DrawingReadProgress>? progress = null);
 
     /// <summary>
     /// Reads the recursive placed contents of one local block insertion without changing the drawing.
@@ -40,10 +42,12 @@ public interface IObjectExplorerActions
     /// <param name="block">Top-level insertion to explore.</param>
     /// <param name="enabledFilters">Enabled visibility inclusion options.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
+    /// <param name="progress">Optional progress through root objects and their placed contents.</param>
     Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
         IPlacedObjectId block,
         IReadOnlyCollection<string> enabledFilters,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<DrawingReadProgress>? progress = null);
 
     /// <summary>Isolates the panel selection; empty targets clear it.</summary>
     /// <param name="objects">Current group or object targets.</param>

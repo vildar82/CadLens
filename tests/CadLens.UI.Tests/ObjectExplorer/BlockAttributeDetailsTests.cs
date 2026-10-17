@@ -186,7 +186,8 @@ public sealed class BlockAttributeDetailsTests
         public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
             IPlacedObjectId block,
             IReadOnlyCollection<string> enabledFilters,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
 
@@ -195,7 +196,8 @@ public sealed class BlockAttributeDetailsTests
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
-            int? maximumObjects = null)
+            int? maximumObjects = null,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             ReadCount++;
             return Task.FromResult<HostResult<LensPresentation>>(

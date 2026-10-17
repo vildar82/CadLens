@@ -342,7 +342,8 @@ public sealed partial class LanguageTests : IDisposable
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
             int? maximumObjects = null,
-            bool includeBlockContents = false)
+            bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             var layer = new LayerId("1");
             var inventory = new DrawingInventory(
@@ -368,7 +369,8 @@ public sealed partial class LanguageTests : IDisposable
         public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
             IPlacedObjectId block,
             IReadOnlyCollection<string> enabledFilters,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
 
@@ -377,10 +379,17 @@ public sealed partial class LanguageTests : IDisposable
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
-            int? maximumObjects = null)
+            int? maximumObjects = null,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             Calls++;
-            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
+            return _provider.LoadAsync(
+                grouping,
+                enabledFilters,
+                selectedObjects,
+                cancellationToken,
+                maximumObjects,
+                progress);
         }
 
         public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)

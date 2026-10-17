@@ -33,6 +33,21 @@ namespace Autodesk.AutoCAD.EditorInput
 
 namespace Autodesk.AutoCAD.DatabaseServices
 {
+    internal sealed class ObjectEventArgs : EventArgs;
+
+    internal sealed class ObjectErasedEventArgs : EventArgs;
+
+    public sealed partial class Database
+    {
+        internal event EventHandler<ObjectEventArgs>? ObjectModified;
+        internal event EventHandler<ObjectEventArgs>? ObjectAppended;
+        internal event EventHandler<ObjectErasedEventArgs>? ObjectErased;
+
+        internal void ModifyObject() => ObjectModified?.Invoke(this, new ObjectEventArgs());
+        internal void AppendObject() => ObjectAppended?.Invoke(this, new ObjectEventArgs());
+        internal void EraseObject() => ObjectErased?.Invoke(this, new ObjectErasedEventArgs());
+    }
+
     internal sealed class LayerTable(params ObjectId[] ids) : SymbolTable(ids);
     internal sealed class LayerTableRecord : DBObject
     {

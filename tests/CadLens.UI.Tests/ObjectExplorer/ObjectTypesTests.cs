@@ -389,7 +389,8 @@ public sealed class ObjectTypesTests
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
             int? maximumObjects = null,
-            bool includeBlockContents = false)
+            bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             Token = cancellationToken;
             return Pending?.Task ?? Task.FromResult(Result);
@@ -414,7 +415,8 @@ public sealed class ObjectTypesTests
         public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
             IPlacedObjectId block,
             IReadOnlyCollection<string> enabledFilters,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<LensPresentation>>(
                 new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
 
@@ -423,10 +425,17 @@ public sealed class ObjectTypesTests
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
-            int? maximumObjects = null)
+            int? maximumObjects = null,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             ReadCount++;
-            return _provider.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
+            return _provider.LoadAsync(
+                grouping,
+                enabledFilters,
+                selectedObjects,
+                cancellationToken,
+                maximumObjects,
+                progress);
         }
 
         public Task<HostResult<bool>> SelectAsync(

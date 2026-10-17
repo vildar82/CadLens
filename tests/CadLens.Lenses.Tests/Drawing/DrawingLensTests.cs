@@ -373,7 +373,8 @@ public sealed class DrawingLensTests
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
             int? maximumObjects = null,
-            bool includeBlockContents = false) =>
+            bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(snapshot));
     }
 
@@ -388,7 +389,8 @@ public sealed class DrawingLensTests
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
             int? maximumObjects = null,
-            bool includeBlockContents = false)
+            bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             BlockContentsReads.Add(includeBlockContents);
             return Completion.Task;
@@ -401,7 +403,8 @@ public sealed class DrawingLensTests
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
             int? maximumObjects = null,
-            bool includeBlockContents = false) =>
+            bool includeBlockContents = false,
+            IProgress<DrawingReadProgress>? progress = null) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Unavailable("No drawing."));
     }
 }
