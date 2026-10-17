@@ -287,6 +287,12 @@ public sealed class ExplorerCompositionTests : IDisposable
         public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
             ClearAsync(cancellationToken);
 
+        public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
+            IPlacedObjectId block,
+            IReadOnlyCollection<string> enabledFilters,
+            CancellationToken cancellationToken) =>
+            provider.LoadBlockContentsAsync(block, enabledFilters, cancellationToken);
+
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,

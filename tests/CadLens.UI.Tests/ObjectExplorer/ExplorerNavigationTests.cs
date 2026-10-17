@@ -952,6 +952,13 @@ public sealed class ExplorerNavigationTests
         internal TaskCompletionSource<string>? PendingFocus { get; init; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
 
+        public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
+            IPlacedObjectId block,
+            IReadOnlyCollection<string> enabledFilters,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<LensPresentation>>(
+                new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
+
         public Task<HostResult<LensPresentation>> ReadAsync(DrawingGrouping grouping, IReadOnlyCollection<string> enabledFilters, ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null)
         {
             ReadCount++;

@@ -827,4 +827,19 @@
   <data name="Isolation inside blocks is available only in model space." xml:space="preserve">
     <value>Изоляция внутри блоков доступна только в пространстве модели.</value>
   </data>
+  <data name="Browse block contents" xml:space="preserve">
+    <value>Обзор объектов внутри блока</value>
+  </data>
+  <data name="Browse objects inside this block, including nested blocks." xml:space="preserve">
+    <value>Показать объекты внутри этого блока, включая вложенные блоки.</value>
+  </data>
+  <data name="Refresh block contents" xml:space="preserve">
+    <value>Обновить объекты внутри блока</value>
+  </data>
+  <data name="No included objects inside this block." xml:space="preserve">
+    <value>Внутри блока нет объектов, соответствующих фильтрам.</value>
+  </data>
+  <data name="Block contents are no longer available. Refresh to try again." xml:space="preserve">
+    <value>Объекты внутри блока больше недоступны. Обновите данные и попробуйте снова.</value>
+  </data>
 </root>

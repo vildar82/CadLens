@@ -365,6 +365,13 @@ public sealed partial class LanguageTests : IDisposable
         internal ImmutableArray<IPlacedObjectId> Selected { get; private set; } = [];
         internal ImmutableArray<IPlacedObjectId> Isolated { get; private set; } = [];
 
+        public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
+            IPlacedObjectId block,
+            IReadOnlyCollection<string> enabledFilters,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<LensPresentation>>(
+                new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
+
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,

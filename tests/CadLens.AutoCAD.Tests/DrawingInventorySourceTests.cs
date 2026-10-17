@@ -185,6 +185,8 @@ public sealed class DrawingInventorySourceTests
         var flattened = await ReadInventory(true);
 
         Assert.Equal([new EntityId(first), new EntityId(second)], original.Entities.Select(entity => entity.Id));
+        Assert.All(original.Entities, entity => Assert.True(entity.CanBrowseContents));
+        Assert.All(flattened.Entities, entity => Assert.False(entity.CanBrowseContents));
         Assert.Equal(4, flattened.Entities.Length);
         Assert.Equal(
             [outerLayer, ownLayer, ownLayer, ownLayer],
@@ -200,6 +202,12 @@ public sealed class DrawingInventorySourceTests
         Assert.NotEqual(firstLeaf, secondLeaf);
         Assert.Equal($"{first.Handle}/{nested.Handle}/{inherited.Handle}", firstLeaf.DisplayId);
         Assert.Equal(first, firstLeaf.RootId);
+
+        var selected = await ReadInventory(true, [new EntityId(first)]);
+
+        Assert.Equal(
+            [firstLeaf, new EntityId(own, firstLeaf.Container)],
+            selected.Entities.Select(entity => entity.Id));
     }
 
     /// <summary>Selected inserts expand only inside their captured roots and ignore automatic loading limits.</summary>
@@ -280,6 +288,7 @@ public sealed class DrawingInventorySourceTests
 
         var inventory = await ReadInventory(true);
 
+        Assert.All(inventory.Entities, entity => Assert.False(entity.CanBrowseContents));
         Assert.Equal(
             [new EntityId(recursive, new EntityId(first)), new EntityId(leaf, new EntityId(first)),
                 new EntityId(recursive, new EntityId(second)), new EntityId(leaf, new EntityId(second))],
@@ -314,6 +323,8 @@ public sealed class DrawingInventorySourceTests
         var inventory = await ReadInventory(true);
 
         Assert.Equal(new EntityId(root), Assert.Single(inventory.Entities).Id);
+        Assert.False(Assert.Single(inventory.Entities).CanBrowseContents);
+        Assert.False(Assert.Single((await ReadInventory(false)).Entities).CanBrowseContents);
     }
 
     /// <summary>Automatic expansion stops during traversal; explicit refresh can still read the full block.</summary>

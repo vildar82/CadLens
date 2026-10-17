@@ -91,6 +91,13 @@ public sealed class NavigationTests
 
     private sealed class FakeLens : IDrawingLensProvider
     {
+        public Task<HostResult<LensPresentation>> LoadBlockContentsAsync(
+            IPlacedObjectId block,
+            IReadOnlyCollection<string> enabledFilters,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<LensPresentation>>(
+                new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
+
         public Task<HostResult<LensPresentation>> LoadAsync(
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,

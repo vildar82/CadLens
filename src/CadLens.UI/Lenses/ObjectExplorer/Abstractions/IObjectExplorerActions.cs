@@ -34,6 +34,17 @@ public interface IObjectExplorerActions
         CancellationToken cancellationToken,
         int? maximumObjects = null);
 
+    /// <summary>
+    /// Reads the recursive placed contents of one local block insertion without changing the drawing.
+    /// </summary>
+    /// <param name="block">Top-level insertion to explore.</param>
+    /// <param name="enabledFilters">Enabled visibility inclusion options.</param>
+    /// <param name="cancellationToken">Panel lifetime cancellation.</param>
+    Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
+        IPlacedObjectId block,
+        IReadOnlyCollection<string> enabledFilters,
+        CancellationToken cancellationToken);
+
     /// <summary>Isolates the panel selection; empty targets clear it.</summary>
     /// <param name="objects">Current group or object targets.</param>
     /// <param name="cancellationToken">Request cancellation.</param>

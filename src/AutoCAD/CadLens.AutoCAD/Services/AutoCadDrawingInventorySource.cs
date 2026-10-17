@@ -188,11 +188,9 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
                 ? containingLayer.NativeId
                 : entity.LayerId;
             var displayColor = includeBlockContents ? ReadDisplayColor(entity, layerId, inheritedColor) : null;
+            var definition = GetExpandableDefinition(entity);
 
-            if (includeBlockContents && entity is BlockReference block and not MInsertBlock &&
-                block.ExtensionDictionary.GetObject<DBDictionary>()?.Contains("ACAD_FILTER") is not true &&
-                block.BlockTableRecord.GetObject<BlockTableRecord>() is
-                    {IsFromExternalReference: false, IsFromOverlayReference: false} definition &&
+            if (includeBlockContents && entity is BlockReference block && definition is not null &&
                 _definitions.Add(definition.ObjectId))
             {
                 try
@@ -212,7 +210,7 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
             }
 
             var snapshot = container is null
-                ? _snapshots.Read(entity)
+                ? _snapshots.Read(entity) with {CanBrowseContents = definition is not null}
                 : _snapshots.ReadOccurrence(entity, id, layerId, transform);
             _entities.Add(
                 container is null
@@ -221,6 +219,14 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
 
             return true;
         }
+
+        private static BlockTableRecord? GetExpandableDefinition(Entity entity) =>
+            entity is BlockReference block and not MInsertBlock &&
+            block.ExtensionDictionary.GetObject<DBDictionary>()?.Contains("ACAD_FILTER") is not true &&
+            block.BlockTableRecord.GetObject<BlockTableRecord>() is
+                {IsFromExternalReference: false, IsFromOverlayReference: false} definition
+                ? definition
+                : null;
 
         private bool AddBlockContents(
             BlockReference block,
