@@ -204,6 +204,7 @@ public sealed class SelectedObjectsTests
         var selected = Assert.IsType<RadioButton>(view.FindName("SelectedObjectsScope"));
         var all = Assert.IsType<RadioButton>(view.FindName("AllObjectsScope"));
         var refresh = WpfTest.Descendants(view).OfType<Button>().Single(button => ReferenceEquals(button.Command, model.ReadCommand));
+        Assert.Equal(refresh.MinHeight, refresh.ActualHeight);
         var previous = UiText.Current.Preference;
 
         try

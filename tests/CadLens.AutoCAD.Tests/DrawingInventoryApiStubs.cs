@@ -43,11 +43,6 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal event EventHandler<ObjectEventArgs>? ObjectAppended;
         internal event EventHandler<ObjectErasedEventArgs>? ObjectErased;
 
-        internal int InventorySubscriberCount =>
-            (ObjectModified?.GetInvocationList().Length ?? 0) +
-            (ObjectAppended?.GetInvocationList().Length ?? 0) +
-            (ObjectErased?.GetInvocationList().Length ?? 0);
-
         internal void ModifyObject() => ObjectModified?.Invoke(this, new ObjectEventArgs());
         internal void AppendObject() => ObjectAppended?.Invoke(this, new ObjectEventArgs());
         internal void EraseObject() => ObjectErased?.Invoke(this, new ObjectErasedEventArgs());

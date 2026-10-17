@@ -845,7 +845,4 @@
   <data name="Processed {0:N0} objects" xml:space="preserve">
     <value>Processed {0:N0} objects</value>
   </data>
-  <data name="The drawing has changed. Refresh to try again." xml:space="preserve">
-    <value>The drawing has changed. Refresh to try again.</value>
-  </data>
 </root>

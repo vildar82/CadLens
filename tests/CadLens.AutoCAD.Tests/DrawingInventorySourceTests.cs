@@ -552,7 +552,6 @@ public sealed class DrawingInventorySourceTests
                 Assert.Equal(
                     new DrawingNumberValue(7 * scale, DrawingUnit.Distance),
                     entity.Properties![DrawingPropertyId.Length]));
-        Assert.Equal(0, database.InventorySubscriberCount);
     }
 
     /// <summary>A single large insertion reports nested work before its top-level object completes.</summary>
@@ -581,20 +580,16 @@ public sealed class DrawingInventorySourceTests
         Assert.Equal(400, inventory.Entities.Length);
         Assert.Contains(updates, update => update is {CompletedRoots: 0, ProcessedObjects: > 0 and < 401});
         Assert.Equal(new DrawingReadProgress(1, 1, 401), updates.Last());
-        Assert.Equal(0, database.InventorySubscriberCount);
     }
 
     /// <summary>
-    /// Document/space changes and edits in the same space invalidate a partial read and release handlers.
+    /// Document and space changes invalidate a partial read before another batch is processed.
     /// </summary>
-    /// <param name="change">Context or database change to make between batches.</param>
+    /// <param name="change">Context change to make between batches.</param>
     [Theory]
     [InlineData("document")]
     [InlineData("space")]
-    [InlineData("modified")]
-    [InlineData("appended")]
-    [InlineData("erased")]
-    public async Task RejectsChangesBetweenBatches(string change)
+    public async Task RejectsContextChangesBetweenBatches(string change)
     {
         var document = CreateDocument();
         var database = document.Database;
@@ -622,9 +617,6 @@ public sealed class DrawingInventorySourceTests
                 {
                     case "document": Application.DocumentManager.MdiActiveDocument = new Document(); break;
                     case "space": database.CurrentSpaceId = database.Add(new BlockTableRecord()); break;
-                    case "modified": database.ModifyObject(); break;
-                    case "appended": database.AppendObject(); break;
-                    case "erased": database.EraseObject(); break;
                 }
             }));
 
@@ -632,12 +624,72 @@ public sealed class DrawingInventorySourceTests
 
         Assert.True(changed);
         Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await request);
-        Assert.Equal(0, database.InventorySubscriberCount);
     }
 
-    /// <summary>Cancellation between nested batches stops the read and releases database subscriptions.</summary>
+    /// <summary>
+    /// Native notifications during reading do not block automatic lens loading or repeated explicit refreshes.
+    /// </summary>
+    /// <param name="grouping">Lens grouping to load through the production provider.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers)]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    public async Task NativeNotificationsDoNotBlockInitialLoadOrRepeatedRefresh(DrawingGrouping grouping)
+    {
+        var database = CreateDocument().Database;
+        var layer = database.Objects.Values.OfType<LayerTableRecord>().Single().ObjectId;
+        var getterNotifications = 0;
+        var batchNotifications = 0;
+        var entities = Enumerable.Range(0, 400).Select(_ => database.Add(new Line
+        {
+            OwnerId = database.CurrentSpaceId,
+            LayerId = layer,
+            ReadArea = () =>
+            {
+                database.ModifyObject();
+                database.AppendObject();
+                database.EraseObject();
+                getterNotifications++;
+                return 1;
+            }
+        }));
+        SetContents(database, database.CurrentSpaceId, [.. entities]);
+        var tasks = new HostTasks();
+        var provider = new DrawingLensProvider(new AutoCadDrawingInventorySource(tasks));
+        var progress = new ReadProgress(update =>
+        {
+            if (update.ProcessedObjects is <= 0 or >= 400)
+                return;
+
+            database.ModifyObject();
+            database.AppendObject();
+            database.EraseObject();
+            batchNotifications++;
+        });
+
+        for (var read = 0; read < 3; read++)
+        {
+            var request = provider.LoadAsync(
+                grouping,
+                [],
+                null,
+                CancellationToken.None,
+                maximumObjects: read == 0 ? 10_000 : null,
+                progress: progress);
+            await tasks.Execute(request);
+            var presentation = Assert.IsType<HostResult<LensPresentation>.Success>(await request).Value;
+
+            var group = Assert.Single(presentation.Groups);
+            Assert.Equal(400, group.Objects.Length);
+            Assert.Equal(400, presentation.Inventory!.Entities.Length);
+        }
+
+        Assert.Equal(1_200, getterNotifications);
+        Assert.True(batchNotifications >= 3);
+    }
+
+    /// <summary>Cancellation between nested batches stops the read.</summary>
     [Fact]
-    public async Task CancellationBetweenBatchesReleasesSubscriptions()
+    public async Task CancellationBetweenBatchesStopsRead()
     {
         var database = CreateDocument().Database;
         var definition = database.Add(new BlockTableRecord());
@@ -657,7 +709,7 @@ public sealed class DrawingInventorySourceTests
             {
                 if (update.ProcessedObjects > 0)
                 {
-                    // ReSharper disable once AccessToDisposedClosure -- Read cleanup finishes before source disposal.
+                    // ReSharper disable once AccessToDisposedClosure -- The read finishes before source disposal.
                     cancellation.Cancel();
                 }
             }));
@@ -665,12 +717,11 @@ public sealed class DrawingInventorySourceTests
         await tasks.Execute(request);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
-        Assert.Equal(0, database.InventorySubscriberCount);
     }
 
-    /// <summary>Preparation owns its subscriptions even when the host cancels before delivering the result.</summary>
+    /// <summary>Cancellation is preserved when the host cancels before delivering the prepared result.</summary>
     [Fact]
-    public async Task CancellationBeforePreparedResultIsDeliveredReleasesSubscriptions()
+    public async Task CancellationBeforePreparedResultIsDeliveredIsPreserved()
     {
         var database = CreateDocument().Database;
         AddEntity(database);
@@ -681,7 +732,6 @@ public sealed class DrawingInventorySourceTests
         await tasks.Execute(request);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
-        Assert.Equal(0, database.InventorySubscriberCount);
     }
 
     private sealed class ReadProgress(Action<DrawingReadProgress> report) : IProgress<DrawingReadProgress>

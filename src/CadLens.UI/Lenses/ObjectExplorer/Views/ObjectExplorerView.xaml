@@ -54,6 +54,7 @@
                     <Button
                         Width="28"
                         Padding="0"
+                        VerticalAlignment="Center"
                         AutomationProperties.Name="{ui:Localize Binding={Binding RefreshLabel}}"
                         Command="{Binding ReadCommand}"
                         Content="↻"

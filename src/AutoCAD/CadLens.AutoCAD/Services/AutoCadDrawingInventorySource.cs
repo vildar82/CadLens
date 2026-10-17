@@ -31,59 +31,41 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
 
         var spaceId = document.Database.CurrentSpaceId;
         var dispatcher = Dispatcher.FromThread(Thread.CurrentThread);
-        ReadSession? session = null;
+        var prepared = await hostTasks.RunAsync(
+            () => Prepare(document, spaceId, selectedObjects, maximumObjects, includeBlockContents, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
 
-        try
+        if (prepared is HostResult<ReadSession?>.Unavailable unavailable)
+            return new HostResult<DrawingInventory>.Unavailable(unavailable.Reason);
+
+        var session = ((HostResult<ReadSession?>.Success) prepared).Value;
+
+        if (session is null)
+            return new HostResult<DrawingInventory>.Unavailable(LargeDrawingMessage);
+
+        while (true)
         {
-            // ReSharper disable once AccessToDisposedClosure -- Dispatcher cleanup waits for the native callback.
-            var prepared = await hostTasks.RunAsync(
-                () => session = Prepare(
-                    document,
-                    spaceId,
-                    selectedObjects,
-                    maximumObjects,
-                    includeBlockContents,
-                    cancellationToken),
-                cancellationToken).ConfigureAwait(false);
+            progress?.Report(session.Progress);
+            // Give the host dispatcher time to paint and accept cancellation between native callbacks.
+            if (dispatcher is null)
+                await Task.Yield();
+            else
+                await dispatcher.InvokeAsync(static () => { }, DispatcherPriority.Background, cancellationToken);
 
-            if (prepared is HostResult<ReadSession?>.Unavailable unavailable)
-                return new HostResult<DrawingInventory>.Unavailable(unavailable.Reason);
+            var batch = await hostTasks.RunAsync(() => session.ReadBatch(document, spaceId), cancellationToken)
+                .ConfigureAwait(false);
 
-            if (session is null)
+            if (batch is HostResult<bool>.Unavailable failure)
+                return new HostResult<DrawingInventory>.Unavailable(failure.Reason);
+
+            if (!((HostResult<bool>.Success) batch).Value)
                 return new HostResult<DrawingInventory>.Unavailable(LargeDrawingMessage);
 
-            while (true)
-            {
-                progress?.Report(session.Progress);
-                // Give the host dispatcher time to paint and accept cancellation between native callbacks.
-                if (dispatcher is null)
-                    await Task.Yield();
-                else
-                    await dispatcher.InvokeAsync(static () => { }, DispatcherPriority.Background, cancellationToken);
+            if (!session.IsComplete)
+                continue;
 
-                // ReSharper disable once AccessToDisposedClosure -- Each queued batch is awaited before cleanup.
-                var batch = await hostTasks.RunAsync(() => session.ReadBatch(document, spaceId), cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (batch is HostResult<bool>.Unavailable failure)
-                    return new HostResult<DrawingInventory>.Unavailable(failure.Reason);
-
-                if (!((HostResult<bool>.Success) batch).Value)
-                    return new HostResult<DrawingInventory>.Unavailable(LargeDrawingMessage);
-
-                if (!session.IsComplete)
-                    continue;
-
-                progress?.Report(session.Progress);
-                return new HostResult<DrawingInventory>.Success(session.CreateInventory());
-            }
-        }
-        finally
-        {
-            if (dispatcher is null)
-                session?.Dispose();
-            else
-                await dispatcher.InvokeAsync(() => session?.Dispose(), DispatcherPriority.Background);
+            progress?.Report(session.Progress);
+            return new HostResult<DrawingInventory>.Success(session.CreateInventory());
         }
     }
 
@@ -111,7 +93,6 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         transaction.Commit();
 
         return new ReadSession(
-            database,
             roots.Value,
             layers,
             spaceLabel,
@@ -197,11 +178,10 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
             AutoCadEntitySnapshotReader.ReadDisplayColor(color));
     }
 
-    private sealed class ReadSession : IDisposable
+    private sealed class ReadSession
     {
         private const int ObjectsPerBatch = 128;
         private const int MillisecondsPerBatch = 20;
-        private readonly Database _database;
         private readonly ImmutableArray<ObjectId> _roots;
         private readonly ImmutableArray<LayerSnapshot> _layers;
         private readonly Dictionary<ObjectId, LayerSnapshot> _layersById;
@@ -221,10 +201,8 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         private int _visitedObjects;
         private bool _checkingLimit;
         private bool _rootStarted;
-        private bool _drawingChanged;
 
         internal ReadSession(
-            Database database,
             ImmutableArray<ObjectId> roots,
             ImmutableArray<LayerSnapshot> layers,
             string spaceLabel,
@@ -233,7 +211,6 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
             bool includeBlockContents,
             CancellationToken cancellationToken)
         {
-            _database = database;
             _roots = roots;
             _layers = layers;
             _layersById = layers.ToDictionary(layer => ((LayerId) layer.Id).NativeId);
@@ -244,9 +221,6 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
             _cancellationToken = cancellationToken;
             _snapshots = new AutoCadEntitySnapshotReader(cancellationToken);
             _checkingLimit = includeBlockContents && maximumObjects is not null;
-            database.ObjectModified += OnObjectChanged;
-            database.ObjectAppended += OnObjectChanged;
-            database.ObjectErased += OnObjectErased;
         }
 
         internal bool IsComplete { get; private set; }
@@ -258,7 +232,6 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         internal bool ReadBatch(Document document, ObjectId spaceId)
         {
             ValidateContext(document, spaceId, _cancellationToken);
-            EnsureDrawingUnchanged();
             using var transaction = document.Database.TransactionManager.StartTransaction();
             var watch = Stopwatch.StartNew();
 
@@ -275,30 +248,12 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
             }
 
             _cancellationToken.ThrowIfCancellationRequested();
-            EnsureDrawingUnchanged();
             transaction.Commit();
             return true;
         }
 
         internal DrawingInventory CreateInventory() =>
             new(_spaceLabel, _layers, [.. _entities], Precision: _precision);
-
-        public void Dispose()
-        {
-            _database.ObjectModified -= OnObjectChanged;
-            _database.ObjectAppended -= OnObjectChanged;
-            _database.ObjectErased -= OnObjectErased;
-        }
-
-        private void OnObjectChanged(object? sender, ObjectEventArgs args) => _drawingChanged = true;
-
-        private void OnObjectErased(object? sender, ObjectErasedEventArgs args) => _drawingChanged = true;
-
-        private void EnsureDrawingUnchanged()
-        {
-            if (_drawingChanged)
-                throw new InvalidOperationException("The drawing has changed. Refresh to try again.");
-        }
 
         private bool MoveToNextObject(ObjectId spaceId, out TraversalFrame? frame, out ObjectId objectId)
         {
