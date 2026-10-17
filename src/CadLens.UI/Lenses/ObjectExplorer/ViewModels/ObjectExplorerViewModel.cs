@@ -32,6 +32,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private CancellationToken _activationToken;
     private string _emptyMessage = "Refresh to explore the active space.";
     private CancellationTokenSource? _pendingRequest;
+    private object? _readProgressOperation;
     private Task _operation = Task.CompletedTask;
     private ImmutableArray<LensNode> _visibleGroups = [];
     private bool _sortDescending;
@@ -130,6 +131,11 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             () => CanRun() && CanBrowseBlockContents);
         InitializeSavedFilters();
         RestorePreferences();
+        Filters =
+        [
+            .. DrawingLensProvider.GetFilters(grouping)
+                .Select(filter => new FilterOption(filter, _enabledFilters.Contains(filter.Id)))
+        ];
     }
 
     /// <summary>Whether the lens is expanded and allowed to access the drawing.</summary>
@@ -172,7 +178,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     public IAsyncRelayCommand ShowSelectedObjectsCommand { get; }
 
     /// <summary>Current operation result or explanation.</summary>
-    public string Status => _saveFailed
+    public string Status => IsReading ? ReadProgressText : _saveFailed
         ? new UiMessage(
             "{0} {1}",
             _status,
@@ -526,7 +532,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     public IRelayCommand ClearSearchCommand { get; }
 
     /// <summary>Lens options and their current inclusion state.</summary>
-    public ImmutableArray<FilterOption> Filters { get; private set; } = [];
+    public ImmutableArray<FilterOption> Filters { get; private set; }
 
     /// <summary>Enters a displayed child and updates temporary isolation.</summary>
     public IAsyncRelayCommand<LensNode> EnterCommand { get; }
@@ -579,6 +585,42 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     /// <summary>Whether a host operation is pending.</summary>
     public bool IsBusy => _pendingRequest is not null;
 
+    /// <summary>
+    /// Current drawing read progress, absent between reads.
+    /// </summary>
+    public DrawingReadProgress? ReadProgress
+    {
+        get;
+        private set
+        {
+            if (!SetProperty(ref field, value))
+                return;
+
+            OnPropertyChanged(nameof(IsReading));
+            OnPropertyChanged(nameof(IsReadProgressIndeterminate));
+            OnPropertyChanged(nameof(ReadProgressText));
+            OnPropertyChanged(nameof(Status));
+        }
+    }
+
+    /// <summary>
+    /// Whether drawing objects are being read.
+    /// </summary>
+    public bool IsReading => ReadProgress is not null;
+
+    /// <summary>
+    /// Whether preparation or one unfinished insertion has no useful completion fraction.
+    /// </summary>
+    public bool IsReadProgressIndeterminate =>
+        ReadProgress is {TotalRoots: 0} or {TotalRoots: 1, CompletedRoots: 0};
+
+    /// <summary>
+    /// Localized number of drawing objects processed, including block contents.
+    /// </summary>
+    public string ReadProgressText => new UiMessage(
+        "Processed {0:N0} objects",
+        ReadProgress?.ProcessedObjects ?? 0).ToString();
+
     /// <summary>Refreshes the active-space inventory.</summary>
     public IAsyncRelayCommand ReadCommand { get; }
 
@@ -600,6 +642,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
+        StopReadProgress();
         IsSelectedObjectsOnly = false;
         _selectedObjects = null;
         _searchText = _blockParent?.SearchText ?? _searchText;
@@ -647,6 +690,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         _disposed = true;
         IsLensActive = false;
         _pendingRequest?.Cancel();
+        StopReadProgress();
 
         if (_needsCleanup)
             _actions.ClearImmediately(hostTerminating);
@@ -802,6 +846,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         IsLensActive = false;
         // ReSharper disable once MethodHasAsyncOverload -- Cancellation must finish before replacing request ownership.
         _pendingRequest?.Cancel();
+        StopReadProgress();
         using var cleanup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _pendingRequest = cleanup;
         NotifyBusy();
@@ -953,12 +998,23 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         }
 
         _selectedObjects = selectedObjects;
-        var result = await _actions.ReadAsync(
-            _grouping,
-            _enabledFilters,
-            selectedObjects,
-            cancellationToken,
-            maximumObjects);
+        HostResult<LensPresentation> result;
+
+        try
+        {
+            result = await _actions.ReadAsync(
+                _grouping,
+                _enabledFilters,
+                selectedObjects,
+                cancellationToken,
+                maximumObjects,
+                StartReadProgress(cancellationToken));
+        }
+        finally
+        {
+            StopReadProgress();
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
 
         if (result is HostResult<LensPresentation>.Success success)
@@ -1351,6 +1407,28 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         DrawingFilterOperator.Contains => UiText.Current.Get("Contains"),
         _ => ""
     };
+
+    private Progress<DrawingReadProgress> StartReadProgress(CancellationToken cancellationToken)
+    {
+        var operation = new object();
+        _readProgressOperation = operation;
+        ReadProgress = new DrawingReadProgress(0, 0, 0);
+
+        return new Progress<DrawingReadProgress>(progress =>
+        {
+            if (_disposed || cancellationToken.IsCancellationRequested ||
+                !ReferenceEquals(_readProgressOperation, operation))
+                return;
+
+            ReadProgress = progress;
+        });
+    }
+
+    private void StopReadProgress()
+    {
+        _readProgressOperation = null;
+        ReadProgress = null;
+    }
 
     private Task ExecuteActionAsync(Func<CancellationToken, Task<UiMessage>> action)
     {

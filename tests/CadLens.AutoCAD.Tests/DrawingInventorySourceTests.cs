@@ -30,7 +30,7 @@ public sealed class DrawingInventorySourceTests
         var tasks = new HostTasks();
         var source = new AutoCadDrawingInventorySource(tasks);
         var automatic = source.ReadAsync(null, CancellationToken.None, limit);
-        tasks.Execute();
+        await tasks.Execute(automatic);
 
         if (limit < 2)
             Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await automatic);
@@ -38,11 +38,11 @@ public sealed class DrawingInventorySourceTests
             Assert.Equal(2, Assert.IsType<HostResult<DrawingInventory>.Success>(await automatic).Value.Entities.Length);
 
         var explicitRead = source.ReadAsync(null, CancellationToken.None);
-        tasks.Execute();
+        await tasks.Execute(explicitRead);
         Assert.Equal(2, Assert.IsType<HostResult<DrawingInventory>.Success>(await explicitRead).Value.Entities.Length);
 
         var selection = source.ReadAsync([new EntityId(selected)], CancellationToken.None, 0);
-        tasks.Execute();
+        await tasks.Execute(selection);
         Assert.Single(Assert.IsType<HostResult<DrawingInventory>.Success>(await selection).Value.Entities);
     }
 
@@ -81,16 +81,16 @@ public sealed class DrawingInventorySourceTests
             [new EntityId(selected), new EntityId(selected), new EntityId(erased), new EntityId(nested),
                 new EntityId(other), new EntityId(foreign), new EntityId(default)],
             CancellationToken.None);
-        tasks.Execute();
+        await tasks.Execute(request);
         var inventory = Assert.IsType<HostResult<DrawingInventory>.Success>(await request).Value;
 
         Assert.Equal(selected, Assert.IsType<EntityId>(Assert.Single(inventory.Entities).Id).NativeId);
 
         var all = source.ReadAsync(null, CancellationToken.None);
-        tasks.Execute();
+        await tasks.Execute(all);
         Assert.Equal(2, Assert.IsType<HostResult<DrawingInventory>.Success>(await all).Value.Entities.Length);
         var empty = source.ReadAsync([], CancellationToken.None);
-        tasks.Execute();
+        await tasks.Execute(empty);
         Assert.Empty(Assert.IsType<HostResult<DrawingInventory>.Success>(await empty).Value.Entities);
     }
 
@@ -110,7 +110,7 @@ public sealed class DrawingInventorySourceTests
         else
             document.Database.CurrentSpaceId = document.Database.Add(new BlockTableRecord());
 
-        tasks.Execute();
+        await tasks.Execute(request);
         Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await request);
     }
 
@@ -127,7 +127,7 @@ public sealed class DrawingInventorySourceTests
         };
         var tasks = new HostTasks();
         var read = new AutoCadDrawingInventorySource(tasks).ReadAsync([], CancellationToken.None);
-        tasks.Execute();
+        await tasks.Execute(read);
         var inventory = Assert.IsType<HostResult<DrawingInventory>.Success>(await read).Value;
         Assert.Equal(0xFF0000, Assert.Single(inventory.Layers).DisplayColor);
 
@@ -343,10 +343,10 @@ public sealed class DrawingInventorySourceTests
         AddRoot(database, new BlockReference {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition});
         var tasks = new HostTasks();
         var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(null, CancellationToken.None, 2, true);
-        tasks.Execute();
+        await tasks.Execute(request);
 
         Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await request);
-        Assert.Equal(1, measured);
+        Assert.Equal(0, measured);
         Assert.Equal(5, (await ReadInventory(true)).Entities.Length);
     }
 
@@ -375,7 +375,7 @@ public sealed class DrawingInventorySourceTests
         var tasks = new HostTasks();
         var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(null, cancellation.Token, null, true);
 
-        tasks.Execute();
+        await tasks.Execute(request);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
         Assert.Equal(1, measured);
@@ -497,6 +497,198 @@ public sealed class DrawingInventorySourceTests
         Assert.Equal(new DrawingNumberValue(4, DrawingUnit.Distance), actual.Properties[DrawingPropertyId.TextHeight]);
     }
 
+    /// <summary>
+    /// Repeated translated placements share definition enumeration and measured facts, retaining IDs.
+    /// </summary>
+    /// <param name="scale">Shared linear transform of both translated insertions.</param>
+    /// <param name="expectedCopies">Native geometry copies needed for both placements.</param>
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 1)]
+    public async Task ReusesDefinitionMembersAndMeasurementsAcrossTranslatedPlacements(double scale, int expectedCopies)
+    {
+        var database = CreateDocument().Database;
+        var definition = database.Add(new BlockTableRecord());
+        var measured = 0;
+        var copies = 0;
+        var child = database.Add(
+            new Line
+            {
+                OwnerId = definition, Length = 7, ReadArea = () => ++measured,
+                TransformedCopy = _ =>
+                {
+                    copies++;
+                    return new Line {Length = 7 * scale, ReadArea = () => ++measured};
+                }
+            });
+        SetContents(database, definition, child);
+        var first = AddRoot(
+            database,
+            new BlockReference
+            {
+                OwnerId = database.CurrentSpaceId, BlockTableRecord = definition,
+                BlockTransform = Matrix3d.Displacement(new Vector3d(10, 0, 0)) * Matrix3d.Scaling(scale, Point3d.Origin)
+            });
+        var second = AddRoot(
+            database,
+            new BlockReference
+            {
+                OwnerId = database.CurrentSpaceId, BlockTableRecord = definition,
+                BlockTransform = Matrix3d.Displacement(new Vector3d(20, 0, 0)) * Matrix3d.Scaling(scale, Point3d.Origin)
+            });
+
+        var inventory = await ReadInventory(true);
+
+        Assert.Equal(1, measured);
+        Assert.Equal(expectedCopies, copies);
+        Assert.Equal(1, ((BlockTableRecord) database.Objects[definition.Value]).EnumerationCount);
+        Assert.Equal(1, ((BlockTableRecord) database.Objects[database.CurrentSpaceId.Value]).EnumerationCount);
+        Assert.Equal(
+            [new EntityId(child, new EntityId(first)), new EntityId(child, new EntityId(second))],
+            inventory.Entities.Select(entity => entity.Id));
+        Assert.All(
+            inventory.Entities,
+            entity =>
+                Assert.Equal(
+                    new DrawingNumberValue(7 * scale, DrawingUnit.Distance),
+                    entity.Properties![DrawingPropertyId.Length]));
+        Assert.Equal(0, database.InventorySubscriberCount);
+    }
+
+    /// <summary>A single large insertion reports nested work before its top-level object completes.</summary>
+    [Fact]
+    public async Task ReportsIntermediateProgressWithinOneLargeBlock()
+    {
+        var database = CreateDocument().Database;
+        var definition = database.Add(new BlockTableRecord());
+        SetContents(
+            database,
+            definition,
+            [.. Enumerable.Range(0, 400).Select(_ => database.Add(new Line {OwnerId = definition}))]);
+        AddRoot(database, new BlockReference {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition});
+        var updates = new List<DrawingReadProgress>();
+        var tasks = new HostTasks();
+        var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(
+            null,
+            CancellationToken.None,
+            null,
+            true,
+            new ReadProgress(updates.Add));
+
+        await tasks.Execute(request);
+        var inventory = Assert.IsType<HostResult<DrawingInventory>.Success>(await request).Value;
+
+        Assert.Equal(400, inventory.Entities.Length);
+        Assert.Contains(updates, update => update is {CompletedRoots: 0, ProcessedObjects: > 0 and < 401});
+        Assert.Equal(new DrawingReadProgress(1, 1, 401), updates.Last());
+        Assert.Equal(0, database.InventorySubscriberCount);
+    }
+
+    /// <summary>
+    /// Document/space changes and edits in the same space invalidate a partial read and release handlers.
+    /// </summary>
+    /// <param name="change">Context or database change to make between batches.</param>
+    [Theory]
+    [InlineData("document")]
+    [InlineData("space")]
+    [InlineData("modified")]
+    [InlineData("appended")]
+    [InlineData("erased")]
+    public async Task RejectsChangesBetweenBatches(string change)
+    {
+        var document = CreateDocument();
+        var database = document.Database;
+        var definition = database.Add(new BlockTableRecord());
+        SetContents(
+            database,
+            definition,
+            [.. Enumerable.Range(0, 400).Select(_ => database.Add(new Line {OwnerId = definition}))]);
+        AddRoot(database, new BlockReference {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition});
+        var changed = false;
+        var tasks = new HostTasks();
+        var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(
+            null,
+            CancellationToken.None,
+            null,
+            true,
+            new ReadProgress(update =>
+            {
+                if (changed || update.ProcessedObjects == 0)
+                    return;
+
+                changed = true;
+
+                switch (change)
+                {
+                    case "document": Application.DocumentManager.MdiActiveDocument = new Document(); break;
+                    case "space": database.CurrentSpaceId = database.Add(new BlockTableRecord()); break;
+                    case "modified": database.ModifyObject(); break;
+                    case "appended": database.AppendObject(); break;
+                    case "erased": database.EraseObject(); break;
+                }
+            }));
+
+        await tasks.Execute(request);
+
+        Assert.True(changed);
+        Assert.IsType<HostResult<DrawingInventory>.Unavailable>(await request);
+        Assert.Equal(0, database.InventorySubscriberCount);
+    }
+
+    /// <summary>Cancellation between nested batches stops the read and releases database subscriptions.</summary>
+    [Fact]
+    public async Task CancellationBetweenBatchesReleasesSubscriptions()
+    {
+        var database = CreateDocument().Database;
+        var definition = database.Add(new BlockTableRecord());
+        SetContents(
+            database,
+            definition,
+            [.. Enumerable.Range(0, 400).Select(_ => database.Add(new Line {OwnerId = definition}))]);
+        AddRoot(database, new BlockReference {OwnerId = database.CurrentSpaceId, BlockTableRecord = definition});
+        using var cancellation = new CancellationTokenSource();
+        var tasks = new HostTasks();
+        var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(
+            null,
+            cancellation.Token,
+            null,
+            true,
+            new ReadProgress(update =>
+            {
+                if (update.ProcessedObjects > 0)
+                {
+                    // ReSharper disable once AccessToDisposedClosure -- Read cleanup finishes before source disposal.
+                    cancellation.Cancel();
+                }
+            }));
+
+        await tasks.Execute(request);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.Equal(0, database.InventorySubscriberCount);
+    }
+
+    /// <summary>Preparation owns its subscriptions even when the host cancels before delivering the result.</summary>
+    [Fact]
+    public async Task CancellationBeforePreparedResultIsDeliveredReleasesSubscriptions()
+    {
+        var database = CreateDocument().Database;
+        AddEntity(database);
+        using var cancellation = new CancellationTokenSource();
+        var tasks = new HostTasks {BeforeCompletion = cancellation.Cancel};
+        var request = new AutoCadDrawingInventorySource(tasks).ReadAsync(null, cancellation.Token);
+
+        await tasks.Execute(request);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.Equal(0, database.InventorySubscriberCount);
+    }
+
+    private sealed class ReadProgress(Action<DrawingReadProgress> report) : IProgress<DrawingReadProgress>
+    {
+        public void Report(DrawingReadProgress value) => report(value);
+    }
+
     private static async Task<DrawingInventory> ReadInventory(
         bool includeBlockContents,
         ImmutableArray<IPlacedObjectId>? selection = null,
@@ -508,7 +700,7 @@ public sealed class DrawingInventorySourceTests
             CancellationToken.None,
             maximumObjects,
             includeBlockContents);
-        tasks.Execute();
+        await tasks.Execute(read);
 
         return Assert.IsType<HostResult<DrawingInventory>.Success>(await read).Value;
     }
@@ -563,16 +755,20 @@ public sealed class DrawingInventorySourceTests
 
     private sealed class HostTasks : IHostTaskService
     {
-        private Action? _pending;
+        private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _pending = new();
+        internal Action? BeforeCompletion { get; init; }
 
         public Task<HostResult<T>> RunAsync<T>(Func<T> action, CancellationToken cancellationToken)
         {
             var completion = new TaskCompletionSource<HostResult<T>>();
-            _pending = () =>
+            _pending.Enqueue(() =>
             {
                 try
                 {
-                    completion.SetResult(new HostResult<T>.Success(action()));
+                    var value = action();
+                    BeforeCompletion?.Invoke();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    completion.SetResult(new HostResult<T>.Success(value));
                 }
                 catch (OperationCanceledException)
                 {
@@ -586,12 +782,27 @@ public sealed class DrawingInventorySourceTests
                 {
                     completion.SetResult(new HostResult<T>.Unavailable(exception.Message));
                 }
-            };
+            });
 
             return completion.Task;
         }
 
         public Task StopAsync() => Task.CompletedTask;
-        internal void Execute() => _pending!();
+
+        internal async Task Execute(Task request)
+        {
+            var timeout = DateTime.UtcNow.AddSeconds(10);
+
+            while (!request.IsCompleted)
+            {
+                if (_pending.TryDequeue(out var next))
+                    next();
+                else
+                    await Task.Delay(1);
+
+                if (DateTime.UtcNow > timeout)
+                    throw new TimeoutException("The inventory did not finish its queued batches.");
+            }
+        }
     }
 }

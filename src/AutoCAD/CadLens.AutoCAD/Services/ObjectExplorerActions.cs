@@ -148,14 +148,16 @@ internal sealed class ObjectExplorerActions(
         IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken,
-        int? maximumObjects = null) =>
-        lens.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
+        int? maximumObjects = null,
+        IProgress<DrawingReadProgress>? progress = null) =>
+        lens.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects, progress);
 
     public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
         IPlacedObjectId block,
         IReadOnlyCollection<string> enabledFilters,
-        CancellationToken cancellationToken) =>
-        lens.LoadBlockContentsAsync(block, enabledFilters, cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<DrawingReadProgress>? progress = null) =>
+        lens.LoadBlockContentsAsync(block, enabledFilters, cancellationToken, progress);
 
     public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
         isolation.ClearAsync(cancellationToken);

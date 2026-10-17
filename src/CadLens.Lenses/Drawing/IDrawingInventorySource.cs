@@ -13,9 +13,11 @@ public interface IDrawingInventorySource
     /// Automatic traversal limit; null allows a full read. Selected scope ignores this limit.
     /// </param>
     /// <param name="includeBlockContents">Whether local blocks are replaced by their recursive placed contents.</param>
+    /// <param name="progress">Optional progress through root objects and their placed contents.</param>
     Task<HostResult<DrawingInventory>> ReadAsync(
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken,
         int? maximumObjects = null,
-        bool includeBlockContents = false);
+        bool includeBlockContents = false,
+        IProgress<DrawingReadProgress>? progress = null);
 }

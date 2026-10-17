@@ -371,7 +371,8 @@ public sealed class BlockContentsNavigationTests
             IReadOnlyCollection<string> enabledFilters,
             ImmutableArray<IPlacedObjectId>? selectedObjects,
             CancellationToken cancellationToken,
-            int? maximumObjects = null)
+            int? maximumObjects = null,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             DrawingReads++;
 
@@ -383,7 +384,8 @@ public sealed class BlockContentsNavigationTests
         public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
             IPlacedObjectId block,
             IReadOnlyCollection<string> enabledFilters,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<DrawingReadProgress>? progress = null)
         {
             BlockReads.Add(block);
             BlockReadToken = cancellationToken;

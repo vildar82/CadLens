@@ -39,13 +39,21 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             IconRole.Group)
     ];
 
+    /// <summary>
+    /// Returns the inclusion options available before any drawing data is read.
+    /// </summary>
+    /// <param name="grouping">Root organization of the lens.</param>
+    public static ImmutableArray<BooleanFilter> GetFilters(DrawingGrouping grouping) =>
+        grouping == DrawingGrouping.Layers ? LayerFilters : Filters;
+
     /// <inheritdoc />
     public async Task<HostResult<LensPresentation>> LoadAsync(
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken,
-        int? maximumObjects = null)
+        int? maximumObjects = null,
+        IProgress<DrawingReadProgress>? progress = null)
     {
         // Capture options before awaiting: later UI changes belong to the next request.
         var includeFrozen = enabledFilters.Contains(IncludeFrozen);
@@ -55,7 +63,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             selectedObjects,
             cancellationToken,
             maximumObjects,
-            showBlockContents).ConfigureAwait(false);
+            showBlockContents,
+            progress).ConfigureAwait(false);
 
         return result.Bind(snapshot => new HostResult<LensPresentation>.Success(
             Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken)));
@@ -65,11 +74,12 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     public async Task<HostResult<LensPresentation>> LoadBlockContentsAsync(
         IPlacedObjectId block,
         IReadOnlyCollection<string> enabledFilters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<DrawingReadProgress>? progress = null)
     {
         var includeFrozen = enabledFilters.Contains(IncludeFrozen);
         var includeOff = enabledFilters.Contains(IncludeOff);
-        var result = await source.ReadAsync([block], cancellationToken, includeBlockContents: true)
+        var result = await source.ReadAsync([block], cancellationToken, includeBlockContents: true, progress: progress)
             .ConfigureAwait(false);
 
         return result.Bind<DrawingInventory, LensPresentation>(snapshot =>
@@ -152,7 +162,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             isLayers ? "Layers" : "Object Types",
             snapshot.SpaceLabel,
             groups,
-            isLayers ? LayerFilters : Filters,
+            GetFilters(grouping),
             isLayers
                 ? "No layers contain included objects in the current space."
                 : "No types contain included objects in the current space.",

@@ -301,6 +301,10 @@ namespace Autodesk.AutoCAD.Geometry
 
     internal readonly record struct Matrix3d(double Scale, double X = 0, double Y = 0, double Z = 0)
     {
+        internal Matrix3d(double[] values) : this(values[0], values[3], values[7], values[11]) { }
+
+        internal double[] ToArray() => [Scale, 0, 0, X, 0, Scale, 0, Y, 0, 0, Scale, Z, 0, 0, 0, 1];
+
         internal static Matrix3d Identity => new(1);
 
         internal static Matrix3d Scaling(double scale, Point3d center) =>

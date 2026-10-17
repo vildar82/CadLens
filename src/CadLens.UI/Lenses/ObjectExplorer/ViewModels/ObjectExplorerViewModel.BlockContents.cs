@@ -36,7 +36,21 @@ public sealed partial class ObjectExplorerViewModel
         if (cleared is not HostResult<bool>.Success {Value: true})
             return DescribeSelection(cleared, true);
 
-        var result = await _actions.ReadBlockContentsAsync(block.Objects[0], _enabledFilters, cancellationToken);
+        HostResult<LensPresentation> result;
+
+        try
+        {
+            result = await _actions.ReadBlockContentsAsync(
+                block.Objects[0],
+                _enabledFilters,
+                cancellationToken,
+                StartReadProgress(cancellationToken));
+        }
+        finally
+        {
+            StopReadProgress();
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
 
         if (result is not HostResult<LensPresentation>.Success success)

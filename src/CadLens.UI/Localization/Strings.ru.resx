@@ -842,4 +842,10 @@
   <data name="Block contents are no longer available. Refresh to try again." xml:space="preserve">
     <value>Объекты внутри блока больше недоступны. Обновите данные и попробуйте снова.</value>
   </data>
+  <data name="Processed {0:N0} objects" xml:space="preserve">
+    <value>Обработано объектов: {0:N0}</value>
+  </data>
+  <data name="The drawing has changed. Refresh to try again." xml:space="preserve">
+    <value>Чертёж изменился. Обновите данные и попробуйте снова.</value>
+  </data>
 </root>
