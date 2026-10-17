@@ -8,6 +8,8 @@ public sealed partial class ObjectExplorerViewModel
 {
     private BlockParent? _blockParent;
 
+    private LensNode? IsolationTarget => Current ?? _blockParent?.Navigation.Current;
+
     /// <summary>
     /// Whether the explorer is showing the recursive contents of one block occurrence.
     /// </summary>
@@ -28,11 +30,11 @@ public sealed partial class ObjectExplorerViewModel
     private async Task<UiMessage> ReadBlockContentsAsync(bool entering, CancellationToken cancellationToken)
     {
         var block = entering ? Current! : _blockParent!.Navigation.Current!;
-        var cleared = await _actions.ClearAsync(cancellationToken);
+        var cleared = await _actions.SelectAsync([], cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (cleared is not HostResult<bool>.Success {Value: true})
-            return DescribeCleanup(cleared);
+            return DescribeSelection(cleared, true);
 
         var result = await _actions.ReadBlockContentsAsync(block.Objects[0], _enabledFilters, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -49,6 +51,23 @@ public sealed partial class ObjectExplorerViewModel
         OnPropertyChanged(nameof(SearchText));
 
         return await ApplyPresentationAsync(success.Value, cancellationToken);
+    }
+
+    private async Task<UiMessage> IsolateCurrentAsync(CancellationToken cancellationToken) =>
+        await _actions.IsolateObjectsAsync(IsolationTarget!.Objects, cancellationToken);
+
+    private async Task<UiMessage> ApplyRootEffectsAsync(CancellationToken cancellationToken)
+    {
+        if (!IsAutoIsolation || IsolationTarget is null)
+            return await ClearEffectsAsync(cancellationToken);
+
+        var cleared = await _actions.SelectAsync([], cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (cleared is not HostResult<bool>.Success {Value: true})
+            return DescribeSelection(cleared, true);
+
+        return await IsolateCurrentAsync(cancellationToken);
     }
 
     private void GoBack()

@@ -71,8 +71,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             () => ExecuteActionAsync(token => ChangeScopeAsync(true, token)),
             CanRun);
         IsolateCommand = new AsyncRelayCommand(
-            () => ExecuteActionAsync(async token => await _actions.IsolateObjectsAsync(Current!.Objects, token)),
-            () => CanRun() && Current is {Objects.IsEmpty: false});
+            () => ExecuteActionAsync(IsolateCurrentAsync),
+            () => CanRun() && IsolationTarget is {Objects.IsEmpty: false});
         ResetCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ResetAsync), CanRun);
         SelectCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(SelectCurrentAsync),
@@ -1000,6 +1000,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         if (Current is not null)
             return await ApplySelectionAndIsolationAsync(cancellationToken);
 
+        if (IsAutoIsolation && IsolationTarget is not null)
+            return await ApplyRootEffectsAsync(cancellationToken);
+
         return HasGroups
             ? _grouping == DrawingGrouping.Layers
                 ? "Choose a layer. Auto modes apply while browsing."
@@ -1048,8 +1051,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         IsAutoIsolation = !IsAutoIsolation;
         SavePreferences();
 
-        if (IsAutoIsolation && Current is {Objects.IsEmpty: false})
-            return await _actions.IsolateObjectsAsync(Current.Objects, cancellationToken);
+        if (IsAutoIsolation && IsolationTarget is {Objects.IsEmpty: false})
+            return await IsolateCurrentAsync(cancellationToken);
 
         return await ClearIsolationAsync(cancellationToken);
     }
@@ -1121,7 +1124,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     {
         navigate();
         if (Current is null)
-            return await ClearEffectsAsync(token);
+            return await ApplyRootEffectsAsync(token);
 
         var message = await ApplySelectionAndIsolationAsync(token);
 

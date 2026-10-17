@@ -126,7 +126,9 @@ clipped blocks, and block arrays remain whole insertions. Object Types keeps its
 In Object Types, open a supported block's details and choose **Browse block contents** above its properties.
 Objects from this block and its nested blocks appear grouped by type. Back returns to the same block
 and list position; the block breadcrumb also returns to its details. Refresh rereads that block's contents.
-The All types breadcrumb or All objects control returns to the drawing scope.
+The All types breadcrumb or All objects control returns to the drawing scope. Opening or refreshing
+contents keeps existing block isolation. With Auto Isolation enabled, choosing an inner type or object
+narrows isolation, and returning to the contents list isolates the whole block again. Reset clears it.
 
 Changing the Layers switch rereads the captured scope. With Selected objects, it expands the captured block
 insertions without asking for a new selection. Unsupported transformed measurements display a dash.

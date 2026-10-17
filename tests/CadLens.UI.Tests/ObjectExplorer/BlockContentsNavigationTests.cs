@@ -103,28 +103,120 @@ public sealed class BlockContentsNavigationTests
     }
 
     /// <summary>
-    /// A failed read or cleanup keeps the current parent object and its navigation position.
+    /// A failed read or selection cleanup keeps the parent object, position, and existing isolation.
     /// </summary>
-    /// <param name="cleanupFails">Whether cleanup stops the operation before reading the block.</param>
+    /// <param name="selectionFails">Whether selection cleanup stops the read.</param>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task UnavailableContentsOrCleanupRetainsParent(bool cleanupFails)
+    public async Task UnavailableContentsOrSelectionFailureRetainsParent(bool selectionFails)
     {
         var actions = new Actions();
         using var model = await OpenBlock(actions);
         var parent = model.Current;
         var position = model.ObjectPosition;
-        actions.CleanupFails = cleanupFails;
-        actions.ReadUnavailable = !cleanupFails;
+        await model.IsolateCommand.ExecuteAsync(null);
+        actions.SelectionFails = selectionFails;
+        actions.ReadUnavailable = !selectionFails;
 
         await model.BrowseBlockContentsCommand.ExecuteAsync(null);
 
         Assert.False(model.IsBrowsingBlockContents);
         Assert.Same(parent, model.Current);
         Assert.Equal(position, model.ObjectPosition);
-        Assert.Equal(cleanupFails ? 0 : 1, actions.BlockReads.Count);
+        Assert.Equal(selectionFails ? 0 : 1, actions.BlockReads.Count);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
         Assert.True(model.BrowseBlockContentsCommand.CanExecute(null));
+    }
+
+    /// <summary>
+    /// Auto isolation retains the parent during reads, narrows for children, and cannot revive after Reset.
+    /// </summary>
+    [Fact]
+    public async Task AutoIsolationFollowsContentsAndResetClearsIt()
+    {
+        var actions = new Actions();
+        using var model = await OpenBlock(actions);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        await model.BrowseBlockContentsCommand.ExecuteAsync(null);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        actions.Pending = new TaskCompletionSource<HostResult<LensPresentation>>();
+
+        var refresh = model.ReadCommand.ExecuteAsync(null);
+
+        Assert.True(model.IsBusy);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        actions.Pending.SetResult(new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
+        await refresh;
+        Assert.True(model.IsBrowsingBlockContents);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        actions.Pending = null;
+        await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+        Assert.Equal<IPlacedObjectId>([Actions.Child], actions.Isolated);
+        await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+        Assert.Equal<IPlacedObjectId>([Actions.Child], actions.Isolated);
+        await model.BackCommand.ExecuteAsync(null);
+        await model.BackCommand.ExecuteAsync(null);
+        Assert.Null(model.Current);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+
+        await model.ResetCommand.ExecuteAsync(null);
+        Assert.Empty(actions.Isolated);
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.Empty(actions.Isolated);
+        await model.BackCommand.ExecuteAsync(null);
+
+        Assert.False(model.IsAutoIsolation);
+        Assert.False(model.IsBrowsingBlockContents);
+        Assert.Empty(actions.Isolated);
+        Assert.Equal(Actions.Block, Assert.Single(model.Current!.Objects));
+    }
+
+    /// <summary>
+    /// Manual parent isolation remains active while entering and refreshing contents with Auto isolation off.
+    /// </summary>
+    [Fact]
+    public async Task ManualIsolationSurvivesContentsEntryAndRootRefresh()
+    {
+        var actions = new Actions();
+        using var model = await OpenBlock(actions);
+        await model.IsolateCommand.ExecuteAsync(null);
+
+        await model.BrowseBlockContentsCommand.ExecuteAsync(null);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        await model.ReadCommand.ExecuteAsync(null);
+
+        Assert.False(model.IsAutoIsolation);
+        Assert.True(model.IsBrowsingBlockContents);
+        Assert.Null(model.Current);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        Assert.True(model.IsolateCommand.CanExecute(null));
+        await model.IsolateCommand.ExecuteAsync(null);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+    }
+
+    /// <summary>
+    /// Auto isolation at the contents root targets its parent block, and turning it off clears that target.
+    /// </summary>
+    [Fact]
+    public async Task AutoIsolationToggleAtContentsRootAppliesAndClearsParent()
+    {
+        var actions = new Actions();
+        using var model = await OpenBlock(actions);
+        await model.BrowseBlockContentsCommand.ExecuteAsync(null);
+
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+
+        Assert.True(model.IsAutoIsolation);
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
+        await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
+        Assert.Empty(actions.Isolated);
+        await model.ReadCommand.ExecuteAsync(null);
+        Assert.False(model.IsAutoIsolation);
+        Assert.Empty(actions.Isolated);
     }
 
     /// <summary>
@@ -262,7 +354,7 @@ public sealed class BlockContentsNavigationTests
         internal List<IPlacedObjectId> BlockReads { get; } = [];
         internal int DrawingReads { get; private set; }
         internal int SelectionRequests { get; private set; }
-        internal bool CleanupFails { get; set; }
+        internal bool SelectionFails { get; set; }
         internal bool ReadUnavailable { get; set; }
         internal CancellationToken BlockReadToken { get; private set; }
         internal TaskCompletionSource<HostResult<LensPresentation>>? Pending { get; set; }
@@ -312,7 +404,12 @@ public sealed class BlockContentsNavigationTests
         }
 
         /// <inheritdoc />
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) => Success(!CleanupFails);
+        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        {
+            ClearImmediately(false);
+
+            return Success();
+        }
 
         /// <inheritdoc />
         public void ClearImmediately(bool hostTerminating)
@@ -326,6 +423,9 @@ public sealed class BlockContentsNavigationTests
             ImmutableArray<IPlacedObjectId> objects,
             CancellationToken cancellationToken)
         {
+            if (SelectionFails)
+                return Success(false);
+
             Selected = objects;
 
             return Success();
