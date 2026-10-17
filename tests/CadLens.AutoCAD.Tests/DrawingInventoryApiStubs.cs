@@ -1,7 +1,7 @@
 using System.Collections;
 using Autodesk.AutoCAD.DatabaseServices;
 
-// ReSharper disable MemberCanBeMadeStatic.Global -- Native API doubles must preserve instance member signatures.
+// ReSharper disable MemberCanBeMadeStatic.Global, MemberCanBeMadeStatic.Local -- Native instance APIs.
 
 namespace Autodesk.AutoCAD.EditorInput
 {
@@ -37,20 +37,25 @@ namespace Autodesk.AutoCAD.DatabaseServices
     internal sealed class LayerTableRecord : DBObject
     {
         internal Colors.Color Color { get; init; } = new();
-        internal string Name => "Layer";
-        internal bool IsOff => false;
-        internal bool IsFrozen => false;
-        internal bool IsLocked => false;
+        internal ObjectId LinetypeObjectId { get; init; }
+        internal LineWeight LineWeight { get; init; } = LineWeight.ByLineWeightDefault;
+        internal Colors.Transparency Transparency { get; init; } = new();
+        internal string Name { get; init; } = "Layer";
+        internal bool IsOff { get; init; }
+        internal bool IsFrozen { get; init; }
+        internal bool IsLocked { get; init; }
     }
 
     internal sealed class Layout : DBObject
     {
-        internal string LayoutName => "Model";
+        internal string LayoutName { get; init; } = "Model";
     }
 
     internal sealed class Viewport : Entity
     {
-        internal IEnumerable GetFrozenLayers() => Array.Empty<ObjectId>();
+        internal bool Locked { get; init; }
+        internal ObjectId[] FrozenLayers { get; init; } = [];
+        internal IEnumerable GetFrozenLayers() => FrozenLayers;
     }
 }
 
@@ -58,10 +63,10 @@ namespace CadLens.Common.AutoCAD
 {
     internal static class InventoryExtensions
     {
-        internal static BlockTableRecord GetActiveSpace(this Database database) =>
-            database.CurrentSpaceId.GetObject<BlockTableRecord>()!;
-
-        internal static void SelectObjects(this Autodesk.AutoCAD.ApplicationServices.Editor editor, ObjectId[] objects) =>
+        internal static int SelectObjects(this Autodesk.AutoCAD.ApplicationServices.Editor editor, ObjectId[] objects)
+        {
             editor.Selection = objects;
+            return objects.Length;
+        }
     }
 }

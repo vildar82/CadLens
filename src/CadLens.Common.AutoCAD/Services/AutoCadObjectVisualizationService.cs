@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.ApplicationServices;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace CadLens.Common.AutoCAD;
@@ -19,7 +20,7 @@ public sealed class AutoCadObjectVisualizationService(
         if (document is null)
             return new HostResult<bool>.Unavailable("No active drawing.");
 
-        if (!TryGetNativeIds(objects, out var targets))
+        if (!TryGetEntityIds(objects, out var targets))
             return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
 
         var space = document.Database.CurrentSpaceId;
@@ -33,7 +34,20 @@ public sealed class AutoCadObjectVisualizationService(
                     viewportNumber != Convert.ToInt32(Application.GetSystemVariable("CVPORT")))
                     return new HostResult<bool>.Unavailable("The drawing context changed. Refresh before selecting.");
 
-                var count = document.Editor.SelectObjects(targets);
+                var roots = new List<ObjectId>();
+
+                using (var transaction = document.Database.TransactionManager.StartTransaction())
+                {
+                    roots.AddRange(
+                        targets
+                            .Where(target => target.Container is null ||
+                                             EntityOccurrence.Resolve(document.Database, target) is not null)
+                            .Select(target => target.RootId));
+
+                    transaction.Commit();
+                }
+
+                var count = document.Editor.SelectObjects([.. roots.Distinct()]);
 
                 if (count == 0 && targets.Length > 0)
                     return new HostResult<bool>.Unavailable(
@@ -51,7 +65,7 @@ public sealed class AutoCadObjectVisualizationService(
         ImmutableArray<IPlacedObjectId> objects,
         CancellationToken cancellationToken)
     {
-        if (!TryGetNativeIds(objects, out var targets))
+        if (!TryGetEntityIds(objects, out var targets))
             return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
 
         var result = await isolation.IsolateAsync(targets, cancellationToken);
@@ -69,7 +83,7 @@ public sealed class AutoCadObjectVisualizationService(
         if (document is null || objects.IsDefaultOrEmpty)
             return new HostResult<bool>.Unavailable("No active drawing or Focus targets.");
 
-        if (!TryGetNativeIds(objects, out var targets))
+        if (!TryGetEntityIds(objects, out var targets))
             return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
 
         var space = document.Database.CurrentSpaceId;
@@ -83,16 +97,17 @@ public sealed class AutoCadObjectVisualizationService(
                     viewportNumber != Convert.ToInt32(Application.GetSystemVariable("CVPORT")))
                     return new HostResult<bool>.Unavailable("The drawing context changed. Refresh before using Focus.");
 
-                return Focus(document.Database, targets, viewportNumber);
+                return Focus(document, targets, viewportNumber);
             },
             cancellationToken);
 
         return result.Bind(value => value);
     }
 
-    private static HostResult<bool> Focus(Database database, ObjectId[] objects, int viewportNumber)
+    private static HostResult<bool> Focus(Document document, EntityId[] objects, int viewportNumber)
     {
-        var editor = Application.DocumentManager.MdiActiveDocument.Editor;
+        var database = document.Database;
+        var editor = document.Editor;
         Extents3d? bounds;
 
         using (var transaction = database.TransactionManager.StartTransaction())
@@ -106,7 +121,18 @@ public sealed class AutoCadObjectVisualizationService(
                         "Focus is unavailable in a locked or unavailable layout viewport.");
             }
 
-            bounds = database.ReadBounds(objects);
+            bounds = database.ReadBounds(objects.Where(id => id.Container is null).Select(id => id.NativeId));
+
+            foreach (var target in objects.Where(id => id.Container is not null).Distinct())
+            {
+                if (EntityOccurrence.Resolve(database, target)?.ReadBounds() is not { } extents)
+                    continue;
+
+                var combined = bounds ?? extents;
+                combined.AddExtents(extents);
+                bounds = combined;
+            }
+
             transaction.Commit();
         }
 
@@ -126,22 +152,22 @@ public sealed class AutoCadObjectVisualizationService(
         return new HostResult<bool>.Success(true);
     }
 
-    private static bool TryGetNativeIds(ImmutableArray<IPlacedObjectId> objects, out ObjectId[] nativeIds)
+    private static bool TryGetEntityIds(ImmutableArray<IPlacedObjectId> objects, out EntityId[] entityIds)
     {
-        var ids = new List<ObjectId>(objects.Length);
+        var ids = new List<EntityId>(objects.Length);
 
         foreach (var target in objects)
         {
             if (target is not EntityId entity)
             {
-                nativeIds = [];
+                entityIds = [];
                 return false;
             }
 
-            ids.Add(entity.NativeId);
+            ids.Add(entity);
         }
 
-        nativeIds = [.. ids];
+        entityIds = [.. ids];
         return true;
     }
 }

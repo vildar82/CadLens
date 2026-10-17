@@ -194,6 +194,12 @@
   <data name="Include globally and viewport-frozen layers without revealing them." xml:space="preserve">
     <value>Включить слои, замороженные глобально или на видовом экране, не меняя их видимость.</value>
   </data>
+  <data name="Show block contents" xml:space="preserve">
+    <value>Показывать содержимое блоков</value>
+  </data>
+  <data name="Show objects inside local blocks, including nested blocks, without changing the drawing." xml:space="preserve">
+    <value>Показывать объекты внутри локальных блоков, включая вложенные блоки, без изменения чертежа.</value>
+  </data>
   <data name="Include off" xml:space="preserve">
     <value>Отключённые</value>
   </data>
@@ -793,5 +799,32 @@
   </data>
   <data name="Large drawing. Use Refresh to load all objects, or choose Selected objects." xml:space="preserve">
     <value>Большой чертёж. Нажмите «Обновить», чтобы загрузить все объекты, или выберите «Выбранные объекты».</value>
+  </data>
+  <data name="Isolation inside clipped blocks is unavailable." xml:space="preserve">
+    <value>Изоляция внутри подрезанных блоков недоступна.</value>
+  </data>
+  <data name="The nested object has unsupported graphics." xml:space="preserve">
+    <value>Геометрия вложенного объекта не поддерживается.</value>
+  </data>
+  <data name="The nested object has no supported graphics." xml:space="preserve">
+    <value>У вложенного объекта нет поддерживаемой геометрии.</value>
+  </data>
+  <data name="Isolation inside blocks does not support this object type." xml:space="preserve">
+    <value>Изоляция внутри блоков не поддерживает этот тип объекта.</value>
+  </data>
+  <data name="The nested object graphics could not be displayed." xml:space="preserve">
+    <value>Не удалось показать геометрию вложенного объекта.</value>
+  </data>
+  <data name="The nested object graphics could not be removed." xml:space="preserve">
+    <value>Не удалось удалить временную геометрию вложенного объекта.</value>
+  </data>
+  <data name="Temporary isolation cleanup failed." xml:space="preserve">
+    <value>Не удалось полностью очистить временную изоляцию.</value>
+  </data>
+  <data name="The selection contains no valid active-space occurrences." xml:space="preserve">
+    <value>В наборе нет доступных вхождений текущего пространства.</value>
+  </data>
+  <data name="Isolation inside blocks is available only in model space." xml:space="preserve">
+    <value>Изоляция внутри блоков доступна только в пространстве модели.</value>
   </data>
 </root>

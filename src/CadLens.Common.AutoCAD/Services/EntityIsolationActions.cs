@@ -1,4 +1,5 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.ApplicationServices;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace CadLens.Common.AutoCAD;
@@ -11,7 +12,7 @@ public sealed class EntityIsolationActions(
     IEntityIsolationService graphics) : IEntityIsolationActions
 {
     /// <inheritdoc />
-    public async Task<HostResult<int>> IsolateAsync(ObjectId[] objects, CancellationToken cancellationToken)
+    public async Task<HostResult<int>> IsolateAsync(EntityId[] objects, CancellationToken cancellationToken)
     {
         var document = Application.DocumentManager.MdiActiveDocument;
 
@@ -30,7 +31,7 @@ public sealed class EntityIsolationActions(
                     viewportNumber != Convert.ToInt32(Application.GetSystemVariable("CVPORT")))
                     return new HostResult<int>.Unavailable("The drawing context changed. Refresh before isolating.");
 
-                return IsolateSelection(objects);
+                return IsolateSelection(document, objects);
             },
             cancellationToken);
 
@@ -48,10 +49,8 @@ public sealed class EntityIsolationActions(
             },
             cancellationToken);
 
-    private HostResult<int> IsolateSelection(ObjectId[] selectedIds)
+    private HostResult<int> IsolateSelection(Document document, EntityId[] selectedIds)
     {
-        var document = Application.DocumentManager.MdiActiveDocument;
-
         if (selectedIds.Length == 0)
         {
             graphics.Clear();
@@ -66,10 +65,21 @@ public sealed class EntityIsolationActions(
             transaction.Commit();
         }
 
-        var targets = selectedIds
-            .Intersect(inventory)
+        if (selectedIds.Any(id => id.Container is not null))
+        {
+            var count = graphics.ApplyOccurrences(document.Database, selectedIds, inventory);
+
+            return count > 0
+                ? new HostResult<int>.Success(count)
+                : new HostResult<int>.Unavailable("The selection contains no valid active-space occurrences.");
+        }
+
+        ObjectId[] targets =
+        [
+            .. selectedIds.Select(id => id.NativeId)
+                .Intersect(inventory)
             .Where(id => id is {IsValid: true, IsErased: false})
-            .ToArray();
+        ];
 
         if (targets.Length == 0)
         {

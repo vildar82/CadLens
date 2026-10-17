@@ -21,6 +21,7 @@ public sealed class LanguageCollection;
 
 /// <summary>Checks persisted choices, resource fallback, and live localized drawing views.</summary>
 [Collection("Language changes")]
+// ReSharper disable once PartialTypeWithSinglePart -- Modern targets generate the regex partial member.
 public sealed partial class LanguageTests : IDisposable
 {
     private readonly SettingsFile _file = new();
@@ -285,6 +286,7 @@ public sealed partial class LanguageTests : IDisposable
 
     private string PreferencePath => Path.Combine(_file.Directory, "language.json");
 
+    // ReSharper disable once RedundantEnumerableCastCall -- MatchCollection is non-generic on .NET Framework.
     private static string[] FormatArguments(string text) =>
         [.. FormatArgumentPattern().Matches(text).Cast<Match>().Select(match => match.Value).OrderBy(item => item)];
 
@@ -336,7 +338,11 @@ public sealed partial class LanguageTests : IDisposable
 
     private sealed class Source(string spaceLabel) : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null)
+        public Task<HostResult<DrawingInventory>> ReadAsync(
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            bool includeBlockContents = false)
         {
             var layer = new LayerId("1");
             var inventory = new DrawingInventory(

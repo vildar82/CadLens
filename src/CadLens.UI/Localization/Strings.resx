@@ -194,6 +194,12 @@
   <data name="Include globally and viewport-frozen layers without revealing them." xml:space="preserve">
     <value>Include globally and viewport-frozen layers without revealing them.</value>
   </data>
+  <data name="Show block contents" xml:space="preserve">
+    <value>Show block contents</value>
+  </data>
+  <data name="Show objects inside local blocks, including nested blocks, without changing the drawing." xml:space="preserve">
+    <value>Show objects inside local blocks, including nested blocks, without changing the drawing.</value>
+  </data>
   <data name="Include off" xml:space="preserve">
     <value>Include off</value>
   </data>
@@ -793,5 +799,32 @@
   </data>
   <data name="Large drawing. Use Refresh to load all objects, or choose Selected objects." xml:space="preserve">
     <value>Large drawing. Use Refresh to load all objects, or choose Selected objects.</value>
+  </data>
+  <data name="Isolation inside clipped blocks is unavailable." xml:space="preserve">
+    <value>Isolation inside clipped blocks is unavailable.</value>
+  </data>
+  <data name="The nested object has unsupported graphics." xml:space="preserve">
+    <value>The nested object has unsupported graphics.</value>
+  </data>
+  <data name="The nested object has no supported graphics." xml:space="preserve">
+    <value>The nested object has no supported graphics.</value>
+  </data>
+  <data name="Isolation inside blocks does not support this object type." xml:space="preserve">
+    <value>Isolation inside blocks does not support this object type.</value>
+  </data>
+  <data name="The nested object graphics could not be displayed." xml:space="preserve">
+    <value>The nested object graphics could not be displayed.</value>
+  </data>
+  <data name="The nested object graphics could not be removed." xml:space="preserve">
+    <value>The nested object graphics could not be removed.</value>
+  </data>
+  <data name="Temporary isolation cleanup failed." xml:space="preserve">
+    <value>Temporary isolation cleanup failed.</value>
+  </data>
+  <data name="The selection contains no valid active-space occurrences." xml:space="preserve">
+    <value>The selection contains no valid active-space occurrences.</value>
+  </data>
+  <data name="Isolation inside blocks is available only in model space." xml:space="preserve">
+    <value>Isolation inside blocks is available only in model space.</value>
   </data>
 </root>

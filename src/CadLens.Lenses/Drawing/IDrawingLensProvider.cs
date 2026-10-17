@@ -11,7 +11,9 @@ public interface IDrawingLensProvider
     /// <param name="enabledFilters">Enabled filter identities.</param>
     /// <param name="selectedObjects">Captured selection, or null for all direct current-space objects.</param>
     /// <param name="cancellationToken">Cancellation of managed work.</param>
-    /// <param name="maximumObjects">Maximum direct-space objects for automatic loading; null allows an explicit full read. Selected scope ignores the limit.</param>
+    /// <param name="maximumObjects">
+    /// Automatic traversal limit; null allows a full read. Selected scope ignores this limit.
+    /// </param>
     Task<HostResult<LensPresentation>> LoadAsync(
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,

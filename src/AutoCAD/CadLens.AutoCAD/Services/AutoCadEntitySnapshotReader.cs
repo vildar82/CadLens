@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using CadLens.Lenses;
 using CadLens.Common;
@@ -33,6 +34,54 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             properties.ToImmutableDictionary(),
             metric,
             displayColor);
+    }
+
+    internal EntitySnapshot ReadOccurrence(Entity entity, EntityId id, ObjectId layerId, Matrix3d transform)
+    {
+        var snapshot = transform.Equals(Matrix3d.Identity) ? Read(entity) : ReadTransformed(entity, transform);
+
+        return snapshot with {Id = id, LayerId = new LayerId(layerId), TypeKey = entity.GetRXClass().Name};
+    }
+
+    private EntitySnapshot ReadTransformed(Entity entity, Matrix3d transform)
+    {
+        if (CanTransformCopy(entity))
+        {
+            try
+            {
+                using var transformed = entity.GetTransformedCopy(transform);
+
+                return Read(transformed);
+            }
+            catch (Exception)
+            {
+                // Unsupported transforms retain the row with unavailable placed dimensions.
+            }
+        }
+
+        var snapshot = Read(entity);
+
+        return snapshot with
+        {
+            Properties = snapshot.Properties!.ToImmutableDictionary(
+                pair => pair.Key,
+                pair => pair.Value is DrawingNumberValue
+                {
+                    Unit: DrawingUnit.Distance or DrawingUnit.Area or DrawingUnit.Angle
+                }
+                    ? null
+                    : pair.Value)
+        };
+    }
+
+    private static bool CanTransformCopy(Entity entity)
+    {
+        // Complex entities can shallow-clone owned database objects and transform the originals.
+        var type = entity.GetType();
+
+        return type == typeof(Line) || type == typeof(Circle) || type == typeof(Arc) || type == typeof(Ellipse) ||
+               type == typeof(Polyline) || type == typeof(Spline) || type == typeof(DBText) || type == typeof(MText) ||
+               type == typeof(AttributeDefinition) || type == typeof(AttributeReference);
     }
 
     private static int? ReadAppearance(Entity entity, Dictionary<DrawingPropertyKey, DrawingValue?> properties)

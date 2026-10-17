@@ -1,0 +1,437 @@
+﻿using System.Collections.Immutable;
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Colors;
+using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.GraphicsInterface;
+using CadLens.Common;
+using CadLens.Common.AutoCAD;
+using Xunit;
+using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
+
+namespace CadLens.AutoCAD;
+
+/// <summary>
+/// Exercises occurrence transforms and failure-safe temporary graphics with native API doubles.
+/// </summary>
+[Collection("AutoCAD")]
+public sealed class EntityOccurrenceTests
+{
+    /// <summary>
+    /// Repeated insertions own separate world-space clones; clearing never changes drawing visibility.
+    /// </summary>
+    [Fact]
+    public void RepeatedOccurrencesCreateIndependentGraphicsAndClearIdempotently()
+    {
+        using var fixture = new Fixture();
+        var second = fixture.AddInsertion(200);
+        var count = fixture.Graphics.ApplyOccurrences(fixture.Database, [fixture.Target, second], fixture.Inventory);
+        Entity[] clones = [.. fixture.Manager.Registered];
+
+        Assert.Equal(2, count);
+        Assert.Equal([100d, 200d], clones.Select(entity => entity.AppliedTransform.X).OrderBy(value => value));
+        Assert.All(clones, entity => Assert.Equal(fixture.Layer, entity.LayerId));
+        Assert.All(clones, entity => Assert.Equal((byte) 210, entity.Color.Red));
+        Assert.Equal(Matrix3d.Identity, fixture.Source.AppliedTransform);
+        Assert.True(fixture.Root.Visible);
+        Assert.True(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.True(fixture.Graphics.CustomFilter);
+        Assert.True(fixture.Database.TransactionManager.TopTransaction.CommitCount > 0);
+
+        fixture.Graphics.Clear(false);
+        fixture.Graphics.Clear(false);
+
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.All(clones, entity => Assert.True(entity.IsDisposed));
+        Assert.False(fixture.Source.IsDisposed);
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+        Assert.All(
+            fixture.Database.TransactionManager.TopTransaction.OpenRequests,
+            request => Assert.Equal(OpenMode.ForRead, request.Mode));
+    }
+
+    /// <summary>
+    /// A failure after one native registration clears even partially registered graphics and the hiding rule.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PartialRegistrationFailureClearsTheEntireEffect(bool throws)
+    {
+        using var fixture = new Fixture();
+        var second = fixture.AddInsertion(200);
+        var attempted = new List<Entity>();
+        fixture.Manager.OnAdd = (entity, count) =>
+        {
+            attempted.Add(entity);
+
+            return count == 1 || (!throws ? false : throw new InvalidOperationException("native add failure"));
+        };
+
+        Assert.Throws<InvalidOperationException>(() =>
+            fixture.Graphics.ApplyOccurrences(fixture.Database, [fixture.Target, second], fixture.Inventory));
+
+        Assert.Equal(2, attempted.Count);
+        Assert.All(attempted, entity => Assert.True(entity.IsDisposed));
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+    }
+
+    /// <summary>
+    /// Picking suspends both the hiding rule and clones, then restores the same owned clones once.
+    /// </summary>
+    [Fact]
+    public void SuspensionRestoresTransientOwnershipOnce()
+    {
+        using var fixture = new Fixture();
+        fixture.Apply();
+        var clone = Assert.Single(fixture.Manager.Registered);
+        var restore = fixture.Graphics.Suspend();
+
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.False(clone.IsDisposed);
+
+        restore();
+        restore();
+
+        Assert.Same(clone, Assert.Single(fixture.Manager.Registered));
+        Assert.Equal(2, fixture.Manager.AddCount);
+        Assert.True(fixture.Graphics.IsApplicable(fixture.Root));
+    }
+
+    /// <summary>
+    /// Clearing or leaving a suspended drawing context disposes its clones and invalidates restoration.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void StaleSuspensionCannotRestoreGraphics(int change)
+    {
+        using var fixture = new Fixture();
+        fixture.Apply();
+        var clone = Assert.Single(fixture.Manager.Registered);
+        var restore = fixture.Graphics.Suspend();
+
+        switch (change)
+        {
+            case 0:
+                fixture.Graphics.Clear(false);
+                break;
+            case 1:
+                Application.DocumentManager.MdiActiveDocument = new Document();
+                break;
+            default:
+                fixture.Database.CurrentSpaceId = fixture.Database.Add(new BlockTableRecord());
+                break;
+        }
+
+        restore();
+
+        Assert.True(clone.IsDisposed);
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+    }
+
+    /// <summary>
+    /// Failures while restoring nested isolation leave the original insertion visible.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FailedRestoreClearsNestedIsolation(bool failRedraw)
+    {
+        using var fixture = new Fixture();
+        fixture.Apply();
+        var clone = Assert.Single(fixture.Manager.Registered);
+        var restore = fixture.Graphics.Suspend();
+
+        if (failRedraw)
+            fixture.Document.Drawing.OnRegen = () => throw new InvalidOperationException("redraw failure");
+        else
+            fixture.Manager.OnAdd = (_, _) => false;
+
+        Assert.Throws<InvalidOperationException>(restore);
+
+        Assert.True(clone.IsDisposed);
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+    }
+
+    /// <summary>
+    /// A rejected native erase retains the drawable for retry while immediately releasing hidden originals.
+    /// </summary>
+    [Fact]
+    public void FailedRemovalRetainsGraphicsForRetryAndNeverKeepsOriginalsHidden()
+    {
+        using var fixture = new Fixture();
+        fixture.Apply();
+        var clone = Assert.Single(fixture.Manager.Registered);
+        fixture.Manager.OnErase = _ => false;
+
+        Assert.Throws<InvalidOperationException>(() => fixture.Graphics.Clear(false));
+        Assert.Throws<InvalidOperationException>(fixture.Apply);
+
+        Assert.False(clone.IsDisposed);
+        Assert.Same(clone, Assert.Single(fixture.Manager.Registered));
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+
+        fixture.Manager.OnErase = null;
+        new EntityIsolationService().Clear(false);
+
+        Assert.True(clone.IsDisposed);
+        Assert.Empty(fixture.Manager.Registered);
+    }
+
+    /// <summary>
+    /// Invisible entities, invisible attributes, and hidden ancestors cannot be resurrected by previews.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void HiddenOccurrencesNeverCreateVisibleClones(int hidden)
+    {
+        using var fixture = new Fixture(
+            (definition, zero, root) => hidden switch
+            {
+                2 => new AttributeReference {OwnerId = root, LayerId = zero, Invisible = true},
+                3 => new AttributeDefinition {OwnerId = definition, LayerId = zero, Constant = true, Invisible = true},
+                _ => new Line {OwnerId = definition, LayerId = zero, Visible = hidden != 4}
+            },
+            hiddenRoot: hidden == 0,
+            hiddenLayer: hidden == 1);
+
+        if (hidden == 5)
+            fixture.Document.Editor.CurrentViewportObjectId = fixture.Database.Add(
+                new Viewport {FrozenLayers = [fixture.Layer]});
+
+        fixture.Apply();
+
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.Null(fixture.Source.LastTransformedCopy);
+    }
+
+    /// <summary>
+    /// Unsupported custom types, clipping, and layout viewports fail without modifying the drawing.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void UnsupportedPreviewsFailWithoutHidingOriginals(int unsupported)
+    {
+        using var fixture = new Fixture(
+            (definition, zero, _) => unsupported == 0
+                ? new CustomText {OwnerId = definition, LayerId = zero}
+                : new Line {OwnerId = definition, LayerId = zero},
+            clipped: unsupported == 1);
+        fixture.Database.TileMode = unsupported != 2;
+
+        Assert.Throws<NotSupportedException>(fixture.Apply);
+
+        Assert.Null(fixture.Source.LastTransformedCopy);
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.True(fixture.Root.Visible);
+    }
+
+    /// <summary>
+    /// Owned polyline vertices are never transformed through a shallow header clone.
+    /// </summary>
+    [Fact]
+    public void LegacyPolylineUsesIndependentExplodedGeometry()
+    {
+        var part = new Line();
+        using var fixture = new Fixture((definition, zero, _) => new Polyline2d
+        {
+            OwnerId = definition,
+            LayerId = zero,
+            TransformedCopy = _ => throw new InvalidOperationException("Unsafe header clone"),
+            OnExplode = parts => parts.Items.Add(part)
+        });
+
+        fixture.Apply();
+
+        Assert.Null(fixture.Source.LastTransformedCopy);
+        Assert.Equal(Matrix3d.Identity, fixture.Source.AppliedTransform);
+        Assert.True(part.IsDisposed);
+        Assert.Equal(100, Assert.Single(fixture.Manager.Registered).AppliedTransform.X);
+    }
+
+    /// <summary>
+    /// Nested inserts accumulate transforms, while attached attributes already use the insertion's parent coordinates.
+    /// </summary>
+    [Fact]
+    public void BoundsValidateOccurrencePathsAndAttributeCoordinates()
+    {
+        using var fixture = new Fixture();
+        var nestedDefinition = fixture.Database.Add(new BlockTableRecord());
+        var nested = fixture.Database.Add(
+            new BlockReference
+            {
+                OwnerId = fixture.Root.BlockTableRecord,
+                LayerId = fixture.Layer,
+                BlockTableRecord = nestedDefinition,
+                BlockTransform = Matrix3d.Scaling(2, Point3d.Origin)
+            });
+        var leaf = fixture.Database.Add(
+            new Line
+            {
+                OwnerId = nestedDefinition,
+                LayerId = fixture.Layer,
+                GeometricExtents = new Extents3d(new Point3d(1, 2, 0), new Point3d(2, 3, 0))
+            });
+        var attribute = fixture.Database.Add(
+            new AttributeReference
+            {
+                OwnerId = nested,
+                LayerId = fixture.Layer,
+                GeometricExtents = new Extents3d(new Point3d(5, 0, 0), new Point3d(6, 1, 0))
+            });
+        var container = new EntityId(nested, fixture.Target.Container);
+        var leafOccurrence = EntityOccurrence.Resolve(fixture.Database, new EntityId(leaf, container))!;
+        var attributeOccurrence = EntityOccurrence.Resolve(fixture.Database, new EntityId(attribute, container))!;
+        var leafBounds = leafOccurrence.ReadBounds()!.Value;
+        var attributeBounds = attributeOccurrence.ReadBounds()!.Value;
+
+        Assert.Equal(new Point3d(102, 4, 0), leafBounds.MinPoint);
+        Assert.Equal(new Point3d(104, 6, 0), leafBounds.MaxPoint);
+        Assert.Equal(new Point3d(105, 0, 0), attributeBounds.MinPoint);
+        Assert.Null(EntityOccurrence.Resolve(fixture.Database, new EntityId(leaf, fixture.Target.Container)));
+    }
+
+    /// <summary>
+    /// Selection maps to unique root inserts; isolation preserves paths and Focus uses the inner bounds.
+    /// </summary>
+    [Fact]
+    public async Task VisualizationMapsNativeActionsToOccurrences()
+    {
+        using var fixture = new Fixture();
+        var isolation = new CapturedIsolation();
+        var service = new AutoCadObjectVisualizationService(new ImmediateTasks(), isolation);
+        ImmutableArray<IPlacedObjectId> targets = [fixture.Target, fixture.Target];
+
+        Assert.IsType<HostResult<bool>.Success>(await service.SelectAsync(targets, CancellationToken.None));
+        Assert.Equal([fixture.Root.ObjectId], fixture.Document.Editor.Selection);
+        Assert.IsType<HostResult<bool>.Success>(await service.IsolateAsync(targets, CancellationToken.None));
+        Assert.Equal([fixture.Target, fixture.Target], isolation.Targets);
+        Assert.IsType<HostResult<bool>.Success>(await service.FocusAsync(targets, CancellationToken.None));
+        Assert.Equal(new Point3d(100, 0, 0), fixture.Document.Editor.ZoomBounds!.Value.MinPoint);
+        Assert.Equal(new Point3d(101, 1, 0), fixture.Document.Editor.ZoomBounds.Value.MaxPoint);
+    }
+
+    private sealed class CustomText : DBText;
+
+    private sealed class ImmediateTasks : IHostTaskService
+    {
+        public Task<HostResult<T>> RunAsync<T>(Func<T> action, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<HostResult<T>>(new HostResult<T>.Success(action()));
+        }
+
+        public Task StopAsync() => Task.CompletedTask;
+    }
+
+    private sealed class CapturedIsolation : IEntityIsolationActions
+    {
+        internal EntityId[] Targets { get; private set; } = [];
+
+        public Task<HostResult<int>> IsolateAsync(EntityId[] objects, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Targets = objects;
+            return Task.FromResult<HostResult<int>>(new HostResult<int>.Success(objects.Length));
+        }
+
+        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+        }
+    }
+
+    private sealed class Fixture : IDisposable
+    {
+        internal Fixture(
+            Func<ObjectId, ObjectId, ObjectId, Entity>? sourceFactory = null,
+            bool hiddenRoot = false,
+            bool hiddenLayer = false,
+            bool clipped = false)
+        {
+            Application.DocumentManager = new DocumentCollection();
+            Document = Application.DocumentManager.MdiActiveDocument!;
+            Database.CurrentSpaceId = Database.Add(new BlockTableRecord());
+            var zero = Database.Add(new LayerTableRecord {Name = "0"});
+            Layer = Database.Add(
+                new LayerTableRecord
+                {
+                    Name = "Members",
+                    IsOff = hiddenLayer,
+                    Color = new Color {IsByLayer = false, IsByColor = true, Red = 210}
+                });
+            var definition = Database.Add(new BlockTableRecord());
+            Root = new BlockReference
+            {
+                OwnerId = Database.CurrentSpaceId,
+                LayerId = Layer,
+                BlockTableRecord = definition,
+                BlockTransform = Matrix3d.Displacement(new Vector3d(100, 0, 0)),
+                Visible = !hiddenRoot,
+                ExtensionDictionary = clipped ? Database.Add(new DBDictionary("ACAD_FILTER")) : default
+            };
+            Database.Add(Root);
+            Source = sourceFactory?.Invoke(definition, zero, Root.ObjectId) ?? new Line
+            {
+                OwnerId = definition,
+                LayerId = zero,
+                Color = new Color {IsByLayer = false, IsByBlock = true}
+            };
+            Target = new EntityId(Database.Add(Source), new EntityId(Root.ObjectId));
+            Inventory = [Root.ObjectId];
+            TransientManager.CurrentTransientManager = Manager;
+        }
+
+        internal Document Document { get; }
+        internal Database Database => Document.Database;
+        internal EntityIsolationService Graphics { get; } = new();
+        internal TransientManager Manager { get; } = new();
+        internal BlockReference Root { get; }
+        internal Entity Source { get; }
+        internal ObjectId Layer { get; }
+        internal EntityId Target { get; }
+        internal ObjectId[] Inventory { get; private set; }
+
+        internal EntityId AddInsertion(double x)
+        {
+            var id = Database.Add(
+                new BlockReference
+                {
+                    OwnerId = Database.CurrentSpaceId,
+                    LayerId = Layer,
+                    BlockTableRecord = Root.BlockTableRecord,
+                    BlockTransform = Matrix3d.Displacement(new Vector3d(x, 0, 0))
+                });
+            Inventory = [.. Inventory, id];
+            return new EntityId(Source.ObjectId, new EntityId(id));
+        }
+
+        internal void Apply() => Graphics.ApplyOccurrences(Database, [Target], Inventory);
+
+        public void Dispose()
+        {
+            Document.Drawing.OnRegen = null;
+            Manager.OnErase = null;
+            Graphics.Clear(false);
+        }
+    }
+}

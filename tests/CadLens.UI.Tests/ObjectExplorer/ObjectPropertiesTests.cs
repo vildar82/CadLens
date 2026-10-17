@@ -571,7 +571,11 @@ public sealed class ObjectPropertiesTests
 
     private sealed class Source(DrawingInventory inventory) : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            bool includeBlockContents = false) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(inventory));
     }
 }

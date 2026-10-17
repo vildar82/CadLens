@@ -273,6 +273,67 @@ public sealed class SelectedObjectsTests
         Assert.Equal(3, model.ObjectCount);
     }
 
+    /// <summary>Block expansion reloads the captured selection, including an empty set, without prompting.</summary>
+    /// <param name="emptySelection">Whether the captured scope has no objects.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BlockContentsToggleRereadsCapturedSelectionWithoutPrompting(bool emptySelection)
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        await model.ActivateAsync(CancellationToken.None);
+        actions.NativeSelection = emptySelection ? [] : [new TestEntityId(1)];
+        await model.ShowSelectedObjectsCommand.ExecuteAsync(null);
+        var reads = actions.ReadCount;
+        var requests = actions.RequestCount;
+        actions.NativeSelection = [new TestEntityId(2)];
+        actions.Calls.Clear();
+
+        await model.ToggleFilterCommand.ExecuteAsync(
+            model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.ShowBlockContents));
+
+        Assert.Equal(["clear", "read"], actions.Calls);
+        Assert.Equal(reads + 1, actions.ReadCount);
+        Assert.Equal(requests, actions.RequestCount);
+        Assert.True(model.IsSelectedObjectsOnly);
+        Assert.Equal(emptySelection ? 0 : 1, model.ObjectCount);
+        Assert.DoesNotContain(model.Groups.SelectMany(group => group.Objects), id => id.DisplayId == "2");
+        Assert.Contains(DrawingLensProvider.ShowBlockContents, actions.LastEnabledFilters);
+
+        await model.ToggleFilterCommand.ExecuteAsync(
+            model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.ShowBlockContents));
+
+        Assert.Equal(reads + 2, actions.ReadCount);
+        Assert.Equal(requests, actions.RequestCount);
+        Assert.Equal(emptySelection ? 0 : 1, model.ObjectCount);
+        Assert.DoesNotContain(DrawingLensProvider.ShowBlockContents, actions.LastEnabledFilters);
+    }
+
+    /// <summary>Refreshing for block expansion retains valid navigation and local search and sort choices.</summary>
+    [Fact]
+    public async Task BlockContentsToggleRereadsAndKeepsNavigation()
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        await model.ActivateAsync(CancellationToken.None);
+        model.SearchText = "Visible";
+        model.SortByCountCommand.Execute(null);
+        await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+        var currentId = model.Current!.Id;
+        var reads = actions.ReadCount;
+
+        await model.ToggleFilterCommand.ExecuteAsync(
+            model.Filters.Single(filter => filter.Descriptor.Id == DrawingLensProvider.ShowBlockContents));
+
+        Assert.Equal(reads + 1, actions.ReadCount);
+        Assert.Equal(currentId, model.Current!.Id);
+        Assert.Equal("Visible", model.SearchText);
+        Assert.True(model.IsCountSortActive);
+        Assert.Null(actions.LastMaximumObjects);
+        Assert.Equal(0, actions.RequestCount);
+    }
+
     /// <summary>An empty selected scope never expands into the whole drawing.</summary>
     [Fact]
     public async Task EmptySelectionShowsAnExplicitEmptyState()
@@ -557,6 +618,7 @@ public sealed class SelectedObjectsTests
         internal ImmutableArray<IPlacedObjectId> Isolated { get; private set; } = [];
         internal List<string> Calls { get; } = [];
         internal int ReadCount { get; private set; }
+        internal ImmutableHashSet<string> LastEnabledFilters { get; private set; } = [];
         internal int? LastMaximumObjects { get; private set; }
         internal bool RefuseAutomaticRead { get; init; }
         internal int RequestCount { get; private set; }
@@ -587,6 +649,7 @@ public sealed class SelectedObjectsTests
         {
             Calls.Add("read");
             ReadCount++;
+            LastEnabledFilters = [.. enabledFilters];
             LastReadToken = cancellationToken;
             LastMaximumObjects = maximumObjects;
 
@@ -639,7 +702,8 @@ public sealed class SelectedObjectsTests
             public Task<HostResult<DrawingInventory>> ReadAsync(
                 ImmutableArray<IPlacedObjectId>? selectedObjects,
                 CancellationToken cancellationToken,
-                int? maximumObjects = null) =>
+                int? maximumObjects = null,
+                bool includeBlockContents = false) =>
                 Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(
                     selectedObjects is { } selected
                         ? Inventory with {Entities = [.. Inventory.Entities.Where(entity => selected.Contains(entity.Id))]}

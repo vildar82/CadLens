@@ -23,6 +23,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     private readonly NavigationState _navigation = new();
     private DrawingInventory? _inventory;
+    private ImmutableArray<IPlacedObjectId>? _selectedObjects;
     private ImmutableArray<LensNode> _unfilteredGroups = [];
     private LensNode? _propertyOptionsType;
     private LensNode? _filterOptionsType;
@@ -588,6 +589,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         _hasDrawing = hasDrawing;
         _pendingRequest?.Cancel();
         IsSelectedObjectsOnly = false;
+        _selectedObjects = null;
         _emptyMessage = "Refresh to explore the active space.";
         OnPropertyChanged(nameof(EmptyMessage));
         _propertyFilters.Clear();
@@ -899,11 +901,12 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private async Task<UiMessage> ReadInventoryAsync(
         bool selectedOnly,
         CancellationToken cancellationToken,
-        int? maximumObjects = null)
+        int? maximumObjects = null,
+        bool requestSelection = true)
     {
-        ImmutableArray<IPlacedObjectId>? selectedObjects = null;
+        ImmutableArray<IPlacedObjectId>? selectedObjects = selectedOnly ? _selectedObjects ?? [] : null;
 
-        if (selectedOnly)
+        if (selectedOnly && requestSelection)
         {
             var captured = await _actions.RequestObjectsAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -929,6 +932,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             NotifyNavigation();
         }
 
+        _selectedObjects = selectedObjects;
         var result = await _actions.ReadAsync(
             _grouping,
             _enabledFilters,
@@ -1133,6 +1137,13 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         try
         {
+            if (filter.Descriptor.Id == DrawingLensProvider.ShowBlockContents)
+                return await ReadInventoryAsync(
+                    IsSelectedObjectsOnly,
+                    cancellationToken,
+                    _inventory is null ? _autoLoadObjectLimit : null,
+                    false);
+
             return _inventory is { } retained
                 ? await RebuildInventoryAsync(retained, cancellationToken)
                 : await ReadAutomaticInventoryAsync(cancellationToken);

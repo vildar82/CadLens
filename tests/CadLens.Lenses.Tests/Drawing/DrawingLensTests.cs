@@ -226,12 +226,17 @@ public sealed class DrawingLensTests
     {
         var source = new PendingSource();
         var provider = new DrawingLensProvider(source);
-        var layersFilters = new HashSet<string>();
-        var typesFilters = new HashSet<string> { DrawingLensProvider.IncludeOff };
+        var layersFilters = new HashSet<string> { DrawingLensProvider.ShowBlockContents };
+        var typesFilters = new HashSet<string>
+        {
+            DrawingLensProvider.IncludeOff, DrawingLensProvider.ShowBlockContents
+        };
         var layersTask = provider.LoadAsync(DrawingGrouping.Layers, layersFilters, null, CancellationToken.None);
         var typesTask = provider.LoadAsync(DrawingGrouping.ObjectTypes, typesFilters, null, CancellationToken.None);
         layersFilters.Add(DrawingLensProvider.IncludeOff);
+        layersFilters.Remove(DrawingLensProvider.ShowBlockContents);
         typesFilters.Clear();
+        Assert.Equal([true, false], source.BlockContentsReads);
         source.Completion.SetResult(
             new HostResult<DrawingInventory>.Success(
                 new DrawingInventory(
@@ -252,6 +257,25 @@ public sealed class DrawingLensTests
         Assert.Equal("Object Types", types.Label);
         Assert.Equal("AcDbLine", Assert.Single(types.Groups).Id);
         Assert.Equal(2, types.Groups[0].Count);
+    }
+
+    /// <summary>Only Layers exposes block expansion, and a fresh request keeps the direct view.</summary>
+    /// <param name="grouping">Lens organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.Layers)]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    public async Task BlockContentsOptionIsLayersOnlyAndStartsOff(DrawingGrouping grouping)
+    {
+        var source = new PendingSource();
+        var provider = new DrawingLensProvider(source);
+        var loading = provider.LoadAsync(grouping, [], null, CancellationToken.None);
+        source.Completion.SetResult(new HostResult<DrawingInventory>.Success(new DrawingInventory("Model", [], [])));
+        var presentation = Assert.IsType<HostResult<LensPresentation>.Success>(await loading).Value;
+
+        Assert.False(Assert.Single(source.BlockContentsReads));
+        Assert.Equal(
+            grouping == DrawingGrouping.Layers,
+            presentation.Filters.Any(filter => filter.Id == DrawingLensProvider.ShowBlockContents));
     }
 
     /// <summary>An unavailable drawing is reported without trying to build a presentation.</summary>
@@ -298,6 +322,29 @@ public sealed class DrawingLensTests
             Assert.Equal(layers.Select(layer => layer.DisplayColor), result.Groups.Select(node => node.DisplayColor));
     }
 
+    /// <summary>Fixed-layer contents also respect the visibility of every containing insertion.</summary>
+    [Theory]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    public void NestedContentsRespectContainingLayers(bool off, bool frozen, bool viewportFrozen)
+    {
+        var visible = new LayerSnapshot(new TestLayerId("visible"), "Visible", false, false, false, false);
+        var hidden = new LayerSnapshot(new TestLayerId("hidden"), "Hidden", off, frozen, viewportFrozen, false);
+        var entity = Entity("insert/leaf", "visible", "AcDbLine") with
+        {
+            ContainerLayers = [visible.Id, hidden.Id]
+        };
+        var inventory = new DrawingInventory("Model", [visible, hidden], [entity]);
+
+        Assert.Empty(DrawingLensProvider.Build(inventory, DrawingGrouping.Layers, []).Groups);
+
+        var filters = new[] {DrawingLensProvider.IncludeOff, DrawingLensProvider.IncludeFrozen};
+        var included = DrawingLensProvider.Build(inventory, DrawingGrouping.Layers, filters);
+
+        Assert.Equal(entity.Id, Assert.Single(Assert.Single(included.Groups).Objects));
+    }
+
     private static EntitySnapshot ColoredEntity(string key, string layer, AssignedColorKind kind, int? rgb) =>
         Entity(key, layer, "AcDbLine") with
         {
@@ -322,21 +369,39 @@ public sealed class DrawingLensTests
 
     private sealed class Source(DrawingInventory snapshot) : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            bool includeBlockContents = false) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Success(snapshot));
     }
 
     private sealed class PendingSource : IDrawingInventorySource
     {
+        internal List<bool> BlockContentsReads { get; } = [];
+
         public TaskCompletionSource<HostResult<DrawingInventory>> Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null) => Completion.Task;
+        public Task<HostResult<DrawingInventory>> ReadAsync(
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            bool includeBlockContents = false)
+        {
+            BlockContentsReads.Add(includeBlockContents);
+            return Completion.Task;
+        }
     }
 
     private sealed class UnavailableSource : IDrawingInventorySource
     {
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null) =>
+        public Task<HostResult<DrawingInventory>> ReadAsync(
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            bool includeBlockContents = false) =>
             Task.FromResult<HostResult<DrawingInventory>>(new HostResult<DrawingInventory>.Unavailable("No drawing."));
     }
 }

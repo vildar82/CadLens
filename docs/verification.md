@@ -104,8 +104,8 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    Fresh sessions must start at the root list without old drawing targets or effects. Switch drawings
    and spaces to confirm preferences survive while navigation resets. Press Reset and reopen again:
    Auto modes should stay off while filters, search, and sorting remain saved.
-9. Browse polylines of all three families, repeated/dynamic/attributed blocks, hatches (patterned, solid,
-   and gradient), splines, lines, circles/arcs, text, and custom objects. Confirm row measurements,
+9. With Show block contents off, browse polylines of all three families, repeated/dynamic/attributed
+   blocks, hatches (patterned, solid, and gradient), splines, lines, circles/arcs, text, and custom objects. Confirm row measurements,
    missing values, named block details, and the separation of lineweight, width, and extrusion thickness.
    Count nested block insertions once, attribute definitions in the definition count, insertion attributes
    separately, and show unavailable counts for xrefs. These are structural counts, not visibility counts.
@@ -149,3 +149,16 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
     name but different native value types across definitions. Confirm English/Russian prefixes preserve
     the original names, saved choices survive restart, and Refresh captures edits. Focus/Select/Isolate
     must still target whole insertions, and browsing must not change DBMOD.
+14. Enable Show block contents in Layers with repeated local blocks on different layers, nested inserts,
+    layer 0 contents, fixed-layer contents, dynamic states, attributes, and nonuniform scaling. Compare
+    per-occurrence counts and effective layers; off/frozen containing insertions must respect inclusion
+    filters. Xrefs, clipped blocks, and block arrays stay atomic. Selected scope expands only its captured
+    insertions; toggling must not prompt again. Object Types stays unchanged. Check persisted default-off setting,
+    English/Russian controls, narrow Light/Dark layouts, and Refresh after drawing edits.
+    Focus must fit the chosen occurrence and Select must choose its distinct outer insertion. Nested
+    isolation must reject paper space without hiding originals. In model space, isolate a fixed-layer child shared by inserts on different layers, then a layer-0 child: matching inner
+    geometry must appear only in the requested occurrences. Test hatch/text/attributes and legacy
+    polylines; unsupported preview geometry must fail clearly and clear the entire temporary effect.
+    Check Reset, suspension for CAD selection, failed preview creation, panel close, drawing/layout
+    switching, and host shutdown. All originals must return; no visibility or geometry changes may be
+    saved to the DWG. Record DBMOD and compare original vertices before/after these operations.

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using CadLens.Lenses;
 using CadLens.Common;
 using CadLens.Common.AutoCAD;
@@ -13,7 +14,8 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
     public async Task<HostResult<DrawingInventory>> ReadAsync(
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken,
-        int? maximumObjects = null)
+        int? maximumObjects = null,
+        bool includeBlockContents = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var document = Application.DocumentManager.MdiActiveDocument;
@@ -24,7 +26,7 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         var spaceId = document.Database.CurrentSpaceId;
 
         var result = await hostTasks.RunAsync(
-            () => Read(document, spaceId, selectedObjects, maximumObjects, cancellationToken),
+            () => Read(document, spaceId, selectedObjects, maximumObjects, includeBlockContents, cancellationToken),
             cancellationToken);
 
         return result.Bind(inventory => inventory);
@@ -35,6 +37,7 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         ObjectId spaceId,
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         int? maximumObjects,
+        bool includeBlockContents,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -54,11 +57,14 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
 
         var frozenLayers = ReadViewportFrozenLayers(document);
         var layers = ReadLayers(database, frozenLayers, cancellationToken);
-        var reader = new AutoCadEntitySnapshotReader(cancellationToken);
+        var reader = new EntityReader(selectedObjects is null ? maximumObjects : null, cancellationToken);
+        var entities = reader.Read(
+            ReadEntities(database, space, selectedObjects, cancellationToken),
+            includeBlockContents);
 
-        var entities = ReadEntities(database, space, selectedObjects, cancellationToken)
-            .Select(reader.Read)
-            .ToImmutableArray();
+        if (entities is null)
+            return new HostResult<DrawingInventory>.Unavailable(
+                "Large drawing. Use Refresh to load all objects, or choose Selected objects.");
 
         var spaceLabel = space.IsLayout ? space.LayoutId.GetObject<Layout>()!.LayoutName : space.Name;
         var precision = new DrawingPrecision(database.Luprec, database.Auprec);
@@ -67,7 +73,7 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         transaction.Commit();
 
         return new HostResult<DrawingInventory>.Success(
-            new DrawingInventory(spaceLabel, layers, entities, Precision: precision));
+            new DrawingInventory(spaceLabel, layers, entities.Value, Precision: precision));
     }
 
     private static bool ExceedsLimit(BlockTableRecord space, int limit, CancellationToken cancellationToken)
@@ -92,7 +98,7 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
         CancellationToken cancellationToken)
     {
         var ids = selectedObjects is { } selected
-            ? selected.OfType<EntityId>().Select(id => id.NativeId).Distinct()
+            ? selected.OfType<EntityId>().Select(id => id.RootId).Distinct()
             : space.Cast<ObjectId>();
 
         foreach (var id in ids)
@@ -145,5 +151,138 @@ internal sealed class AutoCadDrawingInventorySource(IHostTaskService hostTasks) 
             frozenLayers.Contains(layer.ObjectId),
             layer.IsLocked,
             AutoCadEntitySnapshotReader.ReadDisplayColor(color));
+    }
+
+    private sealed class EntityReader(int? maximumObjects, CancellationToken cancellationToken)
+    {
+        private readonly AutoCadEntitySnapshotReader _snapshots = new(cancellationToken);
+        private readonly List<EntitySnapshot> _entities = [];
+        private readonly HashSet<ObjectId> _definitions = [];
+        private int _visitedObjects;
+
+        internal ImmutableArray<EntitySnapshot>? Read(IEnumerable<Entity> entities, bool includeBlockContents)
+            => entities.All(entity => Add(entity, null, [], Matrix3d.Identity, null, includeBlockContents))
+                ? [.. _entities]
+                : null;
+
+        private bool Add(
+            Entity entity,
+            EntityId? container,
+            ImmutableArray<ILayerId> containerLayers,
+            Matrix3d transform,
+            int? inheritedColor,
+            bool includeBlockContents)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (container is not null && (!entity.Visible ||
+                entity is AttributeReference {Invisible: true} or AttributeDefinition {Invisible: true}))
+                return true;
+
+            if (maximumObjects is { } limit && ++_visitedObjects > limit)
+                return false;
+
+            var id = new EntityId(entity.ObjectId, container);
+            var layerId = containerLayers.LastOrDefault() is LayerId containingLayer &&
+                          entity.LayerId.GetObject<LayerTableRecord>()?.Name == "0"
+                ? containingLayer.NativeId
+                : entity.LayerId;
+            var displayColor = includeBlockContents ? ReadDisplayColor(entity, layerId, inheritedColor) : null;
+
+            if (includeBlockContents && entity is BlockReference block and not MInsertBlock &&
+                block.ExtensionDictionary.GetObject<DBDictionary>()?.Contains("ACAD_FILTER") is not true &&
+                block.BlockTableRecord.GetObject<BlockTableRecord>() is
+                    {IsFromExternalReference: false, IsFromOverlayReference: false} definition &&
+                _definitions.Add(definition.ObjectId))
+            {
+                try
+                {
+                    return AddBlockContents(
+                        block,
+                        definition,
+                        id,
+                        containerLayers.Add(new LayerId(layerId)),
+                        transform,
+                        displayColor);
+                }
+                finally
+                {
+                    _definitions.Remove(definition.ObjectId);
+                }
+            }
+
+            var snapshot = container is null
+                ? _snapshots.Read(entity)
+                : _snapshots.ReadOccurrence(entity, id, layerId, transform);
+            _entities.Add(
+                container is null
+                    ? snapshot
+                    : snapshot with {DisplayColor = displayColor, ContainerLayers = containerLayers});
+
+            return true;
+        }
+
+        private bool AddBlockContents(
+            BlockReference block,
+            BlockTableRecord definition,
+            EntityId id,
+            ImmutableArray<ILayerId> containerLayers,
+            Matrix3d transform,
+            int? displayColor)
+        {
+            if (!block.Visible)
+                return true;
+
+            var blockTransform = transform * block.BlockTransform;
+
+            foreach (var childId in definition.Cast<ObjectId>())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (childId.GetObject<Entity>() is not { } child || child.OwnerId != definition.ObjectId ||
+                    child is AttributeDefinition {Constant: false})
+                    continue;
+
+                if (!Add(child, id, containerLayers, blockTransform, displayColor, true))
+                    return false;
+            }
+
+            foreach (ObjectId attributeId in block.AttributeCollection)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (attributeId.GetObject<AttributeReference>() is { } attribute &&
+                    attribute.OwnerId == block.ObjectId &&
+                    !Add(attribute, id, containerLayers, transform, displayColor, true))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static int? ReadDisplayColor(Entity entity, ObjectId layerId, int? inheritedColor)
+        {
+            try
+            {
+                using var color = entity.Color;
+
+                if (color.IsByBlock)
+                    return inheritedColor;
+
+                if (!color.IsByLayer)
+                    return AutoCadEntitySnapshotReader.ReadDisplayColor(color);
+
+                if (layerId.GetObject<LayerTableRecord>() is not { } layer)
+                    return null;
+
+                using var layerColor = layer.Color;
+
+                return AutoCadEntitySnapshotReader.ReadDisplayColor(layerColor);
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception)
+            {
+                return null;
+            }
+        }
     }
 }

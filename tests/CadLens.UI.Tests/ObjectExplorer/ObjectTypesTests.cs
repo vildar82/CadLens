@@ -385,7 +385,11 @@ public sealed class ObjectTypesTests
 
         internal CancellationToken Token { get; private set; }
 
-        public Task<HostResult<DrawingInventory>> ReadAsync(ImmutableArray<IPlacedObjectId>? selectedObjects, CancellationToken cancellationToken, int? maximumObjects = null)
+        public Task<HostResult<DrawingInventory>> ReadAsync(
+            ImmutableArray<IPlacedObjectId>? selectedObjects,
+            CancellationToken cancellationToken,
+            int? maximumObjects = null,
+            bool includeBlockContents = false)
         {
             Token = cancellationToken;
             return Pending?.Task ?? Task.FromResult(Result);
