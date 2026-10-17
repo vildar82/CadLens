@@ -1,8 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System.Collections;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shell;
 using System.Windows.Threading;
 using CadLens.Common;
 
@@ -15,6 +17,9 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
 {
     private const int ShowDelayMilliseconds = 400;
     private readonly Action _requestCancellation;
+    private readonly (string Key, Color Color)[] _palette;
+    private readonly Rect? _ownerBounds;
+    private readonly Rect _workArea;
     private readonly Thread _thread;
     private readonly TaskCompletionSource<bool> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private OperationProgress _latestProgress = new(OperationStage.Preparing);
@@ -27,9 +32,22 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
     /// Starts a private dispatcher without requiring the host UI thread to process messages.
     /// </summary>
     /// <param name="requestCancellation">Requests cancellation without waiting for the host dispatcher.</param>
-    public OperationProgressWindow(Action requestCancellation)
+    /// <param name="appearance">Calling view's effective palette, captured before starting the private dispatcher.</param>
+    /// <param name="owner">Calling window whose current screen bounds determine the progress window's placement.</param>
+    public OperationProgressWindow(
+        Action requestCancellation,
+        ResourceDictionary? appearance = null,
+        Window? owner = null)
     {
         _requestCancellation = requestCancellation;
+        _palette = CapturePalette(appearance);
+
+        if (owner is {IsVisible: true})
+        {
+            _ownerBounds = new Rect(owner.Left, owner.Top, owner.ActualWidth, owner.ActualHeight);
+            _workArea = owner is ExplorerWindow explorer ? explorer.GetMonitorWorkArea() : SystemParameters.WorkArea;
+        }
+
         _thread = new Thread(RunWindow) {IsBackground = true, Name = "CAD Lens operation progress"};
         _thread.SetApartmentState(ApartmentState.STA);
         _thread.Start();
@@ -198,14 +216,14 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
         RequestCancellation();
     }
 
-    private static Window CreateWindow(out TextBlock status, out ProgressBar progressBar, out Button cancelButton)
+    private Window CreateWindow(out TextBlock status, out ProgressBar progressBar, out Button cancelButton)
     {
+        var window = CreateThemedWindow();
         status = new TextBlock
         {
             Name = "OperationProgressText",
             MinHeight = 38,
-            FontSize = 13,
-            FontWeight = FontWeights.SemiBold,
+            FontSize = 12,
             Text = FormatProgress(new OperationProgress(OperationStage.Preparing)),
             TextWrapping = TextWrapping.Wrap,
             Style = new Style(typeof(TextBlock))
@@ -213,47 +231,162 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
         progressBar = new ProgressBar
         {
             Name = "OperationProgressBar",
-            Height = 5,
-            Margin = new Thickness(0, 10, 0, 14),
+            Height = 3,
+            Margin = new Thickness(0, 8, 0, 14),
             IsIndeterminate = true,
-            Foreground = new SolidColorBrush(Color.FromRgb(45, 111, 177)),
-            Background = new SolidColorBrush(Color.FromRgb(224, 229, 234)),
             BorderThickness = new Thickness(0),
             Style = new Style(typeof(ProgressBar))
         };
+        progressBar.SetResourceReference(Control.ForegroundProperty, "QuietAccent");
+        progressBar.SetResourceReference(Control.BackgroundProperty, "QuietBorder");
         cancelButton = new Button
         {
             Name = "CancelOperationButton",
             Content = UiText.Current.Get("Cancel"),
-            MinWidth = 100,
-            MinHeight = 28,
-            Padding = new Thickness(12, 4, 12, 4),
+            MinWidth = 96,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Style = new Style(typeof(Button))
+            Style = (Style) window.FindResource("QuietButton")
         };
         var content = new StackPanel {Margin = new Thickness(16)};
         content.Children.Add(status);
         content.Children.Add(progressBar);
         content.Children.Add(cancelButton);
 
-        return new Window
+        var layout = new StackPanel();
+        layout.Children.Add(CreateHeader(window));
+        layout.Children.Add(content);
+        var frame = new Border
+        {
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
+            Child = layout
+        };
+        frame.SetResourceReference(Border.BackgroundProperty, "QuietBackground");
+        frame.SetResourceReference(Border.BorderBrushProperty, "QuietBorder");
+        window.Content = frame;
+
+        return window;
+    }
+
+    private Window CreateThemedWindow()
+    {
+        var window = new Window
         {
             Title = "CAD Lens",
-            Width = 380,
+            Width = 340,
             SizeToContent = SizeToContent.Height,
             ResizeMode = ResizeMode.NoResize,
-            WindowStyle = WindowStyle.ToolWindow,
+            WindowStyle = WindowStyle.None,
             WindowStartupLocation = WindowStartupLocation.CenterScreen,
             ShowInTaskbar = false,
             ShowActivated = false,
             Topmost = true,
             FontFamily = new FontFamily("Segoe UI"),
             FontSize = 12,
-            Background = new SolidColorBrush(Color.FromRgb(250, 250, 250)),
-            Foreground = new SolidColorBrush(Color.FromRgb(32, 36, 40)),
-            Style = new Style(typeof(Window)),
-            Content = content
+            Style = new Style(typeof(Window))
         };
+        window.Resources.MergedDictionaries.Add(new QuietTheme());
+
+        foreach (var (key, color) in _palette)
+        {
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            window.Resources[key] = brush;
+        }
+
+        window.SetResourceReference(Control.BackgroundProperty, "QuietBackground");
+        window.SetResourceReference(Control.ForegroundProperty, "QuietText");
+        WindowChrome.SetWindowChrome(
+            window,
+            new WindowChrome
+            {
+                CaptionHeight = 50,
+                CornerRadius = new CornerRadius(12),
+                GlassFrameThickness = new Thickness(0),
+                ResizeBorderThickness = new Thickness(0)
+            });
+
+        if (_ownerBounds is not { } bounds)
+            return window;
+
+        window.WindowStartupLocation = WindowStartupLocation.Manual;
+        window.Left = bounds.Left;
+        window.Top = bounds.Top;
+        window.Loaded += (_, _) => CenterOverOwner(window, bounds);
+
+        return window;
+    }
+
+    private void CenterOverOwner(Window window, Rect bounds)
+    {
+        var left = bounds.Left + (bounds.Width - window.ActualWidth) / 2;
+        var top = bounds.Top + (bounds.Height - window.ActualHeight) / 2;
+        window.Left = Math.Min(
+            Math.Max(left, _workArea.Left),
+            Math.Max(_workArea.Left, _workArea.Right - window.ActualWidth));
+        window.Top = Math.Min(
+            Math.Max(top, _workArea.Top),
+            Math.Max(_workArea.Top, _workArea.Bottom - window.ActualHeight));
+    }
+
+    private static Border CreateHeader(Window window)
+    {
+        var closeButton = new Button
+        {
+            Name = "OperationProgressCloseButton",
+            Content = "×",
+            Width = 30,
+            Height = 30,
+            MinHeight = 30,
+            FontSize = 18,
+            Padding = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Style = (Style) window.FindResource("QuietButton")
+        };
+        System.Windows.Automation.AutomationProperties.SetName(closeButton, UiText.Current.Get("Cancel"));
+        WindowChrome.SetIsHitTestVisibleInChrome(closeButton, true);
+        closeButton.Click += (_, _) => window.Close();
+        var headerContent = new Grid {Margin = new Thickness(12, 0, 8, 0)};
+        var accent = new Border
+        {
+            Width = 3,
+            Height = 20,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            CornerRadius = new CornerRadius(2)
+        };
+        accent.SetResourceReference(Border.BackgroundProperty, "QuietAccent");
+        headerContent.Children.Add(accent);
+        headerContent.Children.Add(
+            new TextBlock
+            {
+                Text = "CAD Lens",
+                FontWeight = FontWeights.SemiBold,
+                Style = new Style(typeof(TextBlock)),
+                Margin = new Thickness(11, 0, 40, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+        headerContent.Children.Add(closeButton);
+        var header = new Border {Height = 50, CornerRadius = new CornerRadius(11, 11, 0, 0), Child = headerContent};
+        header.SetResourceReference(Border.BackgroundProperty, "QuietHeader");
+
+        return header;
+    }
+
+    private static (string Key, Color Color)[] CapturePalette(ResourceDictionary? appearance)
+    {
+        List<(string Key, Color Color)> colors = [];
+
+        if (appearance is null)
+            return [];
+
+        foreach (DictionaryEntry entry in appearance)
+        {
+            if (entry is {Key: string key, Value: SolidColorBrush brush})
+                colors.Add((key, brush.Color));
+        }
+
+        return [.. colors];
     }
 
     private static string StageText(OperationStage stage) => stage switch

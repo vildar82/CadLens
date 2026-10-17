@@ -50,6 +50,10 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private int _autoLoadObjectLimit = LensPreferences.DefaultAutoLoadObjectLimit;
     private UiMessage _status = new("Activate a lens to explore the drawing.");
 
+    /// <summary>Creates progress windows using the view's current appearance when a view is available.</summary>
+    internal Func<Action, OperationProgressWindow> CreateProgressWindow { get; set; } =
+        cancel => new OperationProgressWindow(cancel);
+
     /// <summary>Creates toolkit commands for the injected host operations.</summary>
     /// <param name="actions">Context-checked host operations.</param>
     /// <param name="grouping">Root organization for this lens.</param>
@@ -1677,7 +1681,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         try
         {
-            window = new OperationProgressWindow(request.Cancel);
+            window = CreateProgressWindow(request.Cancel);
             _operationWindow = window;
             _cancelOperation = window.RequestCancellation;
             CancelCommand.NotifyCanExecuteChanged();
