@@ -262,13 +262,13 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     /// <summary>Included root count and the lens-specific group name.</summary>
     public string GroupSummary => new UiMessage(
-        _grouping == DrawingGrouping.Layers ? "{0:N0} layers" : "{0:N0} types",
+        CurrentGrouping == DrawingGrouping.Layers ? "{0:N0} layers" : "{0:N0} types",
         GroupCount).ToString();
 
     /// <summary>Accessible description of name sorting.</summary>
     public string SortByNameLabel => UiText.Current.Get(
         Current is null
-            ? _grouping == DrawingGrouping.Layers ? "Sort layers by name" : "Sort types by name"
+            ? CurrentGrouping == DrawingGrouping.Layers ? "Sort layers by name" : "Sort types by name"
             : "Sort by name");
 
     /// <summary>Accessible description of count sorting.</summary>
@@ -317,7 +317,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         UnfilteredType?.Count ?? 0).ToString();
 
     private LensNode? UnfilteredType => GroupingType is { } type
-        ? (_grouping == DrawingGrouping.Layers
+        ? (CurrentGrouping == DrawingGrouping.Layers
             ? _unfilteredGroups.FirstOrDefault(layer => layer.Id == _navigation.Path[0].Id)?.Children ?? []
             : _unfilteredGroups).FirstOrDefault(node => node.Id == type.Id)
         : null;
@@ -568,7 +568,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         ? UiText.Current.Get("No objects match the property filter.")
         : !Groups.IsEmpty && _visibleGroups.IsEmpty
             ? UiText.Current.Get(
-                _grouping == DrawingGrouping.Layers
+                CurrentGrouping == DrawingGrouping.Layers
                     ? "No layers match your search."
                     : "No types match your search.")
             : UiText.Current.Get(_emptyMessage);
@@ -1156,7 +1156,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             return await ApplyRootEffectsAsync(cancellationToken);
 
         return HasGroups
-            ? _grouping == DrawingGrouping.Layers
+            ? CurrentGrouping == DrawingGrouping.Layers
                 ? "Choose a layer. Auto modes apply while browsing."
                 : "Choose a type. Auto modes apply while browsing."
             : _emptyMessage;
@@ -1171,6 +1171,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         CancellationToken cancellationToken)
     {
         var filters = _enabledFilters;
+        var rootGrouping = CurrentGrouping;
         var grouping = includePropertyOptions ? _propertyGrouping.ToImmutableDictionary() : null;
         var propertyFilters = includePropertyOptions ? _propertyFilters.ToImmutableDictionary() : null;
         var progress = _progress;
@@ -1181,7 +1182,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         LensPresentation Build() => DrawingLensProvider.Build(
             inventory,
-            _grouping,
+            rootGrouping,
             filters,
             grouping,
             propertyFilters,
@@ -1596,7 +1597,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         _navigation.Reset(Groups, true);
 
         if (wasObject && !IsObject)
-            _navigation.GoBackTo(_grouping == DrawingGrouping.Layers ? 2 : 1);
+            _navigation.GoBackTo(CurrentGrouping == DrawingGrouping.Layers ? 2 : 1);
 
         PropertyFilter.Load(UnfilteredType?.Children ?? [], AppliedPropertyFilter);
         NotifyNavigation();

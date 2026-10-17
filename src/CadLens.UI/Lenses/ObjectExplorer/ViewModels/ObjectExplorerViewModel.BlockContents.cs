@@ -8,6 +8,8 @@ public sealed partial class ObjectExplorerViewModel
 {
     private BlockParent? _blockParent;
 
+    private DrawingGrouping CurrentGrouping => IsBrowsingBlockContents ? DrawingGrouping.ObjectTypes : _grouping;
+
     private LensNode? IsolationTarget => Current ?? _blockParent?.Navigation.Current;
 
     /// <summary>
@@ -16,9 +18,9 @@ public sealed partial class ObjectExplorerViewModel
     public bool IsBrowsingBlockContents => _blockParent is not null;
 
     /// <summary>
-    /// Whether the current Object Types detail supports browsing local block contents.
+    /// Whether the current block detail supports browsing local block contents.
     /// </summary>
-    public bool CanBrowseBlockContents => _grouping == DrawingGrouping.ObjectTypes && !IsBrowsingBlockContents &&
+    public bool CanBrowseBlockContents => !IsBrowsingBlockContents &&
                                           Current is {Kind: LensNodeKind.Object} node &&
                                           node.Actions.Contains(LensAction.BrowseContents);
 
