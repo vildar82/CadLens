@@ -109,6 +109,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
     /// <param name="Database">Owning test database.</param>
     public readonly record struct ObjectId(int Value, Database Database)
     {
+        internal bool IsNull => Value == 0 && Database is null;
         internal bool IsValid => Database is not null && Database.Objects.ContainsKey(Value);
         internal bool IsErased => Database.Objects[Value].IsErased;
         internal int Handle => Value;

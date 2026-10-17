@@ -32,4 +32,23 @@ public static class DatabaseObjectExtensions
     /// <param name="forWrite">Whether to open objects for writing.</param>
     public static IEnumerable<T> GetObjects<T>(this BlockTableRecord block, bool forWrite = false) where T : Entity =>
         block.Cast<ObjectId>().Select(id => id.GetObject<T>(forWrite)).OfType<T>();
+
+    /// <summary>
+    /// Determines whether this entity and its containing path still exist in the current space.
+    /// Requires a regular transaction owned by the caller.
+    /// </summary>
+    /// <param name="target">Collected entity occurrence to verify.</param>
+    /// <param name="database">Database containing the placed entity.</param>
+    public static bool Exists(this EntityId target, Database database)
+    {
+        for (var node = target; node is not null; node = node.Container)
+        {
+            var id = node.NativeId;
+
+            if (id.IsNull || !id.IsValid || id.IsErased || id.Database != database)
+                return false;
+        }
+
+        return EntityOccurrence.Resolve(database, target) is not null;
+    }
 }
