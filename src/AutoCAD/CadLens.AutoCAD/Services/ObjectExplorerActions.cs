@@ -151,6 +151,12 @@ internal sealed class ObjectExplorerActions(
         int? maximumObjects = null) =>
         lens.LoadAsync(grouping, enabledFilters, selectedObjects, cancellationToken, maximumObjects);
 
+    public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
+        IPlacedObjectId block,
+        IReadOnlyCollection<string> enabledFilters,
+        CancellationToken cancellationToken) =>
+        lens.LoadBlockContentsAsync(block, enabledFilters, cancellationToken);
+
     public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
         isolation.ClearAsync(cancellationToken);
 

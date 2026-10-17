@@ -61,6 +61,32 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken)));
     }
 
+    /// <inheritdoc />
+    public async Task<HostResult<LensPresentation>> LoadBlockContentsAsync(
+        IPlacedObjectId block,
+        IReadOnlyCollection<string> enabledFilters,
+        CancellationToken cancellationToken)
+    {
+        var includeFrozen = enabledFilters.Contains(IncludeFrozen);
+        var includeOff = enabledFilters.Contains(IncludeOff);
+        var result = await source.ReadAsync([block], cancellationToken, includeBlockContents: true)
+            .ConfigureAwait(false);
+
+        return result.Bind<DrawingInventory, LensPresentation>(snapshot =>
+            snapshot.Entities.Any(entity => entity.Id.Equals(block))
+            ? new HostResult<LensPresentation>.Unavailable(
+                "Block contents are no longer available. Refresh to try again.")
+            : new HostResult<LensPresentation>.Success(
+                Build(
+                    snapshot,
+                    DrawingGrouping.ObjectTypes,
+                    includeFrozen,
+                    includeOff,
+                    null,
+                    null,
+                    cancellationToken)));
+    }
+
     /// <summary>Rebuilds a drawing lens from detached facts without performing another host read.</summary>
     /// <param name="snapshot">Retained active-space facts.</param>
     /// <param name="grouping">Root grouping of the lens.</param>
@@ -273,7 +299,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 .. DrawingProperties.GetDetails(entity, layer),
                 .. CreateAttributeDetails(entity)
             ],
-            [LensAction.Focus],
+            entity.CanBrowseContents ? [LensAction.Focus, LensAction.BrowseContents] : [LensAction.Focus],
             LensNodeKind.Object,
             entity.TypeKey,
             [

@@ -109,7 +109,7 @@
                     <DockPanel.Style>
                         <Style TargetType="DockPanel">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasCurrent}" Value="True">
+                                <DataTrigger Binding="{Binding HasNavigation}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -126,7 +126,7 @@
                         FontWeight="SemiBold"
                         Text="{Binding GroupSummary}" />
                 </DockPanel>
-                <DockPanel Visibility="{Binding HasCurrent, Converter={StaticResource BooleanVisibility}}">
+                <DockPanel Visibility="{Binding HasNavigation, Converter={StaticResource BooleanVisibility}}">
                     <Button
                         x:Name="BackAction"
                         Width="30"
@@ -561,9 +561,10 @@
                         CornerRadius="4">
                         <Border.Style>
                             <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasCurrent}" Value="True">
-                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    <DataTrigger Binding="{Binding Current}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Visible" />
                                     </DataTrigger>
                                     <Trigger Property="IsKeyboardFocusWithin" Value="True">
                                         <Setter Property="BorderBrush" Value="{DynamicResource QuietAccent}" />
@@ -773,6 +774,16 @@
                                 FontWeight="SemiBold"
                                 Text="{ui:DrawingValueFormatter Binding={Binding Current}}"
                                 TextWrapping="Wrap" />
+                            <Button
+                                x:Name="BrowseBlockContentsAction"
+                                Margin="0,0,0,10"
+                                HorizontalAlignment="Left"
+                                Command="{Binding BrowseBlockContentsCommand}"
+                                Content="{ui:Localize 'Browse block contents'}"
+                                Style="{StaticResource ModeButton}"
+                                ToolTip="{ui:Localize 'Browse objects inside this block, including nested blocks.'}"
+                                Visibility="{Binding CanBrowseBlockContents, Converter={StaticResource BooleanVisibility}}" />
+
                             <ItemsControl ItemsSource="{Binding CurrentFields}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type lenses:DetailField}">

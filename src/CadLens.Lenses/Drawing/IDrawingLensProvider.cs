@@ -20,4 +20,15 @@ public interface IDrawingLensProvider
         ImmutableArray<IPlacedObjectId>? selectedObjects,
         CancellationToken cancellationToken,
         int? maximumObjects = null);
+
+    /// <summary>
+    /// Builds an Object Types presentation for the recursive placed contents of one local block insertion.
+    /// </summary>
+    /// <param name="block">Top-level insertion to explore.</param>
+    /// <param name="enabledFilters">Enabled visibility inclusion options.</param>
+    /// <param name="cancellationToken">Cancellation of managed work.</param>
+    Task<HostResult<LensPresentation>> LoadBlockContentsAsync(
+        IPlacedObjectId block,
+        IReadOnlyCollection<string> enabledFilters,
+        CancellationToken cancellationToken);
 }

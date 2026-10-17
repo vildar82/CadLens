@@ -13,6 +13,7 @@ namespace CadLens.Lenses;
 /// <param name="PrimaryMetric">Property used as the meaningful row measurement, when supported.</param>
 /// <param name="DisplayColor">Resolved RGB display color, or null when unavailable.</param>
 /// <param name="ContainerLayers">Layers of containing insertions that also control visibility.</param>
+/// <param name="CanBrowseContents">Whether this direct block occurrence supports browsing its local contents.</param>
 public sealed record EntitySnapshot(
     IPlacedObjectId Id,
     ILayerId LayerId,
@@ -20,4 +21,5 @@ public sealed record EntitySnapshot(
     ImmutableDictionary<DrawingPropertyKey, DrawingValue?>? Properties = null,
     DrawingPropertyId? PrimaryMetric = null,
     int? DisplayColor = null,
-    ImmutableArray<ILayerId> ContainerLayers = default);
+    ImmutableArray<ILayerId> ContainerLayers = default,
+    bool CanBrowseContents = false);

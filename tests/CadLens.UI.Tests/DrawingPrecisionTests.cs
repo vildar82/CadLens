@@ -232,6 +232,13 @@ public sealed class DrawingPrecisionTests
         internal DrawingInventory Inventory { get; set; } = inventory;
         internal int ReadCount { get; private set; }
 
+        public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
+            IPlacedObjectId block,
+            IReadOnlyCollection<string> enabledFilters,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<LensPresentation>>(
+                new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
+
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,

@@ -827,4 +827,19 @@
   <data name="Isolation inside blocks is available only in model space." xml:space="preserve">
     <value>Isolation inside blocks is available only in model space.</value>
   </data>
+  <data name="Browse block contents" xml:space="preserve">
+    <value>Browse block contents</value>
+  </data>
+  <data name="Browse objects inside this block, including nested blocks." xml:space="preserve">
+    <value>Browse objects inside this block, including nested blocks.</value>
+  </data>
+  <data name="Refresh block contents" xml:space="preserve">
+    <value>Refresh block contents</value>
+  </data>
+  <data name="No included objects inside this block." xml:space="preserve">
+    <value>No included objects inside this block.</value>
+  </data>
+  <data name="Block contents are no longer available. Refresh to try again." xml:space="preserve">
+    <value>Block contents are no longer available. Refresh to try again.</value>
+  </data>
 </root>

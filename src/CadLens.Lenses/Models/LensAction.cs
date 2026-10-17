@@ -4,5 +4,10 @@
 public enum LensAction
 {
     /// <summary>Explicitly fit usable target bounds in the active view.</summary>
-    Focus
+    Focus,
+
+    /// <summary>
+    /// Opens the recursive placed contents of a local block insertion.
+    /// </summary>
+    BrowseContents
 }

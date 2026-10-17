@@ -21,7 +21,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private readonly Dictionary<string, DrawingPropertyKey> _displayProperties = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DrawingPropertyFilter> _propertyFilters = new(StringComparer.Ordinal);
 
-    private readonly NavigationState _navigation = new();
+    private NavigationState _navigation = new();
     private DrawingInventory? _inventory;
     private ImmutableArray<IPlacedObjectId>? _selectedObjects;
     private ImmutableArray<LensNode> _unfilteredGroups = [];
@@ -63,7 +63,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         GroupLabel = grouping == DrawingGrouping.Layers ? "layers" : "types";
         ReadCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ReadInventoryAsync), CanRun);
         ShowAllObjectsCommand = new AsyncRelayCommand(
-            () => IsAllObjects ? Task.CompletedTask : ExecuteActionAsync(token => ChangeScopeAsync(false, token)),
+            () => IsAllObjects && !IsBrowsingBlockContents
+                ? Task.CompletedTask
+                : ExecuteActionAsync(token => ChangeScopeAsync(false, token)),
             CanRun);
         ShowSelectedObjectsCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => ChangeScopeAsync(true, token)),
@@ -82,14 +84,14 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             node => NavigateAsync(() => Enter(node)),
             node => CanRun() && node is not null && Items.Contains(node));
         BackCommand = new AsyncRelayCommand(
-            () => NavigateAsync(() => GoBackTo(_navigation.Path.Count - 1)),
-            () => CanRun() && Current is not null);
+            () => NavigateAsync(GoBack),
+            () => CanRun() && HasNavigation);
         RootCommand = new AsyncRelayCommand(
-            () => NavigateAsync(() => GoBackTo(0)),
-            () => CanRun() && Current is not null);
+            () => NavigateAsync(GoToRoot),
+            () => CanRun() && HasNavigation);
         BreadcrumbCommand = new AsyncRelayCommand<LensNode>(
-            node => NavigateAsync(() => GoBackTo(Array.IndexOf([.. _navigation.Path], node!) + 1)),
-            node => CanRun() && node is not null && _navigation.Path.Contains(node));
+            node => NavigateAsync(() => GoToBreadcrumb(node!)),
+            node => CanRun() && node is not null && Breadcrumbs.Contains(node));
         PreviousCommand = new AsyncRelayCommand(
             () => NavigateAsync(() => MoveObject(-1)),
             () => CanRun() && _navigation.CanPrevious);
@@ -123,6 +125,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         SortByNameCommand = new RelayCommand(() => ChangeSort(false));
         SortByCountCommand = new RelayCommand(() => ChangeSort(true));
         ClearSearchCommand = new RelayCommand(() => SearchText = "");
+        BrowseBlockContentsCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(token => ReadBlockContentsAsync(true, token)),
+            () => CanRun() && CanBrowseBlockContents);
         InitializeSavedFilters();
         RestorePreferences();
     }
@@ -156,7 +161,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     public bool IsAllObjects => !IsSelectedObjectsOnly;
 
     /// <summary>Action label for refreshing the chosen object scope.</summary>
-    public string RefreshLabel => IsSelectedObjectsOnly ? "Refresh selected objects" : "Refresh active space";
+    public string RefreshLabel => IsBrowsingBlockContents
+        ? "Refresh block contents"
+        : IsSelectedObjectsOnly ? "Refresh selected objects" : "Refresh active space";
 
     /// <summary>Reads all direct active-space objects.</summary>
     public IAsyncRelayCommand ShowAllObjectsCommand { get; }
@@ -457,7 +464,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     }
 
     /// <summary>Selected ancestors including the current node.</summary>
-    public IReadOnlyList<LensNode> Breadcrumbs => _navigation.Path;
+    public IReadOnlyList<LensNode> Breadcrumbs => _blockParent is null
+        ? _navigation.Path
+        : [.. _blockParent.Navigation.Path, .. _navigation.Path];
 
     /// <summary>Whether object browsing controls apply.</summary>
     public bool IsObject => _navigation.Position > 0;
@@ -468,6 +477,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     /// <summary>Whether details replace the root list.</summary>
     public bool HasCurrent => Current is not null;
+
+    /// <summary>Whether the current scope or path can return to a parent.</summary>
+    public bool HasNavigation => HasCurrent || IsBrowsingBlockContents;
 
     /// <summary>Fits the camera to the current target during navigation.</summary>
     public bool IsAutoFocus
@@ -590,6 +602,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         _pendingRequest?.Cancel();
         IsSelectedObjectsOnly = false;
         _selectedObjects = null;
+        _searchText = _blockParent?.SearchText ?? _searchText;
+        _blockParent = null;
+        OnPropertyChanged(nameof(SearchText));
         _emptyMessage = "Refresh to explore the active space.";
         OnPropertyChanged(nameof(EmptyMessage));
         _propertyFilters.Clear();
@@ -707,7 +722,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             IsAutoSelect,
             IsAutoIsolation,
             [.. _enabledFilters.OrderBy(item => item, StringComparer.Ordinal)],
-            SearchText,
+            _blockParent?.SearchText ?? SearchText,
             IsCountSortActive,
             _sortDescending,
             _propertyGrouping.ToDictionary(pair => pair.Key, pair => pair.Value.Select(id => id.ToString()).ToArray()),
@@ -863,6 +878,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         SelectCommand.NotifyCanExecuteChanged();
         FocusCommand.NotifyCanExecuteChanged();
         EnterCommand.NotifyCanExecuteChanged();
+        BrowseBlockContentsCommand.NotifyCanExecuteChanged();
         BackCommand.NotifyCanExecuteChanged();
         RootCommand.NotifyCanExecuteChanged();
         BreadcrumbCommand.NotifyCanExecuteChanged();
@@ -893,7 +909,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     }
 
     private Task<UiMessage> ReadInventoryAsync(CancellationToken cancellationToken) =>
-        ReadInventoryAsync(IsSelectedObjectsOnly, cancellationToken);
+        IsBrowsingBlockContents
+            ? ReadBlockContentsAsync(false, cancellationToken)
+            : ReadInventoryAsync(IsSelectedObjectsOnly, cancellationToken);
 
     private Task<UiMessage> ReadAutomaticInventoryAsync(CancellationToken cancellationToken) =>
         ReadInventoryAsync(IsSelectedObjectsOnly, cancellationToken, _autoLoadObjectLimit);
@@ -922,6 +940,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         if (cleared is not HostResult<bool>.Success {Value: true})
             return DescribeCleanup(cleared);
+
+        RestoreBlockParent();
 
         if (IsSelectedObjectsOnly != selectedOnly)
         {
@@ -975,6 +995,20 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        ApplyPresentation(presentation);
+
+        if (Current is not null)
+            return await ApplySelectionAndIsolationAsync(cancellationToken);
+
+        return HasGroups
+            ? _grouping == DrawingGrouping.Layers
+                ? "Choose a layer. Auto modes apply while browsing."
+                : "Choose a type. Auto modes apply while browsing."
+            : _emptyMessage;
+    }
+
+    private void ApplyPresentation(LensPresentation presentation)
+    {
         _spaceIsDrawingData = true;
         SpaceLabel = presentation.SpaceLabel;
         OnPropertyChanged(nameof(DisplaySpaceLabel));
@@ -991,7 +1025,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
                  (_propertyFilters.Count != 0 || _propertyGrouping.Values.Any(fields => !fields.IsDefaultOrEmpty))
             ? DrawingLensProvider.Build(_inventory, _grouping, _enabledFilters, _propertyGrouping, _propertyFilters).Groups
             : presentation.Groups;
-        _emptyMessage = IsSelectedObjectsOnly
+        _emptyMessage = IsBrowsingBlockContents
+            ? "No included objects inside this block."
+            : IsSelectedObjectsOnly
             ? _inventory is {Entities.IsEmpty: false}
                 ? "No selected objects match the inclusion filters."
                 : "No selected objects in the active space. Refresh to select objects."
@@ -1005,15 +1041,6 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         OnPropertyChanged(nameof(Filters));
         OnPropertyChanged(nameof(EmptyMessage));
         NotifyNavigation();
-
-        if (Current is not null)
-            return await ApplySelectionAndIsolationAsync(cancellationToken);
-
-        return HasGroups
-            ? _grouping == DrawingGrouping.Layers
-                ? "Choose a layer. Auto modes apply while browsing."
-                : "Choose a type. Auto modes apply while browsing."
-            : _emptyMessage;
     }
 
     private async Task<UiMessage> ToggleAutoIsolationAsync(CancellationToken cancellationToken)
@@ -1179,7 +1206,11 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         OnPropertyChanged(nameof(CurrentFields));
         OnPropertyChanged(nameof(Breadcrumbs));
         OnPropertyChanged(nameof(HasCurrent));
+        OnPropertyChanged(nameof(HasNavigation));
         OnPropertyChanged(nameof(IsObject));
+        OnPropertyChanged(nameof(IsBrowsingBlockContents));
+        OnPropertyChanged(nameof(CanBrowseBlockContents));
+        OnPropertyChanged(nameof(RefreshLabel));
         OnPropertyChanged(nameof(ObjectPosition));
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(EmptyMessage));

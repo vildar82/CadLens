@@ -640,6 +640,13 @@ public sealed class SelectedObjectsTests
                     : new HostResult<ImmutableArray<IPlacedObjectId>>.Success(NativeSelection));
         }
 
+        public Task<HostResult<LensPresentation>> ReadBlockContentsAsync(
+            IPlacedObjectId block,
+            IReadOnlyCollection<string> enabledFilters,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<LensPresentation>>(
+                new HostResult<LensPresentation>.Unavailable("Block contents are unavailable."));
+
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
             IReadOnlyCollection<string> enabledFilters,
