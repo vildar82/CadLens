@@ -905,10 +905,15 @@ public sealed class ExplorerNavigationTests
 
     private sealed class Actions : IObjectExplorerActions
     {
-        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating)
@@ -921,14 +926,19 @@ public sealed class ExplorerNavigationTests
         internal TaskCompletionSource<HostResult<bool>>? PendingSelection { get; set; }
         internal CancellationToken SelectionToken { get; private set; }
 
-        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<HostResult<bool>> SelectAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             SelectionToken = cancellationToken;
             SelectionTargets = objects;
             return PendingSelection?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             IsolationTargets = [];
             return Task.FromResult(ClearResult);
@@ -984,7 +994,9 @@ public sealed class ExplorerNavigationTests
             return Pending?.Task ?? Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(presentation));
         }
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             ClearCount++;
             ClearToken = cancellationToken;
@@ -999,7 +1011,10 @@ public sealed class ExplorerNavigationTests
             return PendingClear?.Task ?? Task.FromResult(ClearResult);
         }
 
-        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             IsolationTargets = objects;
             IsolationToken = cancellationToken;
@@ -1007,7 +1022,10 @@ public sealed class ExplorerNavigationTests
             return PendingIsolation?.Task ?? Task.FromResult("Selection updated.");
         }
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             HostCalls++;
             FocusCount++;

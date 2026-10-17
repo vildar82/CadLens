@@ -279,7 +279,7 @@ public partial class ExplorerWindow
 
     private sealed record WindowDimensions(double Width, double Height);
 
-    private Rect GetMonitorWorkArea()
+    internal Rect GetMonitorWorkArea()
     {
         var handle = new WindowInteropHelper(this).Handle;
         var info = new MonitorInfo {Size = Marshal.SizeOf<MonitorInfo>()};

@@ -102,7 +102,14 @@ namespace CadLens.Common.AutoCAD
 {
     internal static class OccurrenceExtensions
     {
-        internal static void Zoom(this Autodesk.AutoCAD.ApplicationServices.Editor editor, Extents3d bounds) =>
+        internal static void Zoom(
+            this Autodesk.AutoCAD.ApplicationServices.Editor editor,
+            Extents3d bounds,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             editor.ZoomBounds = bounds;
+            cancellationToken.ThrowIfCancellationRequested();
+        }
     }
 }

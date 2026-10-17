@@ -14,6 +14,8 @@ public partial class ObjectExplorerView
             System.Windows.Automation.AutomationLiveSetting.Polite);
 #endif
         DataContext = viewModel;
+        viewModel.CreateProgressWindow = cancel =>
+            new OperationProgressWindow(cancel, Resources, System.Windows.Window.GetWindow(this));
     }
 
     private void DisplayPropertyClicked(object _, System.Windows.RoutedEventArgs __) =>

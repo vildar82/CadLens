@@ -14,12 +14,19 @@ internal sealed class EntityOccurrence
     internal Matrix3d Transform { get; private set; } = Matrix3d.Identity;
     internal bool IsVisible { get; private set; } = true;
 
-    internal static EntityOccurrence? Resolve(Database database, EntityId target)
+    internal static EntityOccurrence? Resolve(
+        Database database,
+        EntityId target,
+        HashSet<ObjectId>? frozenLayers = null,
+        CancellationToken cancellationToken = default)
     {
         var ids = new List<EntityId>();
 
         for (var node = target; node is not null; node = node.Container)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             ids.Add(node);
+        }
 
         ids.Reverse();
         var result = new EntityOccurrence();
@@ -27,15 +34,11 @@ internal sealed class EntityOccurrence
         var inheritedLayer = default(ObjectId);
         var parentTransform = Matrix3d.Identity;
         BlockReference? parent = null;
-        HashSet<ObjectId> frozen = [];
-        var document = Application.DocumentManager.MdiActiveDocument;
-
-        if (document?.Database == database &&
-            document.Editor.CurrentViewportObjectId.GetObject<Viewport>() is { } viewport)
-            frozen = [.. viewport.GetFrozenLayers().Cast<ObjectId>()];
+        var frozen = frozenLayers ?? ReadFrozenLayers(database, cancellationToken);
 
         foreach (var id in ids)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (id.NativeId.Database != database || id.NativeId.GetObject<Entity>() is not { } entity)
                 return null;
 
@@ -73,30 +76,57 @@ internal sealed class EntityOccurrence
             owner = definition.ObjectId;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
 
-    internal void AddGraphics(List<Entity> graphics)
+    internal static HashSet<ObjectId> ReadFrozenLayers(Database database, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        var document = Application.DocumentManager.MdiActiveDocument;
+        var frozen = new HashSet<ObjectId>();
+
+        if (document?.Database != database ||
+            document.Editor.CurrentViewportObjectId.GetObject<Viewport>() is not { } viewport)
+            return frozen;
+
+        foreach (ObjectId layer in viewport.GetFrozenLayers())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            frozen.Add(layer);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return frozen;
+    }
+
+    internal void AddGraphics(List<Entity> graphics, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (!IsVisible)
             return;
 
         foreach (var (entity, _) in _path)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entity is BlockReference &&
                 entity.ExtensionDictionary.GetObject<DBDictionary>()?.Contains("ACAD_FILTER") == true)
                 throw new NotSupportedException("Isolation inside clipped blocks is unavailable.");
         }
 
-        AddGraphics(Source, graphics, canExplode: true);
+        AddGraphics(Source, graphics, canExplode: true, cancellationToken);
     }
 
-    internal Extents3d? ReadBounds()
+    internal Extents3d? ReadBounds(CancellationToken cancellationToken = default)
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var bounds = Source.GeometricExtents;
+            cancellationToken.ThrowIfCancellationRequested();
             bounds.TransformBy(Transform);
+            cancellationToken.ThrowIfCancellationRequested();
 
             return bounds.MinPoint.X.IsFinite() && bounds.MinPoint.Y.IsFinite() && bounds.MinPoint.Z.IsFinite() &&
                    bounds.MaxPoint.X.IsFinite() && bounds.MaxPoint.Y.IsFinite() && bounds.MaxPoint.Z.IsFinite() &&
@@ -113,8 +143,13 @@ internal sealed class EntityOccurrence
         }
     }
 
-    private void AddGraphics(Entity source, List<Entity> graphics, bool canExplode)
+    private void AddGraphics(
+        Entity source,
+        List<Entity> graphics,
+        bool canExplode,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // Complex entities can retain database-owned children in a shallow transformed copy.
         // Explode those entities into independent in-memory geometry before transforming anything.
         if (source.GetType() == typeof(Polyline2d) || source.GetType() == typeof(Polyline3d))
@@ -127,13 +162,15 @@ internal sealed class EntityOccurrence
             try
             {
                 source.Explode(parts);
+                cancellationToken.ThrowIfCancellationRequested();
 
                 foreach (var part in parts.Cast<DBObject>())
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (part is not Entity entity)
                         throw new NotSupportedException("The nested object has unsupported graphics.");
 
-                    AddGraphics(entity, graphics, canExplode: false);
+                    AddGraphics(entity, graphics, canExplode: false, cancellationToken);
                 }
 
                 if (parts.Count == 0)
@@ -157,10 +194,12 @@ internal sealed class EntityOccurrence
 
         var clone = source.GetTransformedCopy(Transform);
         graphics.Add(clone);
-        ApplyAppearance(clone);
+        cancellationToken.ThrowIfCancellationRequested();
+        ApplyAppearance(clone, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private void ApplyAppearance(Entity clone)
+    private void ApplyAppearance(Entity clone, CancellationToken cancellationToken)
     {
         using var defaultColor = Color.FromColorIndex(ColorMethod.ByAci, 7);
         clone.Color = defaultColor;
@@ -170,6 +209,7 @@ internal sealed class EntityOccurrence
 
         foreach (var (entity, layerId) in _path)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var layer = layerId.GetObject<LayerTableRecord>()!;
             using var color = entity.Color;
 

@@ -204,35 +204,53 @@ public sealed class BlockAttributeDetailsTests
                 new HostResult<LensPresentation>.Success(DrawingLensProvider.Build(Inventory, grouping, enabledFilters)));
         }
 
-        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             throw new NotSupportedException();
 
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating) => Targets = [];
 
-        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<HostResult<bool>> SelectAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Targets = objects;
             return Success();
         }
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) => ClearAsync(cancellationToken);
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) => ClearAsync(cancellationToken);
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Targets = [];
             return Success();
         }
 
-        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Targets = objects;
             return Task.FromResult("");
         }
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Targets = objects;
             return Task.FromResult("");

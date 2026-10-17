@@ -78,9 +78,14 @@ namespace CadLens.Common.AutoCAD
 {
     internal static class InventoryExtensions
     {
-        internal static int SelectObjects(this Autodesk.AutoCAD.ApplicationServices.Editor editor, ObjectId[] objects)
+        internal static int SelectObjects(
+            this Autodesk.AutoCAD.ApplicationServices.Editor editor,
+            ObjectId[] objects,
+            CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             editor.Selection = objects;
+            cancellationToken.ThrowIfCancellationRequested();
             return objects.Length;
         }
     }

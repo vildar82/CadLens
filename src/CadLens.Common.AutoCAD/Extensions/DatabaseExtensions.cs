@@ -15,12 +15,23 @@ public static class DatabaseExtensions
 
         /// <summary>Combines usable extents of direct objects in the current space. Requires an active regular transaction.</summary>
         /// <param name="objects">Candidate objects; invalid, erased, or out-of-space objects are skipped.</param>
-        public Extents3d? ReadBounds(IEnumerable<ObjectId> objects)
+        /// <param name="cancellationToken">Cooperative request cancellation.</param>
+        /// <param name="progress">Optional bounds-reading progress.</param>
+        public Extents3d? ReadBounds(
+            IEnumerable<ObjectId> objects,
+            IProgress<OperationProgress>? progress = null,
+            CancellationToken cancellationToken = default)
         {
             Extents3d? bounds = null;
+            var completed = 0;
+            var total = objects is IReadOnlyCollection<ObjectId> collection ? collection.Count : 0;
 
             foreach (var target in objects)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (++completed % 64 == 0)
+                    progress?.Report(new OperationProgress(OperationStage.Reading, completed, total));
                 if (!target.IsValid || target.Database != database)
                     continue;
 
@@ -32,6 +43,7 @@ public static class DatabaseExtensions
                 try
                 {
                     var extents = entity.GeometricExtents;
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     if (!HasUsableBounds(extents))
                         continue;
@@ -47,6 +59,8 @@ public static class DatabaseExtensions
                 }
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Report(new OperationProgress(OperationStage.Reading, completed, total));
             return bounds;
         }
     }

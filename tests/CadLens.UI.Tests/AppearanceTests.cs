@@ -339,10 +339,15 @@ public sealed class AppearanceTests
         internal int ReadCount { get; private set; }
         internal int DrawingActionCount { get; private set; }
 
-        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating)
@@ -391,27 +396,36 @@ public sealed class AppearanceTests
 
         public Task<HostResult<bool>> SelectAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             DrawingActionCount++;
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             ClearAsync(cancellationToken);
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             DrawingActionCount++;
             return Task.FromResult("Isolated.");
         }
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             DrawingActionCount++;
             return Task.FromResult("Focused.");

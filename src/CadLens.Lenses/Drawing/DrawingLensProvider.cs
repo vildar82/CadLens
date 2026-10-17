@@ -10,6 +10,8 @@ namespace CadLens.Lenses;
 /// <param name="source">Detached snapshot source.</param>
 public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawingLensProvider
 {
+    private const int BackgroundBuildThreshold = 512;
+
     /// <summary>Option identity for globally or viewport-frozen layers.</summary>
     public const string IncludeFrozen = "include-frozen";
 
@@ -66,8 +68,20 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             showBlockContents,
             progress).ConfigureAwait(false);
 
-        return result.Bind(snapshot => new HostResult<LensPresentation>.Success(
-            Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken)));
+        if (result is HostResult<DrawingInventory>.Unavailable unavailable)
+            return new HostResult<LensPresentation>.Unavailable(unavailable.Reason);
+
+        var snapshot = ((HostResult<DrawingInventory>.Success) result).Value;
+        var presentation = await BuildLoadedAsync(
+                snapshot,
+                grouping,
+                includeFrozen,
+                includeOff,
+                progress,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return new HostResult<LensPresentation>.Success(presentation);
     }
 
     /// <inheritdoc />
@@ -82,19 +96,47 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         var result = await source.ReadAsync([block], cancellationToken, includeBlockContents: true, progress: progress)
             .ConfigureAwait(false);
 
-        return result.Bind<DrawingInventory, LensPresentation>(snapshot =>
-            snapshot.Entities.Any(entity => entity.Id.Equals(block))
-            ? new HostResult<LensPresentation>.Unavailable(
-                "Block contents are no longer available. Refresh to try again.")
-            : new HostResult<LensPresentation>.Success(
-                Build(
-                    snapshot,
-                    DrawingGrouping.ObjectTypes,
-                    includeFrozen,
-                    includeOff,
-                    null,
-                    null,
-                    cancellationToken)));
+        if (result is HostResult<DrawingInventory>.Unavailable unavailable)
+            return new HostResult<LensPresentation>.Unavailable(unavailable.Reason);
+
+        var snapshot = ((HostResult<DrawingInventory>.Success) result).Value;
+
+        foreach (var entity in snapshot.Entities)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (entity.Id.Equals(block))
+                return new HostResult<LensPresentation>.Unavailable(
+                    "Block contents are no longer available. Refresh to try again.");
+        }
+
+        var presentation = await BuildLoadedAsync(
+            snapshot,
+            DrawingGrouping.ObjectTypes,
+            includeFrozen,
+            includeOff,
+            progress,
+            cancellationToken).ConfigureAwait(false);
+
+        return new HostResult<LensPresentation>.Success(presentation);
+    }
+
+    private static Task<LensPresentation> BuildLoadedAsync(
+        DrawingInventory snapshot,
+        DrawingGrouping grouping,
+        bool includeFrozen,
+        bool includeOff,
+        IProgress<DrawingReadProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var building = progress is null ? null : new ReadBuildProgress(progress);
+
+        return snapshot.Entities.Length > BackgroundBuildThreshold
+            ? Task.Run(
+                () => Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken, building),
+                cancellationToken)
+            : Task.FromResult(
+                Build(snapshot, grouping, includeFrozen, includeOff, null, null, cancellationToken, building));
     }
 
     /// <summary>Rebuilds a drawing lens from detached facts without performing another host read.</summary>
@@ -103,12 +145,16 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     /// <param name="enabledFilters">Current visibility inclusion choices.</param>
     /// <param name="propertyGrouping">Selected combined properties for each runtime type.</param>
     /// <param name="propertyFilters">Optional property condition for each runtime type.</param>
+    /// <param name="cancellationToken">Cancellation of detached filtering and tree construction.</param>
+    /// <param name="progress">Optional progress through entities considered for the tree.</param>
     public static LensPresentation Build(
         DrawingInventory snapshot,
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping = null,
-        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters = null) =>
+        IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters = null,
+        IProgress<OperationProgress>? progress = null,
+        CancellationToken cancellationToken = default) =>
         Build(
             snapshot,
             grouping,
@@ -116,7 +162,8 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             enabledFilters.Contains(IncludeOff),
             propertyGrouping,
             propertyFilters,
-            CancellationToken.None);
+            cancellationToken,
+            progress);
 
     private static LensPresentation Build(
         DrawingInventory snapshot,
@@ -125,18 +172,32 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         bool includeOff,
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        var building = new BuildProgress(snapshot.Entities.Length, progress, cancellationToken);
+        building.Start();
 
         var layers = snapshot.Layers
-            .Where(layer => IsIncluded(layer, includeFrozen, includeOff))
+            .Where(layer =>
+            {
+                building.ThrowIfCancellationRequested();
+                return IsIncluded(layer, includeFrozen, includeOff);
+            })
             .ToDictionary(layer => layer.Id);
-        var entities = snapshot.Entities
-            .Where(entity => layers.ContainsKey(entity.LayerId) &&
-                             (entity.ContainerLayers.IsDefaultOrEmpty ||
-                              entity.ContainerLayers.All(layers.ContainsKey)))
-            .ToList();
+        var entities = new List<EntitySnapshot>();
+
+        foreach (var entity in snapshot.Entities)
+        {
+            building.ThrowIfCancellationRequested();
+
+            if (layers.ContainsKey(entity.LayerId) &&
+                (entity.ContainerLayers.IsDefaultOrEmpty || entity.ContainerLayers.All(layers.ContainsKey)))
+                entities.Add(entity);
+            else
+                building.Advance();
+        }
+
         var precision = snapshot.Precision ?? DrawingPrecision.Default;
         var groups = grouping switch
         {
@@ -146,7 +207,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 propertyGrouping,
                 propertyFilters,
                 precision,
-                cancellationToken),
+                building),
             DrawingGrouping.ObjectTypes => CreateTypeGroups(
                 entities,
                 layers,
@@ -154,7 +215,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 propertyGrouping,
                 propertyFilters,
                 precision,
-                cancellationToken),
+                building),
             _ => throw new ArgumentOutOfRangeException(nameof(grouping), grouping, "Unknown drawing grouping.")
         };
         var isLayers = grouping == DrawingGrouping.Layers;
@@ -172,6 +233,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             snapshot,
             snapshot.Precision);
 
+        building.Complete();
         return presentation;
     }
 
@@ -181,9 +243,9 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         DrawingPrecision precision,
-        CancellationToken cancellationToken)
+        BuildProgress progress)
     {
-        var entitiesByLayer = entities.GroupBy(entity => entity.LayerId)
+        var entitiesByLayer = CheckItems(entities, progress).GroupBy(entity => entity.LayerId)
             .OrderBy(group => layers[group.Key].Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(group => group.Key.DisplayId, StringComparer.Ordinal);
 
@@ -196,7 +258,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 propertyGrouping,
                 propertyFilters,
                 precision,
-                cancellationToken))
+                progress))
         ];
     }
 
@@ -217,16 +279,16 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         DrawingPrecision precision,
-        CancellationToken cancellationToken)
+        BuildProgress progress)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        progress.ThrowIfCancellationRequested();
 
-        var types = CreateTypeGroups(entities, layers, layer, propertyGrouping, propertyFilters, precision, cancellationToken);
+        var types = CreateTypeGroups(entities, layers, layer, propertyGrouping, propertyFilters, precision, progress);
 
         return new LensNode(
             layer.Id.DisplayId,
             layer.Name,
-            [.. types.SelectMany(type => type.Objects)],
+            [.. CheckItems(types, progress).SelectMany(type => type.Objects)],
             types,
             CreateLayerDetails(layer),
             [LensAction.Focus],
@@ -241,12 +303,19 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         DrawingPrecision precision,
-        CancellationToken cancellationToken) =>
+        BuildProgress progress) =>
     [
-        .. entities.GroupBy(entity => entity.TypeKey, StringComparer.Ordinal)
+        .. CheckItems(entities, progress).GroupBy(entity => entity.TypeKey, StringComparer.Ordinal)
             .OrderBy(group => group.Key.GetTypeLabel(), StringComparer.OrdinalIgnoreCase)
             .ThenBy(group => group.Key, StringComparer.Ordinal)
-            .Select(group => CreateTypeNode(group, layers, layer, propertyGrouping, propertyFilters, precision, cancellationToken))
+            .Select(group => CreateTypeNode(
+                group,
+                layers,
+                layer,
+                propertyGrouping,
+                propertyFilters,
+                precision,
+                progress))
     ];
 
     private static LensNode CreateTypeNode(
@@ -256,25 +325,40 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
         IReadOnlyDictionary<string, DrawingPropertyFilter>? propertyFilters,
         DrawingPrecision precision,
-        CancellationToken cancellationToken)
+        BuildProgress progress)
     {
         var label = entities.Key.GetTypeLabel();
         var filter = propertyFilters?.TryGetValue(entities.Key, out var selectedFilter) == true ? selectedFilter : null;
-        var orderedEntities = entities
-            .Where(entity => filter is null || filter.Matches(entity, layers[entity.LayerId]))
-            .OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal)
-            .ToList();
+        var included = new List<EntitySnapshot>();
+
+        foreach (var entity in entities)
+        {
+            progress.ThrowIfCancellationRequested();
+
+            if (filter is null || filter.Matches(entity, layers[entity.LayerId]))
+                included.Add(entity);
+            else
+                progress.Advance();
+        }
+
+        List<EntitySnapshot> orderedEntities =
+        [
+            .. CheckItems(included, progress).OrderBy(entity => entity.Id.DisplayId, StringComparer.Ordinal)
+        ];
         var objects = orderedEntities
-            .Select(entity => CreateObjectNode(layers[entity.LayerId], entity, label, cancellationToken))
+            .Select(entity => CreateObjectNode(layers[entity.LayerId], entity, label, progress))
             .ToImmutableArray();
-        var fields = GetGroupingFields(orderedEntities, propertyGrouping);
-        var children = fields.IsEmpty ? objects : CreatePropertyGroups(orderedEntities, objects, layers, fields, precision);
-        var metric = GetCommonMetric(objects);
+        var fields = GetGroupingFields(orderedEntities, propertyGrouping, progress);
+        var children = fields.IsEmpty
+            ? objects
+            : CreatePropertyGroups(orderedEntities, objects, layers, fields, precision, progress);
+        progress.ThrowIfCancellationRequested();
+        var metric = GetCommonMetric(objects, progress);
 
         return new LensNode(
             entities.Key,
             label,
-            [.. objects.SelectMany(node => node.Objects)],
+            [.. CheckItems(objects, progress).SelectMany(node => node.Objects)],
             children,
             layer is null
                 ? [CreatePrimitiveTypeField(entities.Key)]
@@ -289,11 +373,11 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         LayerSnapshot layer,
         EntitySnapshot entity,
         string typeLabel,
-        CancellationToken cancellationToken)
+        BuildProgress progress)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        progress.ThrowIfCancellationRequested();
 
-        return new LensNode(
+        var node = new LensNode(
             entity.Id.DisplayId,
             DrawingProperties.GetValue(entity, layer, DrawingPropertyId.BlockName) is DrawingTextValue
             {
@@ -307,7 +391,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
                 .. CreateLayerDetails(layer),
                 CreatePrimitiveTypeField(entity.TypeKey),
                 .. DrawingProperties.GetDetails(entity, layer),
-                .. CreateAttributeDetails(entity)
+                .. CreateAttributeDetails(entity, progress)
             ],
             entity.CanBrowseContents ? [LensAction.Focus, LensAction.BrowseContents] : [LensAction.Focus],
             LensNodeKind.Object,
@@ -318,12 +402,17 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             ],
             RowMetric: DrawingProperties.GetPrimaryMetric(entity),
             DisplayColor: entity.Properties?.GetValueOrDefault(DrawingPropertyId.Color) is DrawingColorValue
-                {Color.Kind: AssignedColorKind.ByLayer}
+            {
+                Color.Kind: AssignedColorKind.ByLayer
+            }
                 ? layer.DisplayColor
                 : entity.DisplayColor);
+
+        progress.Advance();
+        return node;
     }
 
-    private static IEnumerable<DetailField> CreateAttributeDetails(EntitySnapshot entity)
+    private static IEnumerable<DetailField> CreateAttributeDetails(EntitySnapshot entity, BuildProgress progress)
     {
         var attributes = entity.Properties?
             .Where(pair => pair.Key.Source == DrawingPropertySource.Attribute)
@@ -337,11 +426,13 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
         yield return new DetailField(
             "Attribute values",
-            attributes.Count != 0 ? "" : count is DrawingNumberValue {Value: 0} ? "No attached attributes" : "Unavailable",
+            attributes.Count != 0 ? "" :
+            count is DrawingNumberValue {Value: 0} ? "No attached attributes" : "Unavailable",
             DetailValueKind.ApplicationText);
 
         foreach (var (key, value) in attributes)
         {
+            progress.ThrowIfCancellationRequested();
             var text = (value as DrawingTextValue)?.Text;
             yield return new DetailField(
                 key.Name,
@@ -372,14 +463,15 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
     private static ImmutableArray<DrawingPropertyKey> GetGroupingFields(
         List<EntitySnapshot> entities,
-        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping)
+        IReadOnlyDictionary<string, ImmutableArray<DrawingPropertyKey>>? propertyGrouping,
+        BuildProgress progress)
     {
         if (entities.Count == 0 || propertyGrouping is null ||
             !propertyGrouping.TryGetValue(entities[0].TypeKey, out var selected) ||
             selected.IsDefaultOrEmpty)
             return [];
 
-        var available = DrawingProperties.GetAvailableFields(entities);
+        var available = DrawingProperties.GetAvailableFields(CheckItems(entities, progress));
 
         return [.. selected.Where(available.Contains).Distinct().OrderBy(id => id)];
     }
@@ -389,12 +481,14 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         ImmutableArray<LensNode> objects,
         Dictionary<ILayerId, LayerSnapshot> layers,
         ImmutableArray<DrawingPropertyKey> fields,
-        DrawingPrecision precision)
+        DrawingPrecision precision,
+        BuildProgress progress)
     {
         var groups = new Dictionary<PropertyGroupKey, List<LensNode>>();
 
         for (var index = 0; index < entities.Count; index++)
         {
+            progress.ThrowIfCancellationRequested();
             var entity = entities[index];
             var key = new PropertyGroupKey(
             [
@@ -414,7 +508,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
         return
         [
-            .. groups.Select(group => CreatePropertyNode(group.Key, group.Value))
+            .. CheckItems(groups, progress).Select(group => CreatePropertyNode(group.Key, group.Value, progress))
                 .OrderBy(node => node.Id, StringComparer.Ordinal)
         ];
     }
@@ -432,15 +526,15 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         return number with {Value = number.Unit == DrawingUnit.Angle ? rounded * (Math.PI / 180) : rounded};
     }
 
-    private static LensNode CreatePropertyNode(PropertyGroupKey key, List<LensNode> objects)
+    private static LensNode CreatePropertyNode(PropertyGroupKey key, List<LensNode> objects, BuildProgress progress)
     {
         var first = objects[0];
 
         return new LensNode(
             key.GetIdentity(),
             string.Empty,
-            [.. objects.SelectMany(node => node.Objects)],
-            [.. objects],
+            [.. CheckItems(objects, progress).SelectMany(node => node.Objects)],
+            [.. CheckItems(objects, progress)],
             [
                 .. key.Properties.Select(property => new DetailField(
                     DrawingProperties.GetLabel(property.Id),
@@ -453,14 +547,68 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
             LensNodeKind.PropertyGroup,
             first.TypeKey,
             key.Properties,
-            GetCommonMetric(objects));
+            GetCommonMetric(objects, progress));
     }
 
-    private static DrawingMetric? GetCommonMetric(IEnumerable<LensNode> objects)
+    private static DrawingMetric? GetCommonMetric(IEnumerable<LensNode> objects, BuildProgress progress)
     {
-        var ids = objects.Select(node => node.RowMetric?.Id).Where(id => id is not null).Distinct().ToList();
+        var ids = CheckItems(objects, progress)
+            .Select(node => node.RowMetric?.Id).Where(id => id is not null).Distinct().ToList();
 
         return ids.Count == 1 ? new DrawingMetric(ids[0]!.Value, null) : null;
+    }
+
+    private static IEnumerable<T> CheckItems<T>(IEnumerable<T> items, BuildProgress progress)
+    {
+        foreach (var item in items)
+        {
+            progress.ThrowIfCancellationRequested();
+            yield return item;
+        }
+
+        progress.ThrowIfCancellationRequested();
+    }
+
+    private sealed class ReadBuildProgress(IProgress<DrawingReadProgress> progress) : IProgress<OperationProgress>
+    {
+        public void Report(OperationProgress value) =>
+            progress.Report(new DrawingReadProgress(value.Completed, value.Total, value.Completed, value.Stage));
+    }
+
+    private sealed class BuildProgress(
+        int total,
+        IProgress<OperationProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        private const int ReportInterval = 256;
+        private int _completed;
+
+        internal void Start()
+        {
+            ThrowIfCancellationRequested();
+            progress?.Report(new OperationProgress(OperationStage.Building, Total: total));
+            ThrowIfCancellationRequested();
+        }
+
+        internal void Advance()
+        {
+            ThrowIfCancellationRequested();
+            _completed++;
+
+            if (_completed < total && _completed % ReportInterval == 0)
+                progress?.Report(new OperationProgress(OperationStage.Building, _completed, total));
+
+            ThrowIfCancellationRequested();
+        }
+
+        internal void Complete()
+        {
+            ThrowIfCancellationRequested();
+            progress?.Report(new OperationProgress(OperationStage.Building, total, total));
+            ThrowIfCancellationRequested();
+        }
+
+        internal void ThrowIfCancellationRequested() => cancellationToken.ThrowIfCancellationRequested();
     }
 
     private sealed class PropertyGroupKey(ImmutableArray<DrawingProperty> properties) : IEquatable<PropertyGroupKey>

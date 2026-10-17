@@ -73,48 +73,33 @@ public sealed class ExplorerViewModelTests
     [InlineData(300, 450, false)]
     [InlineData(370, 660, true)]
     [InlineData(300, 450, true)]
-    public void RenderPanelWithLargeInventory(int width, int height, bool details)
+    public void RenderPanelWithLargeInventory(int width, int height, bool details) => WpfTest.Run(() =>
     {
-        Exception? failure = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                using var lens = new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers);
-                using var shell = new ExplorerViewModel([lens]);
-                shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
-                var viewModel = lens.ViewModel;
-                Assert.Equal(24, viewModel.GroupCount);
-                if (details)
-                    viewModel.EnterCommand.Execute(viewModel.Items[0]);
-                using var windowSettings = new SettingsFile();
-                var window = new ExplorerWindow(shell, settings: windowSettings.Service);
-                var content = (FrameworkElement) window.Content;
-                content.Measure(new Size(width, height));
-                content.Arrange(new Rect(0, 0, width, height));
-                content.UpdateLayout();
-                const double dpi = 96;
-                var bitmap = new RenderTargetBitmap(width, height, dpi, dpi, PixelFormats.Pbgra32);
-                bitmap.Render(content);
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                using var output = File.Create(
-                    Path.Combine(
-                        AppContext.BaseDirectory,
-                        $"panel-{width}x{height}-{details}.png"));
-                encoder.Save(output);
-                window.Close();
-            }
-            catch (Exception exception)
-            {
-                failure = exception;
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "WPF render did not finish.");
-        Assert.Null(failure);
-    }
+        using var lens = new ObjectExplorerLens(new Actions(), DrawingGrouping.Layers);
+        using var shell = new ExplorerViewModel([lens]);
+        shell.ToggleLensCommand.ExecuteAsync(shell.Lenses[0]).GetAwaiter().GetResult();
+        var viewModel = lens.ViewModel;
+        Assert.Equal(24, viewModel.GroupCount);
+        if (details)
+            viewModel.EnterCommand.Execute(viewModel.Items[0]);
+        using var windowSettings = new SettingsFile();
+        var window = new ExplorerWindow(shell, settings: windowSettings.Service);
+        var content = (FrameworkElement) window.Content;
+        content.Measure(new Size(width, height));
+        content.Arrange(new Rect(0, 0, width, height));
+        content.UpdateLayout();
+        const double dpi = 96;
+        var bitmap = new RenderTargetBitmap(width, height, dpi, dpi, PixelFormats.Pbgra32);
+        bitmap.Render(content);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var output = File.Create(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                $"panel-{width}x{height}-{details}.png"));
+        encoder.Save(output);
+        window.Close();
+    });
 
     /// <summary>The real window collapses to its bar and restores resized content without moving its origin.</summary>
     [Fact]
@@ -299,10 +284,15 @@ public sealed class ExplorerViewModelTests
 
     private sealed class Actions : IObjectExplorerActions
     {
-        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating)
@@ -311,10 +301,13 @@ public sealed class ExplorerViewModelTests
 
         public Task<HostResult<bool>> SelectAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             ClearAsync(cancellationToken);
 
         internal TaskCompletionSource<HostResult<bool>>? PendingCleanup { get; set; }
@@ -346,12 +339,15 @@ public sealed class ExplorerViewModelTests
             ? InventoryCompletion.Task
             : Task.FromResult<HostResult<LensPresentation>>(new HostResult<LensPresentation>.Success(Presentation()));
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             PendingCleanup?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             if (!DelayIsolation)
                 return Task.FromResult("Selection updated.");
@@ -360,7 +356,10 @@ public sealed class ExplorerViewModelTests
             return Completion.Task;
         }
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult("Focused.");
     }
 }

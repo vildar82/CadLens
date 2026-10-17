@@ -851,4 +851,64 @@
   <data name="Object availability could not be verified. Showing collected data. {0}" xml:space="preserve">
     <value>Object availability could not be verified. Showing collected data. {0}</value>
   </data>
+  <data name="Cancel" xml:space="preserve">
+  <value>Cancel</value>
+</data>
+  <data name="Cancelling…" xml:space="preserve">
+  <value>Cancelling…</value>
+</data>
+  <data name="Unable to request cancellation." xml:space="preserve">
+  <value>Unable to request cancellation.</value>
+</data>
+  <data name="Preparing…" xml:space="preserve">
+  <value>Preparing…</value>
+</data>
+  <data name="Reading drawing objects…" xml:space="preserve">
+  <value>Reading drawing objects…</value>
+</data>
+  <data name="Building explorer groups…" xml:space="preserve">
+  <value>Building explorer groups…</value>
+</data>
+  <data name="Selecting drawing objects…" xml:space="preserve">
+  <value>Selecting drawing objects…</value>
+</data>
+  <data name="Preparing isolation…" xml:space="preserve">
+  <value>Preparing isolation…</value>
+</data>
+  <data name="Creating temporary graphics…" xml:space="preserve">
+  <value>Creating temporary graphics…</value>
+</data>
+  <data name="Displaying temporary graphics…" xml:space="preserve">
+  <value>Displaying temporary graphics…</value>
+</data>
+  <data name="Regenerating drawing view…" xml:space="preserve">
+  <value>Regenerating drawing view…</value>
+</data>
+  <data name="Clearing temporary isolation…" xml:space="preserve">
+  <value>Clearing temporary isolation…</value>
+</data>
+  <data name="Focusing view…" xml:space="preserve">
+  <value>Focusing view…</value>
+</data>
+  <data name="Checking object availability…" xml:space="preserve">
+  <value>Checking object availability…</value>
+</data>
+  <data name="Waiting for object selection…" xml:space="preserve">
+  <value>Waiting for object selection…</value>
+</data>
+  <data name="{0} {1:N0} of {2:N0}" xml:space="preserve">
+  <value>{0} {1:N0} of {2:N0}</value>
+</data>
+  <data name="{0} {1:N0} processed" xml:space="preserve">
+  <value>{0} {1:N0} processed</value>
+</data>
+  <data name="Operation canceled. Isolation cleared. Auto Isolate off." xml:space="preserve">
+  <value>Operation canceled. Isolation cleared. Auto Isolate off.</value>
+</data>
+  <data name="Operation canceled. {0}" xml:space="preserve">
+  <value>Operation canceled. {0}</value>
+</data>
+  <data name="Cancelling… Press Esc in AutoCAD to finish object selection." xml:space="preserve">
+  <value>Cancelling… Press Esc in AutoCAD to finish object selection.</value>
+</data>
 </root>

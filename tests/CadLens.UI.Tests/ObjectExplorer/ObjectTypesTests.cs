@@ -440,7 +440,8 @@ public sealed class ObjectTypesTests
 
         public Task<HostResult<bool>> SelectAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Selected = objects;
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
@@ -448,25 +449,33 @@ public sealed class ObjectTypesTests
 
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Isolated = objects;
             return Task.FromResult("Isolated.");
         }
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Focused = objects;
             return Task.FromResult("Focused.");
         }
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Isolated = [];
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             ClearCount++;
             Selected = [];
@@ -474,10 +483,15 @@ public sealed class ObjectTypesTests
             return PendingClear?.Task ?? Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
 
-        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating)

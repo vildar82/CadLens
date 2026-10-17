@@ -1,8 +1,13 @@
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Xunit;
 
 namespace CadLens.UI.Tests;
+
+/// <summary>Serializes WPF checks that share app language and appearance resources.</summary>
+[CollectionDefinition("WPF", DisableParallelization = true)]
+public sealed class WpfCollection;
 
 internal static class WpfTest
 {
@@ -30,6 +35,17 @@ internal static class WpfTest
             catch (Exception exception)
             {
                 failure = exception;
+            }
+            finally
+            {
+                try
+                {
+                    Dispatcher.FromThread(Thread.CurrentThread)?.InvokeShutdown();
+                }
+                catch (Exception exception)
+                {
+                    failure ??= exception;
+                }
             }
         });
         thread.SetApartmentState(ApartmentState.STA);

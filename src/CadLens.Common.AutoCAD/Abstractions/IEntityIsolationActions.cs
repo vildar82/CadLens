@@ -6,9 +6,16 @@ public interface IEntityIsolationActions
     /// <summary>Keeps direct or nested targets visible; an empty set clears the effect.</summary>
     /// <param name="objects">Occurrence targets captured by the caller.</param>
     /// <param name="cancellationToken">Request cancellation.</param>
-    Task<HostResult<int>> IsolateAsync(EntityId[] objects, CancellationToken cancellationToken);
+    /// <param name="progress">Optional operation stage and item counts.</param>
+    Task<HostResult<int>> IsolateAsync(
+        EntityId[] objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Clears temporary isolation in host context.</summary>
     /// <param name="cancellationToken">Request cancellation.</param>
-    Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken);
+    /// <param name="progress">Optional cleanup stage and item counts.</param>
+    Task<HostResult<bool>> ClearAsync(
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 }

@@ -985,6 +985,16 @@
                 </Grid>
                 <DockPanel Margin="0,7,0,0">
                     <Button
+                        x:Name="CancelOperation"
+                        Margin="6,0,0,0"
+                        Padding="10,4"
+                        VerticalAlignment="Center"
+                        Command="{Binding CancelCommand}"
+                        Content="{ui:Localize 'Cancel'}"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource ModeButton}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BooleanVisibility}}" />
+                    <Button
                         x:Name="ResetAction"
                         Padding="10,4"
                         AutomationProperties.Name="{ui:Localize 'Reset selection, isolation, and Auto modes'}"
@@ -1033,15 +1043,15 @@
             x:Name="DrawingReadProgressBar"
             Grid.Row="3"
             Height="3"
-            AutomationProperties.Name="{Binding ReadProgressText}"
+            AutomationProperties.Name="{Binding Status}"
             Background="{DynamicResource QuietBorder}"
             BorderThickness="0"
             Foreground="{DynamicResource QuietAccent}"
-            IsIndeterminate="{Binding IsReadProgressIndeterminate}"
-            Maximum="{Binding ReadProgress.TotalRoots, FallbackValue=1}"
+            IsIndeterminate="{Binding IsProgressIndeterminate}"
+            Maximum="{Binding ProgressMaximum}"
             Minimum="0"
-            ToolTip="{Binding ReadProgressText}"
-            Value="{Binding ReadProgress.CompletedRoots, FallbackValue=0}"
-            Visibility="{Binding IsReading, Converter={StaticResource BooleanVisibility}}" />
+            ToolTip="{Binding Status}"
+            Value="{Binding ProgressValue, Mode=OneWay}"
+            Visibility="{Binding IsBusy, Converter={StaticResource BooleanVisibility}}" />
     </Grid>
 </UserControl>
