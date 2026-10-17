@@ -16,11 +16,14 @@ public sealed class BlockContentsNavigationTests
     /// <summary>
     /// Contents preserve the parent breadcrumb and occurrence targets before restoring the original object position.
     /// </summary>
-    [Fact]
-    public async Task BrowseContentsPreservesParentAndOccurrenceActions()
+    /// <param name="grouping">Parent drawing organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    [InlineData(DrawingGrouping.Layers)]
+    public async Task BrowseContentsPreservesParentAndOccurrenceActions(DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         var block = model.Current!;
         var path = model.Breadcrumbs.ToArray();
         var position = model.ObjectPosition;
@@ -73,13 +76,16 @@ public sealed class BlockContentsNavigationTests
     /// Refresh retains the block target without prompting, and drawing scope commands leave its contents.
     /// </summary>
     /// <param name="showAll">Whether the all-objects control exits the block instead of the root breadcrumb.</param>
+    /// <param name="grouping">Parent drawing organization.</param>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task RefreshReadsSameBlockAndDrawingCommandsExitScope(bool showAll)
+    [InlineData(false, DrawingGrouping.ObjectTypes)]
+    [InlineData(true, DrawingGrouping.ObjectTypes)]
+    [InlineData(false, DrawingGrouping.Layers)]
+    [InlineData(true, DrawingGrouping.Layers)]
+    public async Task RefreshReadsSameBlockAndDrawingCommandsExitScope(bool showAll, DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         await model.BrowseBlockContentsCommand.ExecuteAsync(null);
 
         await model.ReadCommand.ExecuteAsync(null);
@@ -106,13 +112,16 @@ public sealed class BlockContentsNavigationTests
     /// A failed read or selection cleanup keeps the parent object, position, and existing isolation.
     /// </summary>
     /// <param name="selectionFails">Whether selection cleanup stops the read.</param>
+    /// <param name="grouping">Parent drawing organization.</param>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task UnavailableContentsOrSelectionFailureRetainsParent(bool selectionFails)
+    [InlineData(false, DrawingGrouping.ObjectTypes)]
+    [InlineData(true, DrawingGrouping.ObjectTypes)]
+    [InlineData(false, DrawingGrouping.Layers)]
+    [InlineData(true, DrawingGrouping.Layers)]
+    public async Task UnavailableContentsOrSelectionFailureRetainsParent(bool selectionFails, DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         var parent = model.Current;
         var position = model.ObjectPosition;
         await model.IsolateCommand.ExecuteAsync(null);
@@ -132,11 +141,14 @@ public sealed class BlockContentsNavigationTests
     /// <summary>
     /// Auto isolation retains the parent during reads, narrows for children, and cannot revive after Reset.
     /// </summary>
-    [Fact]
-    public async Task AutoIsolationFollowsContentsAndResetClearsIt()
+    /// <param name="grouping">Parent drawing organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    [InlineData(DrawingGrouping.Layers)]
+    public async Task AutoIsolationFollowsContentsAndResetClearsIt(DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
         Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Isolated);
         await model.BrowseBlockContentsCommand.ExecuteAsync(null);
@@ -178,11 +190,14 @@ public sealed class BlockContentsNavigationTests
     /// <summary>
     /// Manual parent isolation remains active while entering and refreshing contents with Auto isolation off.
     /// </summary>
-    [Fact]
-    public async Task ManualIsolationSurvivesContentsEntryAndRootRefresh()
+    /// <param name="grouping">Parent drawing organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    [InlineData(DrawingGrouping.Layers)]
+    public async Task ManualIsolationSurvivesContentsEntryAndRootRefresh(DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         await model.IsolateCommand.ExecuteAsync(null);
 
         await model.BrowseBlockContentsCommand.ExecuteAsync(null);
@@ -201,11 +216,14 @@ public sealed class BlockContentsNavigationTests
     /// <summary>
     /// Auto isolation at the contents root targets its parent block, and turning it off clears that target.
     /// </summary>
-    [Fact]
-    public async Task AutoIsolationToggleAtContentsRootAppliesAndClearsParent()
+    /// <param name="grouping">Parent drawing organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    [InlineData(DrawingGrouping.Layers)]
+    public async Task AutoIsolationToggleAtContentsRootAppliesAndClearsParent(DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         await model.BrowseBlockContentsCommand.ExecuteAsync(null);
 
         await model.ToggleAutoIsolationCommand.ExecuteAsync(null);
@@ -222,11 +240,14 @@ public sealed class BlockContentsNavigationTests
     /// <summary>
     /// A late block read cannot repopulate the explorer after its drawing context is cleared.
     /// </summary>
-    [Fact]
-    public async Task ContextResetCancelsPendingBlockRead()
+    /// <param name="grouping">Parent drawing organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    [InlineData(DrawingGrouping.Layers)]
+    public async Task ContextResetCancelsPendingBlockRead(DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         actions.Pending = new TaskCompletionSource<HostResult<LensPresentation>>();
         var browse = model.BrowseBlockContentsCommand.ExecuteAsync(null);
         Assert.True(model.IsBusy);
@@ -246,11 +267,14 @@ public sealed class BlockContentsNavigationTests
     /// <summary>
     /// Inclusion and property grouping rebuild the contents inventory without reading the drawing or block again.
     /// </summary>
-    [Fact]
-    public async Task InclusionAndGroupingUseRetainedBlockContents()
+    /// <param name="grouping">Parent drawing organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    [InlineData(DrawingGrouping.Layers)]
+    public async Task InclusionAndGroupingUseRetainedBlockContents(DrawingGrouping grouping)
     {
         var actions = new Actions();
-        using var model = await OpenBlock(actions);
+        using var model = await OpenBlock(actions, grouping);
         await model.BrowseBlockContentsCommand.ExecuteAsync(null);
         Assert.Equal(1, model.ObjectCount);
 
@@ -273,8 +297,11 @@ public sealed class BlockContentsNavigationTests
     /// <summary>
     /// The real detail button follows the capability binding and updates its English and Russian label.
     /// </summary>
-    [Fact]
-    public void BrowseButtonBindsVisibilityCommandAndLocalizedLabel() => WpfTest.Run(() =>
+    /// <param name="grouping">Parent drawing organization.</param>
+    [Theory]
+    [InlineData(DrawingGrouping.ObjectTypes)]
+    [InlineData(DrawingGrouping.Layers)]
+    public void BrowseButtonBindsVisibilityCommandAndLocalizedLabel(DrawingGrouping grouping) => WpfTest.Run(() =>
     {
         var previous = UiText.Current.Preference;
 
@@ -282,7 +309,7 @@ public sealed class BlockContentsNavigationTests
         {
             UiText.Current.Select(LanguagePreference.English, persist: false);
             var actions = new Actions();
-            using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.ObjectTypes);
+            using var model = new ObjectExplorerViewModel(actions, grouping);
             model.ActivateAsync(CancellationToken.None).GetAwaiter().GetResult();
             var view = new ObjectExplorerView(model);
             view.Measure(new Size(320, 600));
@@ -294,6 +321,7 @@ public sealed class BlockContentsNavigationTests
             view.UpdateLayout();
 
             Assert.Equal(Visibility.Visible, button.Visibility);
+            Assert.True(button.IsEnabled);
             Assert.Same(model.BrowseBlockContentsCommand, button.Command);
             Assert.Equal("Browse block contents", button.Content);
             UiText.Current.Select(LanguagePreference.Russian, persist: false);
@@ -308,9 +336,9 @@ public sealed class BlockContentsNavigationTests
         }
     });
 
-    private static async Task<ObjectExplorerViewModel> OpenBlock(Actions actions)
+    private static async Task<ObjectExplorerViewModel> OpenBlock(Actions actions, DrawingGrouping grouping)
     {
-        var model = new ObjectExplorerViewModel(actions, DrawingGrouping.ObjectTypes);
+        var model = new ObjectExplorerViewModel(actions, grouping);
         await model.ActivateAsync(CancellationToken.None);
         await EnterBlock(model);
 
@@ -319,6 +347,9 @@ public sealed class BlockContentsNavigationTests
 
     private static async Task EnterBlock(ObjectExplorerViewModel model)
     {
+        if (Assert.Single(model.Items).Kind == LensNodeKind.Layer)
+            await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+
         await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
         await model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Objects.Contains(Actions.Block)));
     }
