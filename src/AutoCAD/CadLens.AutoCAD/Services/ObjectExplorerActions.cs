@@ -18,9 +18,11 @@ internal sealed class ObjectExplorerActions(
     IHostTaskService hostTasks) : IObjectExplorerActions
 {
     public async Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        progress?.Report(new OperationProgress(OperationStage.Preparing));
 
         try
         {
@@ -31,13 +33,13 @@ internal sealed class ObjectExplorerActions(
                     "The active drawing is no longer available.");
 
             var space = document.Database.CurrentSpaceId;
-            var selected = ReadPreselection(document);
+            var selected = ReadPreselection(document, cancellationToken, progress);
 
             if (!selected.IsEmpty)
                 return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(selected);
 
             var result = await hostTasks.RunAsync(
-                () => RequestObjects(document, space, cancellationToken),
+                () => RequestObjects(document, space, cancellationToken, progress),
                 cancellationToken);
             return result.Bind(value => value);
         }
@@ -50,7 +52,8 @@ internal sealed class ObjectExplorerActions(
     private HostResult<ImmutableArray<IPlacedObjectId>> RequestObjects(
         Document document,
         ObjectId space,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -58,7 +61,7 @@ internal sealed class ObjectExplorerActions(
             return new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
                 "The active drawing space has changed. Refresh to try again.");
 
-        var selected = ReadPreselection(document);
+        var selected = ReadPreselection(document, cancellationToken, progress);
 
         if (!selected.IsEmpty)
             return new HostResult<ImmutableArray<IPlacedObjectId>>.Success(selected);
@@ -87,6 +90,8 @@ internal sealed class ObjectExplorerActions(
                 MessageForAdding = "\n" + UiText.Current.Get("Select objects to explore:"),
                 MessageForRemoval = "\n" + UiText.Current.Get("Remove objects from selection:")
             };
+            progress?.Report(new OperationProgress(OperationStage.WaitingForSelection));
+            cancellationToken.ThrowIfCancellationRequested();
             var result = document.Editor.GetSelection(options);
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -95,7 +100,8 @@ internal sealed class ObjectExplorerActions(
                     "The active drawing space has changed. Refresh to try again.");
 
             return result.Status == PromptStatus.OK
-                ? new HostResult<ImmutableArray<IPlacedObjectId>>.Success(ToObjects(result))
+                ? new HostResult<ImmutableArray<IPlacedObjectId>>.Success(
+                    ToObjects(result, cancellationToken, progress))
                 : new HostResult<ImmutableArray<IPlacedObjectId>>.Unavailable(
                     "Object selection canceled. Previous view kept.");
         }
@@ -103,7 +109,21 @@ internal sealed class ObjectExplorerActions(
         {
             try
             {
-                restoreIsolation();
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        graphics.Clear(progress: progress);
+                    }
+                    catch (Exception)
+                    {
+                        // Failed native removals retain their owner for retry; preserve the cancellation result.
+                    }
+                }
+                else
+                {
+                    restoreIsolation();
+                }
             }
             finally
             {
@@ -116,14 +136,38 @@ internal sealed class ObjectExplorerActions(
     private static bool HasContext(Document document, ObjectId space) =>
         document == Application.DocumentManager.MdiActiveDocument && document.Database.CurrentSpaceId == space;
 
-    private static ImmutableArray<IPlacedObjectId> ReadPreselection(Document document)
+    private static ImmutableArray<IPlacedObjectId> ReadPreselection(
+        Document document,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var selected = document.Editor.SelectImplied();
-        return selected.Status == PromptStatus.OK ? ToObjects(selected) : [];
+        cancellationToken.ThrowIfCancellationRequested();
+        return selected.Status == PromptStatus.OK ? ToObjects(selected, cancellationToken, progress) : [];
     }
 
-    private static ImmutableArray<IPlacedObjectId> ToObjects(PromptSelectionResult selected) =>
-        [.. selected.Value.GetObjectIds().Select<ObjectId, IPlacedObjectId>(id => new EntityId(id))];
+    private static ImmutableArray<IPlacedObjectId> ToObjects(
+        PromptSelectionResult selected,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress)
+    {
+        var ids = selected.Value.GetObjectIds();
+        cancellationToken.ThrowIfCancellationRequested();
+        var objects = new List<IPlacedObjectId>();
+
+        for (var index = 0; index < ids.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            objects.Add(new EntityId(ids[index]));
+
+            if ((index + 1) % 64 == 0 || index + 1 == ids.Length)
+                progress?.Report(new OperationProgress(OperationStage.Selecting, index + 1, ids.Length));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return [.. objects];
+    }
 
     public void ClearImmediately(bool hostTerminating)
     {
@@ -140,10 +184,14 @@ internal sealed class ObjectExplorerActions(
 
     public Task<HostResult<bool>> SelectAsync(
         ImmutableArray<IPlacedObjectId> objects,
-        CancellationToken cancellationToken) =>
-        visualization.SelectAsync(objects, cancellationToken);
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null) =>
+        visualization.SelectAsync(objects, cancellationToken, progress);
 
-    public async Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken)
+    public async Task<HostResult<bool>> ExistsAsync(
+        IPlacedObjectId target,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var document = Application.DocumentManager.MdiActiveDocument;
@@ -156,7 +204,7 @@ internal sealed class ObjectExplorerActions(
 
         var space = document.Database.CurrentSpaceId;
         var result = await hostTasks.RunAsync(
-            () => ReadExistence(document, space, entity, cancellationToken),
+            () => ReadExistence(document, space, entity, cancellationToken, progress),
             cancellationToken);
 
         return result.Bind(value => value);
@@ -166,15 +214,18 @@ internal sealed class ObjectExplorerActions(
         Document document,
         ObjectId space,
         EntityId target,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!HasContext(document, space))
             return new HostResult<bool>.Unavailable("The active drawing space has changed. Refresh to try again.");
 
+        progress?.Report(new OperationProgress(OperationStage.Checking, 0, 1));
         using var transaction = document.Database.TransactionManager.StartTransaction();
-        var exists = target.Exists(document.Database);
+        var exists = target.Exists(document.Database, cancellationToken);
+        progress?.Report(new OperationProgress(OperationStage.Checking, 1, 1));
         cancellationToken.ThrowIfCancellationRequested();
         transaction.Commit();
 
@@ -197,14 +248,18 @@ internal sealed class ObjectExplorerActions(
         IProgress<DrawingReadProgress>? progress = null) =>
         lens.LoadBlockContentsAsync(block, enabledFilters, cancellationToken, progress);
 
-    public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
-        isolation.ClearAsync(cancellationToken);
+    public Task<HostResult<bool>> ClearIsolationAsync(
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null) =>
+        isolation.ClearAsync(cancellationToken, progress);
 
-    public async Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+    public async Task<HostResult<bool>> ClearAsync(
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null)
     {
-        var selection = await SelectAsync([], cancellationToken);
+        var selection = await SelectAsync([], cancellationToken, progress);
         cancellationToken.ThrowIfCancellationRequested();
-        var isolated = await ClearIsolationAsync(cancellationToken);
+        var isolated = await ClearIsolationAsync(cancellationToken, progress);
 
         if (selection is HostResult<bool>.Unavailable)
             return selection;
@@ -214,9 +269,10 @@ internal sealed class ObjectExplorerActions(
 
     public async Task<string> IsolateObjectsAsync(
         ImmutableArray<IPlacedObjectId> objects,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null)
     {
-        var result = await visualization.IsolateAsync(objects, cancellationToken);
+        var result = await visualization.IsolateAsync(objects, cancellationToken, progress);
 
         return result.Match(
             _ => objects.IsEmpty
@@ -225,9 +281,12 @@ internal sealed class ObjectExplorerActions(
             reason => reason);
     }
 
-    public async Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+    public async Task<string> FocusAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null)
     {
-        var result = await visualization.FocusAsync(objects, cancellationToken);
+        var result = await visualization.FocusAsync(objects, cancellationToken, progress);
 
         return result.Match(_ => "View fitted.", reason => reason);
     }

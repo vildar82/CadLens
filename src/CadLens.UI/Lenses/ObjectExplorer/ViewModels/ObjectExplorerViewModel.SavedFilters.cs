@@ -47,7 +47,9 @@ public sealed partial class ObjectExplorerViewModel
 
     private void InitializeSavedFilters()
     {
-        SavePropertyFilterCommand = new RelayCommand(SavePropertyFilter, () => CanRun() && CanGroup && _settings is not null);
+        SavePropertyFilterCommand = new RelayCommand(
+            SavePropertyFilter,
+            () => CanRun() && CanGroup && _settings is not null);
         ApplySavedPropertyFilterCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(ApplySavedPropertyFilterAsync),
             () => CanRun() && CanGroup && SelectedSavedFilter is not null);
@@ -62,9 +64,10 @@ public sealed partial class ObjectExplorerViewModel
         _savedFilters =
         [
             .. (_settings?.Load<List<SavedPropertyFilter?>>(SavedFiltersFileName) ?? [])
-                .OfType<SavedPropertyFilter>()
-                .Where(preset => !string.IsNullOrWhiteSpace(preset.Name) && !string.IsNullOrWhiteSpace(preset.TypeKey) &&
-                                 preset.Value.ValueKind is not (System.Text.Json.JsonValueKind.Undefined or System.Text.Json.JsonValueKind.Null))
+            .OfType<SavedPropertyFilter>()
+            .Where(preset => !string.IsNullOrWhiteSpace(preset.Name) && !string.IsNullOrWhiteSpace(preset.TypeKey) &&
+                             preset.Value.ValueKind is not (System.Text.Json.JsonValueKind.Undefined
+                                 or System.Text.Json.JsonValueKind.Null))
         ];
         SavedFilterNames =
         [
@@ -121,22 +124,25 @@ public sealed partial class ObjectExplorerViewModel
     private async Task<UiMessage> ApplySavedPropertyFilterAsync(CancellationToken cancellationToken)
     {
         RefreshSavedFilters();
-        var preset = _savedFilters.FirstOrDefault(item => item.TypeKey == GroupingTypeKey && item.Name == SelectedSavedFilter);
+        var preset =
+            _savedFilters.FirstOrDefault(item => item.TypeKey == GroupingTypeKey && item.Name == SelectedSavedFilter);
         var objects = UnfilteredType?.Children ?? [];
         var filter = preset?.Read(objects);
         var validator = new PropertyFilterEditor();
         validator.Load(objects, filter);
 
         if (GroupingTypeKey is not { } key || filter is null ||
-            !validator.PropertyOptions.Any(option => option.Id == filter.PropertyId) || validator.CreateFilter() != filter)
+            !validator.PropertyOptions.Any(option => option.Id == filter.PropertyId) ||
+            validator.CreateFilter() != filter)
         {
             SetSavedFilterMessage("This saved filter is not available for the current type.");
             return "This saved filter is not available for the current type.";
         }
 
+        _propertyFilters.TryGetValue(key, out var previousFilter);
         _propertyFilters[key] = filter;
         SetSavedFilterMessage("");
-        return await RebuildPropertyFilterAsync(cancellationToken);
+        return await RebuildPropertyFilterAsync(key, previousFilter, cancellationToken);
     }
 
     private void DeleteSavedPropertyFilter()
@@ -145,7 +151,8 @@ public sealed partial class ObjectExplorerViewModel
             return;
 
         RefreshSavedFilters();
-        var remaining = _savedFilters.Where(preset => preset.TypeKey != GroupingTypeKey || preset.Name != name).ToList();
+        var remaining = _savedFilters.Where(preset => preset.TypeKey != GroupingTypeKey || preset.Name != name)
+            .ToList();
 
         if (SaveFilters(remaining))
             SetSavedFilterMessage("Saved filter deleted.");

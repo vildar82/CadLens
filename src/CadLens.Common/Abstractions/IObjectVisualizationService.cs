@@ -6,11 +6,20 @@ namespace CadLens.Common;
 public interface IObjectVisualizationService
 {
     /// <summary>Replaces native selection; empty targets clear it without changing the view or isolation.</summary>
-    Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+    Task<HostResult<bool>> SelectAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Temporarily hides other objects without changing stored model properties; an empty set clears the effect.</summary>
-    Task<HostResult<bool>> IsolateAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+    Task<HostResult<bool>> IsolateAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Fits the active view to the available bounds of placed objects.</summary>
-    Task<HostResult<bool>> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+    Task<HostResult<bool>> FocusAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 }

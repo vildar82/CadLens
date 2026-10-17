@@ -39,16 +39,18 @@ public static class DatabaseObjectExtensions
     /// </summary>
     /// <param name="target">Collected entity occurrence to verify.</param>
     /// <param name="database">Database containing the placed entity.</param>
-    public static bool Exists(this EntityId target, Database database)
+    /// <param name="cancellationToken">Cooperative request cancellation.</param>
+    public static bool Exists(this EntityId target, Database database, CancellationToken cancellationToken = default)
     {
         for (var node = target; node is not null; node = node.Container)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var id = node.NativeId;
 
             if (id.IsNull || !id.IsValid || id.IsErased || id.Database != database)
                 return false;
         }
 
-        return EntityOccurrence.Resolve(database, target) is not null;
+        return EntityOccurrence.Resolve(database, target, cancellationToken: cancellationToken) is not null;
     }
 }

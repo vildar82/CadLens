@@ -432,14 +432,19 @@ public sealed class PropertyFilterTests
                 new HostResult<LensPresentation>.Success(DrawingLensProvider.Build(inventory, grouping, enabledFilters)));
         }
 
-        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken)
+        public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             SelectionRequests++;
             return Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(
                 new HostResult<ImmutableArray<IPlacedObjectId>>.Success(NativeSelection));
         }
 
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating)
@@ -449,27 +454,37 @@ public sealed class PropertyFilterTests
             Isolated = [];
         }
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             ClearImmediately(false);
             return Success();
         }
 
-        public Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<HostResult<bool>> SelectAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             EffectCalls++;
             Selected = objects;
             return PendingSelection?.Task ?? Success();
         }
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             EffectCalls++;
             Isolated = [];
             return Success();
         }
 
-        public Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> IsolateObjectsAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Assert.NotEmpty(objects);
             EffectCalls++;
@@ -477,7 +492,10 @@ public sealed class PropertyFilterTests
             return Task.FromResult("Isolated.");
         }
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Assert.NotEmpty(objects);
             EffectCalls++;

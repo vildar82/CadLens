@@ -21,87 +21,169 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
     private bool _registered;
 
     /// <inheritdoc />
-    public void Apply(Database database, ObjectId[] targets, ObjectId[] inventory)
+    public void Apply(
+        Database database,
+        ObjectId[] targets,
+        ObjectId[] inventory,
+        IProgress<OperationProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        Clear(redraw: false);
+        cancellationToken.ThrowIfCancellationRequested();
+        Clear(redraw: false, progress);
         _database = database;
-        _hidden = [.. inventory.Except(targets)];
 
         try
         {
-            Register();
+            var visible = new HashSet<ObjectId>();
 
+            foreach (var target in targets)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                visible.Add(target);
+            }
+
+            _hidden = ReadInventory(inventory, cancellationToken, progress);
+
+            foreach (var target in visible)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _hidden.Remove(target);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            Register();
+            cancellationToken.ThrowIfCancellationRequested();
             RegenerateAllViewports(
                 Application.DocumentManager.MdiActiveDocument ??
-                throw new InvalidOperationException("The active drawing is no longer available."));
+                throw new InvalidOperationException("The active drawing is no longer available."),
+                progress,
+                cancellationToken);
         }
         catch
         {
-            Clear(redraw: false);
+            ClearAfterFailure(progress);
             throw;
         }
     }
 
     /// <inheritdoc />
-    public int ApplyOccurrences(Database database, EntityId[] targets, ObjectId[] inventory)
+    public int ApplyOccurrences(
+        Database database,
+        EntityId[] targets,
+        ObjectId[] inventory,
+        IProgress<OperationProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
-        Clear(redraw: false);
+        cancellationToken.ThrowIfCancellationRequested();
+        Clear(redraw: false, progress);
         _database = database;
 
         try
         {
-            if (!database.TileMode && targets.Any(id => id.Container is not null))
-                throw new NotSupportedException("Isolation inside blocks is available only in model space.");
-
-            HashSet<ObjectId> activeSpace = [.. inventory];
+            var activeSpace = ReadInventory(inventory, cancellationToken, progress);
             var direct = new HashSet<ObjectId>();
+            var visited = new HashSet<EntityId>();
             var resolved = new List<(EntityId Id, EntityOccurrence Occurrence)>();
+            progress?.Report(new OperationProgress(OperationStage.Isolating, 0, targets.Length));
 
             using (var transaction = database.TransactionManager.StartTransaction())
             {
-                foreach (var target in targets.Distinct())
+                var frozenLayers = EntityOccurrence.ReadFrozenLayers(database, cancellationToken);
+
+                for (var index = 0; index < targets.Length; index++)
                 {
-                    if (!activeSpace.Contains(target.RootId))
-                        continue;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var target = targets[index];
 
-                    var occurrence = EntityOccurrence.Resolve(database, target);
+                    if (!database.TileMode && target.Container is not null)
+                        throw new NotSupportedException("Isolation inside blocks is available only in model space.");
 
-                    if (occurrence is null)
-                        continue;
+                    if (visited.Add(target) && activeSpace.Contains(target.RootId))
+                    {
+                        var occurrence = EntityOccurrence.Resolve(database, target, frozenLayers, cancellationToken);
 
-                    resolved.Add((target, occurrence));
+                        if (occurrence is not null)
+                        {
+                            resolved.Add((target, occurrence));
 
-                    if (target.Container is null)
-                        direct.Add(target.NativeId);
+                            if (target.Container is null)
+                                direct.Add(target.NativeId);
+                        }
+                    }
+
+                    Report(progress, OperationStage.Isolating, index + 1, targets.Length);
                 }
 
-                foreach (var (id, occurrence) in resolved)
+                progress?.Report(new OperationProgress(OperationStage.CreatingGraphics, 0, resolved.Count));
+
+                for (var index = 0; index < resolved.Count; index++)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var (id, occurrence) = resolved[index];
+
                     if (id.Container is not null && !direct.Contains(id.RootId))
-                        occurrence.AddGraphics(_transients);
+                        occurrence.AddGraphics(_transients, cancellationToken);
+
+                    Report(progress, OperationStage.CreatingGraphics, index + 1, resolved.Count);
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 transaction.Commit();
             }
 
             if (resolved.Count == 0)
             {
-                RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument!);
+                RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument!, progress, cancellationToken);
                 return 0;
             }
 
-            _database = database;
-            _hidden = [.. inventory.Except(direct)];
+            foreach (var target in direct)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                activeSpace.Remove(target);
+            }
+
+            _hidden = activeSpace;
+            cancellationToken.ThrowIfCancellationRequested();
             Register();
-            ShowTransients();
-            RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument!);
+            cancellationToken.ThrowIfCancellationRequested();
+            ShowTransients(progress, cancellationToken);
+            RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument!, progress, cancellationToken);
             return resolved.Count;
         }
         catch
         {
-            ClearAfterFailure();
+            ClearAfterFailure(progress);
             throw;
         }
+    }
+
+    private static HashSet<ObjectId> ReadInventory(
+        ObjectId[] inventory,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress)
+    {
+        var activeSpace = new HashSet<ObjectId>();
+        progress?.Report(new OperationProgress(OperationStage.Isolating, 0, inventory.Length));
+
+        for (var index = 0; index < inventory.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            activeSpace.Add(inventory[index]);
+            Report(progress, OperationStage.Isolating, index + 1, inventory.Length);
+        }
+
+        return activeSpace;
+    }
+
+    private static void Report(
+        IProgress<OperationProgress>? progress,
+        OperationStage stage,
+        int completed,
+        int total)
+    {
+        if (completed % 64 == 0 || completed == total)
+            progress?.Report(new OperationProgress(stage, completed, total));
     }
 
     /// <inheritdoc />
@@ -170,8 +252,9 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         base.SetAttributes(drawable, traits) | (int) DrawableAttributes.IsInvisible;
 
     /// <inheritdoc />
-    public void Clear(bool redraw = true)
+    public void Clear(bool redraw = true, IProgress<OperationProgress>? progress = null)
     {
+        progress?.Report(new OperationProgress(OperationStage.Clearing));
         System.Exception? failure = null;
         EntityIsolationService[] owners = [.. PendingRemoval.Where(owner => owner != this), this];
 
@@ -179,7 +262,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         {
             try
             {
-                owner.ClearOwnedGraphics(redraw && owner == this);
+                owner.ClearOwnedGraphics(redraw && owner == this, progress);
             }
             catch (System.Exception exception)
             {
@@ -191,7 +274,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
             throw new InvalidOperationException("Temporary isolation cleanup failed.", failure);
     }
 
-    private void ClearOwnedGraphics(bool redraw)
+    private void ClearOwnedGraphics(bool redraw, IProgress<OperationProgress>? progress)
     {
         var affectedDatabase = _database;
         _database = null;
@@ -202,15 +285,18 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
 
         try
         {
-            EraseTransients();
+            EraseTransients(progress);
         }
         catch (System.Exception exception)
         {
             failure = exception;
         }
 
+        var disposed = 0;
+
         foreach (var transient in transients)
         {
+            Report(progress, OperationStage.Clearing, ++disposed, transients.Count);
             if (_displayed.Contains(transient))
             {
                 _transients.Add(transient);
@@ -248,7 +334,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         var document = Application.DocumentManager.MdiActiveDocument;
 
         if (redraw && document is not null && document.Database == affectedDatabase)
-            RegenerateAllViewports(document);
+            RegenerateAllViewports(document, progress: progress);
 
         if (failure is not null)
             throw new InvalidOperationException("Temporary isolation cleanup failed.", failure);
@@ -265,36 +351,46 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         Overruling = true;
     }
 
-    private void ShowTransients()
+    private void ShowTransients(
+        IProgress<OperationProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var viewports = new IntegerCollection();
+        var manager = TransientManager.CurrentTransientManager;
+        progress?.Report(new OperationProgress(OperationStage.DisplayingGraphics, 0, _transients.Count));
 
-        foreach (var transient in _transients)
+        for (var index = 0; index < _transients.Count; index++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var transient = _transients[index];
             _displayed.Add(transient);
 
-            if (TransientManager.CurrentTransientManager.AddTransient(
-                    transient,
-                    TransientDrawingMode.Main,
-                    TransientSubMode,
-                    viewports))
-                continue;
+            if (!manager.AddTransient(transient, TransientDrawingMode.Main, TransientSubMode, viewports))
+            {
+                _displayed.Remove(transient);
+                throw new InvalidOperationException("The nested object graphics could not be displayed.");
+            }
 
-            _displayed.Remove(transient);
-            throw new InvalidOperationException("The nested object graphics could not be displayed.");
+            cancellationToken.ThrowIfCancellationRequested();
+            Report(progress, OperationStage.DisplayingGraphics, index + 1, _transients.Count);
         }
     }
 
-    private void EraseTransients()
+    private void EraseTransients(IProgress<OperationProgress>? progress = null)
     {
         var viewports = new IntegerCollection();
         System.Exception? failure = null;
 
-        foreach (var transient in _displayed.ToArray())
+        Entity[] displayed = [.. _displayed];
+        var manager = TransientManager.CurrentTransientManager;
+        var completed = 0;
+
+        foreach (var transient in displayed)
         {
+            Report(progress, OperationStage.Clearing, ++completed, displayed.Length);
             try
             {
-                if (!TransientManager.CurrentTransientManager.EraseTransient(transient, viewports))
+                if (!manager.EraseTransient(transient, viewports))
                     throw new InvalidOperationException("The nested object graphics could not be removed.");
 
                 _displayed.Remove(transient);
@@ -309,11 +405,11 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
             throw new InvalidOperationException("The nested object graphics could not be removed.", failure);
     }
 
-    private void ClearAfterFailure()
+    private void ClearAfterFailure(IProgress<OperationProgress>? progress = null)
     {
         try
         {
-            Clear();
+            Clear(progress: progress);
         }
         catch (System.Exception)
         {
@@ -321,10 +417,18 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         }
     }
 
-    private static void RegenerateAllViewports(Document document)
+    private static void RegenerateAllViewports(
+        Document document,
+        IProgress<OperationProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Report(new OperationProgress(OperationStage.Regenerating));
         const int allViewports = 1;
         dynamic drawing = document.GetAcadDocument();
+        cancellationToken.ThrowIfCancellationRequested();
         drawing.Regen(allViewports);
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Report(new OperationProgress(OperationStage.Regenerating, 1, 1));
     }
 }

@@ -397,7 +397,8 @@ public sealed class BlockContentsNavigationTests
 
         /// <inheritdoc />
         public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             SelectionRequests++;
 
@@ -406,7 +407,9 @@ public sealed class BlockContentsNavigationTests
         }
 
         /// <inheritdoc />
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             ClearImmediately(false);
 
@@ -414,7 +417,10 @@ public sealed class BlockContentsNavigationTests
         }
 
         /// <inheritdoc />
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating)
@@ -426,7 +432,8 @@ public sealed class BlockContentsNavigationTests
         /// <inheritdoc />
         public Task<HostResult<bool>> SelectAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             if (SelectionFails)
                 return Success(false);
@@ -437,7 +444,9 @@ public sealed class BlockContentsNavigationTests
         }
 
         /// <inheritdoc />
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Isolated = [];
 
@@ -447,7 +456,8 @@ public sealed class BlockContentsNavigationTests
         /// <inheritdoc />
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Isolated = objects;
 
@@ -455,7 +465,10 @@ public sealed class BlockContentsNavigationTests
         }
 
         /// <inheritdoc />
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken)
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             Focused = objects;
 

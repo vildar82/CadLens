@@ -98,6 +98,14 @@ public sealed class LoadingProgressTests
         Assert.True(bar.IsIndeterminate);
         expectedText = string.Format(UiText.Current.Culture, UiText.Current.Get("Processed {0:N0} objects"), 200);
         Assert.Equal(expectedText, model.Status);
+        actions.Progress!.Report(new DrawingReadProgress(3, 10, 3, OperationStage.Building));
+        Pump();
+        Assert.False(bar.IsIndeterminate);
+        Assert.Equal(10, bar.Maximum);
+        Assert.Equal(3, bar.Value);
+        Assert.Equal(
+            OperationProgressWindow.FormatProgress(new OperationProgress(OperationStage.Building, 3, 10)),
+            model.Status);
         actions.Complete();
         Finish(loading);
         Assert.False(model.IsReading);
@@ -203,8 +211,9 @@ public sealed class LoadingProgressTests
         internal IProgress<DrawingReadProgress>? Progress { get; private set; }
         internal int ReadCount { get; private set; }
 
-        internal void Complete() => Pending.SetResult(new HostResult<LensPresentation>.Unavailable(
-            "Large drawing. Use Refresh to load all objects, or choose Selected objects."));
+        internal void Complete() => Pending.SetResult(
+            new HostResult<LensPresentation>.Unavailable(
+                "Large drawing. Use Refresh to load all objects, or choose Selected objects."));
 
         public Task<HostResult<LensPresentation>> ReadAsync(
             DrawingGrouping grouping,
@@ -227,11 +236,15 @@ public sealed class LoadingProgressTests
             throw new NotSupportedException();
 
         public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(
                 new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
-        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ExistsAsync(
+            IPlacedObjectId target,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
         public void ClearImmediately(bool hostTerminating)
@@ -240,21 +253,30 @@ public sealed class LoadingProgressTests
 
         public Task<HostResult<bool>> SelectAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             ClearAsync(cancellationToken);
 
-        public Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ClearIsolationAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             ClearAsync(cancellationToken);
 
         public Task<string> IsolateObjectsAsync(
             ImmutableArray<IPlacedObjectId> objects,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult("");
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
 
-        public Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken) =>
+        public Task<string> FocusAsync(
+            ImmutableArray<IPlacedObjectId> objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
             Task.FromResult("");
     }
 }

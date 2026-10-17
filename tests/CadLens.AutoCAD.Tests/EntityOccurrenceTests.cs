@@ -329,6 +329,227 @@ public sealed class EntityOccurrenceTests
         Assert.Equal(new Point3d(101, 1, 0), fixture.Document.Editor.ZoomBounds.Value.MaxPoint);
     }
 
+    /// <summary>
+    /// Cancelling native cloning, display or regeneration removes partial graphics and hiding rules.
+    /// </summary>
+    /// <param name="boundary">Native boundary at which cancellation is requested.</param>
+    [Theory]
+    [InlineData("creating")]
+    [InlineData("displaying")]
+    [InlineData("regenerating")]
+    public void CancellationRollsBackPartialOccurrenceGraphics(string boundary)
+    {
+        using var cancellation = new CancellationTokenSource();
+        Action cancel = cancellation.Cancel;
+        var clones = new List<Entity>();
+        using var fixture = new Fixture((definition, layer, _) => new Line
+        {
+            OwnerId = definition,
+            LayerId = layer,
+            TransformedCopy = _ =>
+            {
+                var clone = new Line();
+                clones.Add(clone);
+
+                if (boundary == "creating" && clones.Count == 2)
+                    cancel();
+
+                return clone;
+            }
+        });
+        var second = fixture.AddInsertion(200);
+
+        switch (boundary)
+        {
+            case "displaying":
+                fixture.Manager.OnAdd = (_, _) =>
+                {
+                    cancel();
+                    return true;
+                };
+                break;
+            case "regenerating":
+                fixture.Document.Drawing.OnRegen = cancel;
+                break;
+        }
+
+        Assert.ThrowsAny<OperationCanceledException>(() => fixture.Graphics.ApplyOccurrences(
+            fixture.Database,
+            [fixture.Target, second],
+            fixture.Inventory,
+            cancellationToken: cancellation.Token));
+
+        Assert.Equal(2, clones.Count);
+        Assert.All(clones, clone => Assert.True(clone.IsDisposed));
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+        Assert.False(fixture.Source.IsDisposed);
+    }
+
+    /// <summary>
+    /// Cancellation immediately after native explode still releases every temporary exploded object.
+    /// </summary>
+    [Fact]
+    public void CancellationDisposesExplodedParts()
+    {
+        using var cancellation = new CancellationTokenSource();
+        Action cancel = cancellation.Cancel;
+        var first = new Line();
+        var second = new Line();
+        using var fixture = new Fixture((definition, layer, _) => new Polyline2d
+        {
+            OwnerId = definition,
+            LayerId = layer,
+            OnExplode = parts =>
+            {
+                parts.Items.Add(first);
+                parts.Items.Add(second);
+                cancel();
+            }
+        });
+
+        Assert.ThrowsAny<OperationCanceledException>(() => fixture.Graphics.ApplyOccurrences(
+            fixture.Database,
+            [fixture.Target],
+            fixture.Inventory,
+            cancellationToken: cancellation.Token));
+
+        Assert.True(first.IsDisposed);
+        Assert.True(second.IsDisposed);
+        Assert.Empty(fixture.Manager.Registered);
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+    }
+
+    /// <summary>
+    /// Native removal failure during cancellation keeps the displayed wrapper alive until cleanup succeeds.
+    /// </summary>
+    [Fact]
+    public void CancelledDisplayRetainsFailedRemovalForRetry()
+    {
+        using var cancellation = new CancellationTokenSource();
+        Action cancel = cancellation.Cancel;
+        using var fixture = new Fixture();
+        fixture.Manager.OnAdd = (_, _) =>
+        {
+            cancel();
+            return true;
+        };
+        fixture.Manager.OnErase = _ => false;
+
+        Assert.ThrowsAny<OperationCanceledException>(() => fixture.Graphics.ApplyOccurrences(
+            fixture.Database,
+            [fixture.Target],
+            fixture.Inventory,
+            cancellationToken: cancellation.Token));
+
+        var clone = Assert.Single(fixture.Manager.Registered);
+        Assert.False(clone.IsDisposed);
+        Assert.False(fixture.Graphics.IsApplicable(fixture.Root));
+        Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
+
+        fixture.Manager.OnErase = null;
+        new EntityIsolationService().Clear(false);
+
+        Assert.True(clone.IsDisposed);
+        Assert.Empty(fixture.Manager.Registered);
+    }
+
+    /// <summary>
+    /// Large occurrence sets report bounded stage updates instead of one notification per native object.
+    /// </summary>
+    [Fact]
+    public void OccurrenceProgressIsThrottledAndReportsNativeStages()
+    {
+        using var fixture = new Fixture();
+        var targets = new List<EntityId> {fixture.Target};
+
+        for (var index = 1; index < 130; index++)
+            targets.Add(fixture.AddInsertion(index * 10));
+
+        var updates = new List<OperationProgress>();
+        var count = fixture.Graphics.ApplyOccurrences(
+            fixture.Database,
+            [.. targets],
+            fixture.Inventory,
+            progress: new CapturedProgress(updates.Add));
+
+        Assert.Equal(130, count);
+        Assert.Equal([0, 64, 128, 130], updates.Where(update =>
+            update.Stage == OperationStage.CreatingGraphics).Select(update => update.Completed));
+        Assert.Equal([0, 64, 128, 130], updates.Where(update =>
+            update.Stage == OperationStage.DisplayingGraphics).Select(update => update.Completed));
+        Assert.Contains(updates, update => update.Stage == OperationStage.Isolating);
+        Assert.Contains(updates, update => update.Stage == OperationStage.Regenerating);
+    }
+
+    /// <summary>
+    /// Production selection, focus and isolation forward their native stage progress to the same observer.
+    /// </summary>
+    [Fact]
+    public async Task VisualizationReportsSelectionFocusAndIsolationStages()
+    {
+        using var fixture = new Fixture();
+        fixture.Database.Objects[fixture.Database.CurrentSpaceId.Value] =
+            new BlockTableRecord(fixture.Inventory) {ObjectId = fixture.Database.CurrentSpaceId};
+        var tasks = new ImmediateTasks();
+        var service = new AutoCadObjectVisualizationService(
+            tasks,
+            new EntityIsolationActions(tasks, fixture.Graphics));
+        var updates = new List<OperationProgress>();
+        var progress = new CapturedProgress(updates.Add);
+
+        var selection = await service.SelectAsync([fixture.Target], CancellationToken.None, progress);
+        Assert.IsType<HostResult<bool>.Success>(selection);
+        Assert.Contains(updates, update => update.Stage == OperationStage.Selecting);
+        updates.Clear();
+
+        var focused = await service.FocusAsync([fixture.Target], CancellationToken.None, progress);
+        Assert.IsType<HostResult<bool>.Success>(focused);
+        Assert.Contains(updates, update => update.Stage == OperationStage.Reading);
+        Assert.Contains(updates, update => update.Stage == OperationStage.Focusing);
+        updates.Clear();
+
+        var isolated = await service.IsolateAsync([fixture.Target], CancellationToken.None, progress);
+        Assert.IsType<HostResult<bool>.Success>(isolated);
+        Assert.Contains(updates, update => update.Stage == OperationStage.Isolating);
+        Assert.Contains(updates, update => update.Stage == OperationStage.CreatingGraphics);
+        Assert.Contains(updates, update => update.Stage == OperationStage.DisplayingGraphics);
+        Assert.Contains(updates, update => update.Stage == OperationStage.Regenerating);
+    }
+
+    /// <summary>
+    /// Cancelling during target or bounds reading prevents the final native selection or view change.
+    /// </summary>
+    /// <param name="focus">Whether to cancel Focus rather than selection.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CancellationPreventsFinalNativeVisualization(bool focus)
+    {
+        using var fixture = new Fixture();
+        using var cancellation = new CancellationTokenSource();
+        Action cancel = cancellation.Cancel;
+        var service = new AutoCadObjectVisualizationService(new ImmediateTasks(), new CapturedIsolation());
+        var progress = new CapturedProgress(update =>
+        {
+            if (update.Completed > 0 && update.Stage == (focus ? OperationStage.Reading : OperationStage.Selecting))
+                cancel();
+        });
+        var request = focus
+            ? service.FocusAsync([fixture.Target], cancellation.Token, progress)
+            : service.SelectAsync([fixture.Target], cancellation.Token, progress);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.Null(fixture.Document.Editor.ZoomBounds);
+        Assert.Empty(fixture.Document.Editor.Selection);
+    }
+
+    private sealed class CapturedProgress(Action<OperationProgress> report) : IProgress<OperationProgress>
+    {
+        public void Report(OperationProgress value) => report(value);
+    }
+
     private sealed class CustomText : DBText;
 
     private sealed class ImmediateTasks : IHostTaskService
@@ -346,14 +567,19 @@ public sealed class EntityOccurrenceTests
     {
         internal EntityId[] Targets { get; private set; } = [];
 
-        public Task<HostResult<int>> IsolateAsync(EntityId[] objects, CancellationToken cancellationToken)
+        public Task<HostResult<int>> IsolateAsync(
+            EntityId[] objects,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Targets = objects;
             return Task.FromResult<HostResult<int>>(new HostResult<int>.Success(objects.Length));
         }
 
-        public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken)
+        public Task<HostResult<bool>> ClearAsync(
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));

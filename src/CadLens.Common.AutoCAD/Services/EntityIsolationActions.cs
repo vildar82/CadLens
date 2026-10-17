@@ -12,8 +12,13 @@ public sealed class EntityIsolationActions(
     IEntityIsolationService graphics) : IEntityIsolationActions
 {
     /// <inheritdoc />
-    public async Task<HostResult<int>> IsolateAsync(EntityId[] objects, CancellationToken cancellationToken)
+    public async Task<HostResult<int>> IsolateAsync(
+        EntityId[] objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Report(new OperationProgress(OperationStage.Preparing));
         var document = Application.DocumentManager.MdiActiveDocument;
 
         if (document is null)
@@ -25,13 +30,15 @@ public sealed class EntityIsolationActions(
         var result = await hostTasks.RunAsync(
             () =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (document != Application.DocumentManager.MdiActiveDocument ||
                     space != document.Database.CurrentSpaceId ||
                     viewport != document.Editor.CurrentViewportObjectId ||
                     viewportNumber != Convert.ToInt32(Application.GetSystemVariable("CVPORT")))
                     return new HostResult<int>.Unavailable("The drawing context changed. Refresh before isolating.");
 
-                return IsolateSelection(document, objects);
+                return IsolateSelection(document, objects, cancellationToken, progress);
             },
             cancellationToken);
 
@@ -39,56 +46,85 @@ public sealed class EntityIsolationActions(
     }
 
     /// <inheritdoc />
-    public Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken) =>
+    public Task<HostResult<bool>> ClearAsync(
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null) =>
         hostTasks.RunAsync(
             () =>
             {
-                graphics.Clear();
-
+                graphics.Clear(progress: progress);
                 return true;
             },
             cancellationToken);
 
-    private HostResult<int> IsolateSelection(Document document, EntityId[] selectedIds)
+    private HostResult<int> IsolateSelection(
+        Document document,
+        EntityId[] selectedIds,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (selectedIds.Length == 0)
         {
-            graphics.Clear();
+            graphics.Clear(progress: progress);
             return new HostResult<int>.Success(0);
         }
 
-        ObjectId[] inventory;
+        var inventory = new List<ObjectId>();
+        var activeSpace = new HashSet<ObjectId>();
+        progress?.Report(new OperationProgress(OperationStage.Reading));
 
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
-            inventory = [.. document.Database.GetActiveSpace().Cast<ObjectId>()];
+            foreach (var id in document.Database.GetActiveSpace().Cast<ObjectId>())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                inventory.Add(id);
+                activeSpace.Add(id);
+
+                if (inventory.Count % 64 == 0)
+                    progress?.Report(new OperationProgress(OperationStage.Reading, inventory.Count));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
             transaction.Commit();
         }
 
-        if (selectedIds.Any(id => id.Container is not null))
+        progress?.Report(new OperationProgress(OperationStage.Reading, inventory.Count, inventory.Count));
+        var targets = new HashSet<ObjectId>();
+        var hasNested = false;
+
+        foreach (var id in selectedIds)
         {
-            var count = graphics.ApplyOccurrences(document.Database, selectedIds, inventory);
+            cancellationToken.ThrowIfCancellationRequested();
+            hasNested |= id.Container is not null;
+
+            if (activeSpace.Contains(id.NativeId) && id.NativeId is {IsValid: true, IsErased: false})
+                targets.Add(id.NativeId);
+        }
+
+        if (hasNested)
+        {
+            var count = graphics.ApplyOccurrences(
+                document.Database,
+                selectedIds,
+                [.. inventory],
+                progress,
+                cancellationToken);
 
             return count > 0
                 ? new HostResult<int>.Success(count)
                 : new HostResult<int>.Unavailable("The selection contains no valid active-space occurrences.");
         }
 
-        ObjectId[] targets =
-        [
-            .. selectedIds.Select(id => id.NativeId)
-                .Intersect(inventory)
-            .Where(id => id is {IsValid: true, IsErased: false})
-        ];
-
-        if (targets.Length == 0)
+        if (targets.Count == 0)
         {
-            graphics.Clear();
+            graphics.Clear(progress: progress);
             return new HostResult<int>.Unavailable("The selection contains no direct active-space objects.");
         }
 
-        graphics.Apply(document.Database, targets, inventory);
-
-        return new HostResult<int>.Success(targets.Length);
+        graphics.Apply(document.Database, [.. targets], [.. inventory], progress, cancellationToken);
+        return new HostResult<int>.Success(targets.Count);
     }
 }

@@ -21,14 +21,24 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
     {
         var completion = new TaskCompletionSource<HostResult<T>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        var state = 0;
 #if NETFRAMEWORK
-        using var cancellation = cancellationToken.Register(() => CancelRequest(completion, cancellationToken));
+        using var cancellation = cancellationToken.Register
 #else
-        await using var cancellation = cancellationToken.Register(() => CancelRequest(completion, cancellationToken));
+        await using var cancellation = cancellationToken.Register
 #endif
-
-        await _dispatcher.InvokeAsync(() =>
+        (() =>
         {
+            // A running callback owns its completion until its native resources and document lock are released.
+            if (Interlocked.CompareExchange(ref state, 2, 0) == 0)
+                CancelRequest(completion, cancellationToken);
+        });
+
+        var enqueue = _dispatcher.InvokeAsync(() =>
+        {
+            if (completion.Task.IsCompleted)
+                return;
+
             if (_stopping)
             {
                 completion.TrySetResult(new HostResult<T>.Unavailable("The task service has stopped."));
@@ -36,11 +46,24 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
             }
 
             var document = Application.DocumentManager.MdiActiveDocument;
-            _requests.Enqueue(() => ExecuteRequest(document, action, completion, cancellationToken));
+            _requests.Enqueue(() => ExecuteRequest(
+                document,
+                action,
+                completion,
+                () => Interlocked.CompareExchange(ref state, 1, 0) == 0,
+                cancellationToken));
             ProcessNextRequest();
         });
 
-        return await completion.Task;
+        _ = enqueue.Task.ContinueWith(task =>
+        {
+            if (task.IsCanceled)
+                completion.TrySetResult(new HostResult<T>.Unavailable("The task service has stopped."));
+            else if (task.IsFaulted)
+                completion.TrySetResult(new HostResult<T>.Unavailable(task.Exception!.GetBaseException().Message));
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+        return await completion.Task.ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -82,18 +105,19 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
         Document? document,
         Func<T> action,
         TaskCompletionSource<HostResult<T>> completion,
+        Func<bool> tryStart,
         CancellationToken cancellationToken)
     {
         if (_stopping || cancellationToken.IsCancellationRequested)
         {
-            CompleteRequest(document, action, completion, cancellationToken);
+            CompleteRequest(document, action, completion, tryStart, cancellationToken);
             return;
         }
 
         try
         {
             Application.DocumentManager.ExecuteInApplicationContext(
-                _ => CompleteRequest(document, action, completion, cancellationToken),
+                _ => CompleteRequest(document, action, completion, tryStart, cancellationToken),
                 null!);
         }
         catch (Exception exception)
@@ -107,11 +131,15 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
         Document? document,
         Func<T> action,
         TaskCompletionSource<HostResult<T>> completion,
+        Func<bool> tryStart,
         CancellationToken cancellationToken)
     {
         // Keep managed exceptions inside the native callback.
         try
         {
+            if (!tryStart())
+                return;
+
             cancellationToken.ThrowIfCancellationRequested();
             HostResult<T> result;
 
@@ -125,6 +153,7 @@ public sealed class AutoCadTaskService : IHostTaskService, IDisposable
                     result = new HostResult<T>.Success(action());
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             completion.TrySetResult(result);
         }
         catch (OperationCanceledException)

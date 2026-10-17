@@ -9,24 +9,41 @@ public interface IObjectExplorerActions
 {
     /// <summary>Returns CAD preselection, or asks the user to select objects when none are selected.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken);
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>
     /// Checks only one placed object and its container path without reloading the inventory.
     /// </summary>
     /// <param name="target">Collected object identity to verify in the active space.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken);
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<HostResult<bool>> ExistsAsync(
+        IPlacedObjectId target,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Clears selection and graphics synchronously at context and lifetime boundaries.</summary>
     /// <param name="hostTerminating">Whether shutdown forbids editor access and regeneration.</param>
     void ClearImmediately(bool hostTerminating);
 
     /// <summary>Replaces native selection; empty targets clear it.</summary>
-    Task<HostResult<bool>> SelectAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+    /// <param name="objects">Collected drawing targets.</param>
+    /// <param name="cancellationToken">Request cancellation.</param>
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<HostResult<bool>> SelectAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Clears only temporary visual isolation.</summary>
-    Task<HostResult<bool>> ClearIsolationAsync(CancellationToken cancellationToken);
+    /// <param name="cancellationToken">Cancellation before cleanup starts.</param>
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<HostResult<bool>> ClearIsolationAsync(
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Reads the active-space inventory without changing the drawing.</summary>
     /// <param name="grouping">Root organization for this lens.</param>
@@ -59,14 +76,25 @@ public interface IObjectExplorerActions
     /// <summary>Isolates the panel selection; empty targets clear it.</summary>
     /// <param name="objects">Current group or object targets.</param>
     /// <param name="cancellationToken">Request cancellation.</param>
-    Task<string> IsolateObjectsAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<string> IsolateObjectsAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Clears CAD selection and temporary rendering.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<HostResult<bool>> ClearAsync(CancellationToken cancellationToken);
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<HostResult<bool>> ClearAsync(
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 
     /// <summary>Fits the current selection without changing visibility.</summary>
     /// <param name="objects">Selected group or object identifiers.</param>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
-    Task<string> FocusAsync(ImmutableArray<IPlacedObjectId> objects, CancellationToken cancellationToken);
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<string> FocusAsync(
+        ImmutableArray<IPlacedObjectId> objects,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
 }

@@ -1,4 +1,5 @@
-﻿using System.Windows.Threading;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Windows.Threading;
 using Autodesk.AutoCAD.ApplicationServices;
 using CadLens.Common;
 using CadLens.Common.AutoCAD;
@@ -106,7 +107,11 @@ public sealed class AutoCadTaskServiceTests
         var request = service.RunAsync(() => called = true, cancellation.Token);
 
         await Dispatcher.Yield();
+#if NETFRAMEWORK
         cancellation.Cancel();
+#else
+        await cancellation.CancelAsync();
+#endif
         var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
         Assert.Equal(cancellation.Token, exception.CancellationToken);
         Assert.True(request.IsCanceled);
@@ -114,6 +119,65 @@ public sealed class AutoCadTaskServiceTests
 
         Assert.False(called);
         Assert.Equal(0, Application.DocumentManager.PendingCount);
+    });
+
+    /// <summary>Cancellation does not need the blocked host dispatcher to enqueue or complete waiting work.</summary>
+    [Fact]
+    public Task CancelsBeforeBlockedDispatcherEnqueues() => OnUiThread(async () =>
+    {
+        using var service = new AutoCadTaskService();
+        using var cancellation = new CancellationTokenSource();
+        var called = false;
+        var request = service.RunAsync(() => called = true, cancellation.Token);
+
+        Task.Run(cancellation.Cancel, CancellationToken.None).GetAwaiter().GetResult();
+        Assert.True(SpinWait.SpinUntil(() => request.IsCompleted, TimeSpan.FromSeconds(3)));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        await Dispatcher.Yield();
+        Assert.False(called);
+        Assert.Equal(0, Application.DocumentManager.PendingCount);
+        await service.StopAsync();
+    });
+
+    /// <summary>A running native call settles only after its action and document lock have unwound.</summary>
+    [Fact]
+    [SuppressMessage("ReSharper", "AccessToDisposedClosure", Justification = "Both worker tasks finish before the test disposes their gates and cancellation source.")]
+    public Task RunningCancellationWaitsForNativeWorkToExit() => OnUiThread(async () =>
+    {
+        using var service = new AutoCadTaskService();
+        using var cancellation = new CancellationTokenSource();
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var document = Application.DocumentManager.MdiActiveDocument!;
+        var request = service.RunAsync(
+            () =>
+            {
+                entered.Set();
+                Assert.True(release.Wait(TimeSpan.FromSeconds(5)));
+                return true;
+            },
+            cancellation.Token);
+        var cancel = Task.Run(() =>
+        {
+            try
+            {
+                Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+                cancellation.Cancel();
+                Assert.True(document.IsLocked);
+                Assert.False(request.IsCompleted);
+            }
+            finally
+            {
+                release.Set();
+            }
+        }, CancellationToken.None);
+
+        await Dispatcher.Yield();
+        Application.DocumentManager.ExecuteNext();
+        await cancel;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.False(document.IsLocked);
+        await service.StopAsync();
     });
 
     /// <summary>Close drains the native callback and waiting work without performing their actions.</summary>
@@ -142,7 +206,9 @@ public sealed class AutoCadTaskServiceTests
     public Task ContainsCallbackFailureAndContinues() => OnUiThread(async () =>
     {
         using var service = new AutoCadTaskService();
-        var failed = service.RunAsync<bool>(() => throw new InvalidOperationException("fixture"), CancellationToken.None);
+        var failed = service.RunAsync<bool>(
+            () => throw new InvalidOperationException("fixture"),
+            CancellationToken.None);
         var next = service.RunAsync(() => true, CancellationToken.None);
 
         await Dispatcher.Yield();
@@ -193,7 +259,7 @@ public sealed class AutoCadTaskServiceTests
                 }
             });
             Dispatcher.Run();
-        }) { IsBackground = true };
+        }) {IsBackground = true};
 
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
