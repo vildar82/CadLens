@@ -20,6 +20,54 @@ namespace CadLens.UI.Tests;
 [Collection("Language changes")]
 public sealed class OperationProgressWindowTests
 {
+    /// <summary>A short session starts and stops while the host owns WPF theme resources.</summary>
+    [Fact]
+    public void ShortSessionDoesNotWaitForHostThemeResources() => WpfTest.Run(() =>
+    {
+        var resources = typeof(Window).Assembly.GetType("System.Windows.SystemResources")!;
+        var themeLock = resources.GetProperty("ThemeDictionaryLock", BindingFlags.Static | BindingFlags.NonPublic)!
+            .GetValue(null)!;
+        Task session;
+        bool ready;
+
+        lock (themeLock)
+        {
+            session = Task.Run(() =>
+            {
+                var progress = new OperationProgressWindow(() => { });
+                var dispatcher = GetDispatcher(progress);
+                progress.Dispose();
+                WaitForShutdown(dispatcher);
+            });
+            ready = session.Wait(TimeSpan.FromSeconds(2));
+        }
+
+        session.GetAwaiter().GetResult();
+        Assert.True(ready, "Progress lifetime waited for the host's WPF theme resource lock.");
+    });
+
+    /// <summary>Cancel works before window creation and the delayed window retains the cancelling state.</summary>
+    [Fact]
+    public void CancellationBeforeWindowCreationRemainsVisible()
+    {
+        var canceled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var progress = new OperationProgressWindow(() => canceled.TrySetResult(true));
+        Assert.Null(WindowField.GetValue(progress));
+
+        progress.Report(new OperationProgress(OperationStage.WaitingForSelection));
+        progress.RequestCancellation();
+
+        Assert.True(SpinWait.SpinUntil(() => canceled.Task.IsCompleted, TimeSpan.FromSeconds(2)));
+        var window = GetWindow(progress);
+        window.Dispatcher.Invoke(() =>
+        {
+            Assert.False(Find<Button>(window).IsEnabled);
+            Assert.Equal(
+                UiText.Current.Get("Cancelling… Press Esc in AutoCAD to finish object selection."),
+                Find<TextBlock>(window).Text);
+        });
+    }
+
     /// <summary>
     /// The real Cancel button remains responsive while its originating dispatcher is synchronously blocked.
     /// </summary>
@@ -66,7 +114,7 @@ public sealed class OperationProgressWindowTests
             Assert.True(progress.IsCancellationRequested);
         }
 
-        Assert.True(window.Dispatcher.HasShutdownFinished);
+        WaitForShutdown(window.Dispatcher);
     });
 
     /// <summary>
@@ -95,7 +143,7 @@ public sealed class OperationProgressWindowTests
             });
         }
 
-        Assert.True(firstWindow.Dispatcher.HasShutdownFinished);
+        WaitForShutdown(firstWindow.Dispatcher);
         Assert.Equal(0, firstCancellations);
         Window secondWindow;
         var secondCancellations = 0;
@@ -118,7 +166,7 @@ public sealed class OperationProgressWindowTests
             });
         }
 
-        Assert.True(secondWindow.Dispatcher.HasShutdownFinished);
+        WaitForShutdown(secondWindow.Dispatcher);
         Assert.Equal(0, firstCancellations);
     }
 
@@ -130,17 +178,16 @@ public sealed class OperationProgressWindowTests
     {
         var cancellations = 0;
         var progress = new OperationProgressWindow(() => cancellations++);
-        var window = GetWindow(progress);
-        var shown = false;
-        window.Dispatcher.Invoke(() => window.IsVisibleChanged += (_, _) => shown |= window.IsVisible);
+        var dispatcher = GetDispatcher(progress);
+        Assert.Null(WindowField.GetValue(progress));
 
         progress.Dispose();
         progress.Report(new OperationProgress(OperationStage.DisplayingGraphics, 100, 100));
         progress.RequestCancellation();
         progress.Dispose();
 
-        Assert.True(window.Dispatcher.HasShutdownFinished);
-        Assert.False(shown);
+        WaitForShutdown(dispatcher);
+        Assert.Null(WindowField.GetValue(progress));
         Assert.Equal(0, cancellations);
     }
 
@@ -487,10 +534,27 @@ public sealed class OperationProgressWindowTests
         encoder.Save(output);
     }
 
-    private static Window GetWindow(OperationProgressWindow progress) =>
-        Assert.IsType<Window>(typeof(OperationProgressWindow)
-            .GetField("_window", BindingFlags.Instance | BindingFlags.NonPublic)!
+    private static readonly FieldInfo WindowField = typeof(OperationProgressWindow)
+        .GetField("_window", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+    private static Window GetWindow(OperationProgressWindow progress)
+    {
+        Window? window = null;
+        Assert.True(SpinWait.SpinUntil(() =>
+        {
+            window = WindowField.GetValue(progress) as Window;
+            return window is not null;
+        }, TimeSpan.FromSeconds(3)), "The delayed progress window was not created.");
+        return window!;
+    }
+
+    private static Dispatcher GetDispatcher(OperationProgressWindow progress) =>
+        Assert.IsType<Dispatcher>(typeof(OperationProgressWindow)
+            .GetField("_dispatcher", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(progress));
+
+    private static void WaitForShutdown(Dispatcher dispatcher) =>
+        Assert.True(SpinWait.SpinUntil(() => dispatcher.HasShutdownFinished, TimeSpan.FromSeconds(3)));
 
     private static T Find<T>(Window window) where T : FrameworkElement =>
         Assert.Single(

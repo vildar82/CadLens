@@ -1674,7 +1674,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     private async Task CompleteActionAsync(Func<CancellationToken, Task<UiMessage>> action)
     {
-        using var request = CancellationTokenSource.CreateLinkedTokenSource(_activationToken);
+        var request = CancellationTokenSource.CreateLinkedTokenSource(_activationToken);
         _pendingRequest = request;
         NotifyBusy();
         OperationProgressWindow? window = null;
@@ -1745,7 +1745,18 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
                 _pendingRequest = null;
                 NotifyBusy();
             }
+
+            _ = DisposeRequestAsync(window, request);
         }
+    }
+
+    private static async Task DisposeRequestAsync(OperationProgressWindow? window, CancellationTokenSource request)
+    {
+        // A callback already running on the progress thread may still be using this source.
+        if (window is not null)
+            await window.Closed.ConfigureAwait(false);
+
+        request.Dispose();
     }
 
     private sealed class CallbackProgress<T>(Action<T> report) : IProgress<T>

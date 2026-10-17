@@ -20,11 +20,15 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
     private readonly (string Key, Color Color)[] _palette;
     private readonly Rect? _ownerBounds;
     private readonly Rect _workArea;
-    private readonly Thread _thread;
     private readonly TaskCompletionSource<bool> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<bool> _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private OperationProgress _latestProgress = new(OperationStage.Preparing);
+    private Dispatcher? _dispatcher;
     private Window? _window;
-    private Action? _cancelOnDispatcher;
+    private TextBlock? _status;
+    private ProgressBar? _progressBar;
+    private Button? _cancelButton;
+    private bool _cancellationFailed;
     private int _cancellationRequested;
     private int _disposed;
 
@@ -48,9 +52,9 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
             _workArea = owner is ExplorerWindow explorer ? explorer.GetMonitorWorkArea() : SystemParameters.WorkArea;
         }
 
-        _thread = new Thread(RunWindow) {IsBackground = true, Name = "CAD Lens operation progress"};
-        _thread.SetApartmentState(ApartmentState.STA);
-        _thread.Start();
+        var thread = new Thread(RunWindow) {IsBackground = true, Name = "CAD Lens operation progress"};
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
 
         try
         {
@@ -58,7 +62,7 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
         }
         catch
         {
-            _thread.Join();
+            thread.Join();
             throw;
         }
     }
@@ -73,6 +77,9 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
             Interlocked.Exchange(ref _latestProgress, value);
     }
 
+    /// <summary>Completes after the private dispatcher and its cancellation callbacks have stopped.</summary>
+    internal Task Closed => _closed.Task;
+
     /// <summary>
     /// Whether the user requested cancellation through this operation's progress window.
     /// </summary>
@@ -86,12 +93,12 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
         if (Volatile.Read(ref _disposed) != 0)
             return;
 
-        var dispatcher = _window!.Dispatcher;
+        var dispatcher = _dispatcher!;
 
         if (dispatcher.CheckAccess())
-            _cancelOnDispatcher!();
+            CancelOnDispatcher();
         else if (!dispatcher.HasShutdownStarted)
-            dispatcher.BeginInvoke(DispatcherPriority.Send, _cancelOnDispatcher!);
+            dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(CancelOnDispatcher));
     }
 
     /// <summary>
@@ -111,22 +118,25 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
     }
 
     /// <summary>
-    /// Closes this operation's window and waits for its private dispatcher to finish.
+    /// Requests window shutdown without making the host UI thread wait for WPF resource cleanup.
     /// </summary>
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
+        var dispatcher = _dispatcher!;
+
+        if (dispatcher.HasShutdownStarted)
+            return;
+
+        dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(() =>
         {
-            var window = _window!;
-            var dispatcher = window.Dispatcher;
-
-            if (!dispatcher.HasShutdownStarted)
-                dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(window.Close));
-        }
-
-        // A cancellation callback may dispose its own window while a Closing event is still unwinding.
-        if (Thread.CurrentThread != _thread)
-            _thread.Join();
+            if (_window is { } window)
+                window.Close();
+            else
+                dispatcher.BeginInvokeShutdown(DispatcherPriority.Send);
+        }));
     }
 
     private void RunWindow()
@@ -136,19 +146,10 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
         try
         {
             var dispatcher = Dispatcher.CurrentDispatcher;
-            var window = CreateWindow(out var status, out var progressBar, out var cancelButton);
-            _window = window;
-            _cancelOnDispatcher = () => CancelOnDispatcher(status, progressBar, cancelButton);
-            cancelButton.Click += (_, _) => RequestCancellation();
-            window.Closing += OnWindowClosing;
+            _dispatcher = dispatcher;
             timer = new DispatcherTimer(DispatcherPriority.Background, dispatcher)
             {
                 Interval = TimeSpan.FromMilliseconds(100)
-            };
-            window.Closed += (_, _) =>
-            {
-                timer.Stop();
-                dispatcher.BeginInvokeShutdown(DispatcherPriority.Send);
             };
             var elapsed = Stopwatch.StartNew();
             timer.Tick += (_, _) =>
@@ -156,19 +157,13 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
                 if (Volatile.Read(ref _disposed) != 0)
                     return;
 
-                if (Volatile.Read(ref _cancellationRequested) == 0)
-                {
-                    var progress = Volatile.Read(ref _latestProgress);
-                    status.Text = FormatProgress(progress);
-                    progressBar.IsIndeterminate = progress.Total <= 0;
-                    progressBar.Maximum = Math.Max(1, progress.Total);
-                    progressBar.Value = Math.Max(0, Math.Min(progress.Completed, progressBar.Maximum));
-                }
+                if (_window is null && elapsed.ElapsedMilliseconds >= ShowDelayMilliseconds)
+                    ShowWindow();
 
-                if (!window.IsVisible && elapsed.ElapsedMilliseconds >= ShowDelayMilliseconds)
-                    window.Show();
+                UpdateWindow();
             };
             timer.Start();
+            // The host may hold WPF theme locks; only dispatcher readiness can be awaited here.
             _ready.SetResult(true);
             Dispatcher.Run();
         }
@@ -179,22 +174,71 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
         }
         finally
         {
-            timer?.Stop();
+            try
+            {
+                timer?.Stop();
+                Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+            finally
+            {
+                _closed.TrySetResult(true);
+            }
         }
     }
 
-    private void CancelOnDispatcher(TextBlock status, ProgressBar progressBar, Button cancelButton)
+    private void ShowWindow()
+    {
+        var window = CreateWindow(out var status, out var progressBar, out var cancelButton);
+        _status = status;
+        _progressBar = progressBar;
+        _cancelButton = cancelButton;
+        _window = window;
+        cancelButton.Click += (_, _) => RequestCancellation();
+        window.Closing += OnWindowClosing;
+        window.Closed += (_, _) => _dispatcher!.BeginInvokeShutdown(DispatcherPriority.Send);
+        UpdateWindow();
+
+        if (Volatile.Read(ref _disposed) == 0)
+            window.Show();
+    }
+
+    private void UpdateWindow()
+    {
+        if (_window is null)
+            return;
+
+        if (Volatile.Read(ref _cancellationRequested) != 0)
+        {
+            _status!.Text = UiText.Current.Get(CancellationText());
+            _cancelButton!.Content = UiText.Current.Get("Cancelling…");
+            _cancelButton.IsEnabled = false;
+            _progressBar!.IsIndeterminate = true;
+            return;
+        }
+
+        var progress = Volatile.Read(ref _latestProgress);
+        _status!.Text = FormatProgress(progress);
+        _progressBar!.IsIndeterminate = progress.Total <= 0;
+        _progressBar.Maximum = Math.Max(1, progress.Total);
+        _progressBar.Value = Math.Max(0, Math.Min(progress.Completed, _progressBar.Maximum));
+    }
+
+    private string CancellationText()
+    {
+        if (_cancellationFailed)
+            return "Unable to request cancellation.";
+
+        return Volatile.Read(ref _latestProgress).Stage == OperationStage.WaitingForSelection
+            ? "Cancelling… Press Esc in AutoCAD to finish object selection."
+            : "Cancelling…";
+    }
+
+    private void CancelOnDispatcher()
     {
         if (Volatile.Read(ref _disposed) != 0 || Interlocked.Exchange(ref _cancellationRequested, 1) != 0)
             return;
 
-        status.Text = UiText.Current.Get(
-            Volatile.Read(ref _latestProgress).Stage == OperationStage.WaitingForSelection
-                ? "Cancelling… Press Esc in AutoCAD to finish object selection."
-                : "Cancelling…");
-        cancelButton.Content = UiText.Current.Get("Cancelling…");
-        cancelButton.IsEnabled = false;
-        progressBar.IsIndeterminate = true;
+        UpdateWindow();
 
         try
         {
@@ -202,7 +246,8 @@ public sealed class OperationProgressWindow : IProgress<OperationProgress>, IDis
         }
         catch (Exception exception)
         {
-            status.Text = UiText.Current.Get("Unable to request cancellation.");
+            _cancellationFailed = true;
+            UpdateWindow();
             Trace.TraceError("CAD Lens operation cancellation failed: {0}", exception);
         }
     }

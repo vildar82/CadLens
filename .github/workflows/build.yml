@@ -34,7 +34,19 @@ jobs:
         run: dotnet build CadLens.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test CadLens.slnx --configuration Release --no-build --no-restore
+        timeout-minutes: 5
+        run: >-
+          dotnet test CadLens.slnx --configuration Release --no-build --no-restore
+          --blame-hang --blame-hang-timeout 1m --blame-hang-dump-type none
+          --logger trx --results-directory artifacts/test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: CadLens.test-results
+          path: artifacts/test-results
+          if-no-files-found: ignore
 
       - name: Package AutoCAD bundle
         shell: pwsh

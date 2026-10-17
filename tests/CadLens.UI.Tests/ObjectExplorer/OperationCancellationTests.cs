@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Reflection;
 using CadLens.Common;
 using CadLens.Lenses;
 using Xunit;
@@ -59,6 +60,61 @@ public sealed class OperationCancellationTests
         Assert.Equal(UiText.Current.Get("Operation canceled. Isolation cleared. Auto Isolate off."), model.Status);
         actions.Progress!.Report(new OperationProgress(stage, 10, 10));
         Assert.Null(model.OperationProgress);
+    }
+
+    /// <summary>Finishing an operation keeps its token source alive until an in-flight Cancel callback returns.</summary>
+    [Fact]
+    public async Task TokenOutlivesProgressCancellationCallback()
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.ObjectTypes);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+        actions.PauseStage = OperationStage.Selecting;
+        var operation = model.SelectCommand.ExecuteAsync(null);
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var request = Assert.IsType<CancellationTokenSource>(typeof(ObjectExplorerViewModel)
+            .GetField("_pendingRequest", flags)!.GetValue(model));
+        var window = Assert.IsType<OperationProgressWindow>(typeof(ObjectExplorerViewModel)
+            .GetField("_operationWindow", flags)!.GetValue(model));
+        var closed = Assert.IsAssignableFrom<Task>(typeof(OperationProgressWindow)
+            .GetProperty("Closed", flags)!.GetValue(window));
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+#if NETFRAMEWORK
+        using var registration = request.Token.Register(PauseCancellation);
+#else
+        await using var registration = request.Token.Register(PauseCancellation);
+#endif
+
+        try
+        {
+            model.CancelCommand.Execute(null);
+            await WaitAsync(entered.Task);
+            actions.Release.TrySetResult(true);
+            await WaitAsync(operation);
+
+            Assert.False(model.IsBusy);
+            Assert.False(closed.IsCompleted);
+            Assert.True(request.Token.IsCancellationRequested);
+        }
+        finally
+        {
+            release.TrySetResult(true);
+            actions.Release.TrySetResult(true);
+        }
+
+        await WaitAsync(closed);
+        Assert.True(SpinWait.SpinUntil(
+            () => Record.Exception(() => _ = request.Token) is ObjectDisposedException,
+            TimeSpan.FromSeconds(3)));
+        return;
+
+        void PauseCancellation()
+        {
+            entered.TrySetResult(true);
+            SpinWait.SpinUntil(() => release.Task.IsCompleted, TimeSpan.FromSeconds(10));
+        }
     }
 
     /// <summary>A cleanup exception is reported and does not leave the explorer permanently busy.</summary>
