@@ -143,6 +143,44 @@ internal sealed class ObjectExplorerActions(
         CancellationToken cancellationToken) =>
         visualization.SelectAsync(objects, cancellationToken);
 
+    public async Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var document = Application.DocumentManager.MdiActiveDocument;
+
+        if (document is null)
+            return new HostResult<bool>.Unavailable("The active drawing is no longer available.");
+
+        if (target is not EntityId entity)
+            return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
+
+        var space = document.Database.CurrentSpaceId;
+        var result = await hostTasks.RunAsync(
+            () => ReadExistence(document, space, entity, cancellationToken),
+            cancellationToken);
+
+        return result.Bind(value => value);
+    }
+
+    private static HostResult<bool> ReadExistence(
+        Document document,
+        ObjectId space,
+        EntityId target,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!HasContext(document, space))
+            return new HostResult<bool>.Unavailable("The active drawing space has changed. Refresh to try again.");
+
+        using var transaction = document.Database.TransactionManager.StartTransaction();
+        var exists = target.Exists(document.Database);
+        cancellationToken.ThrowIfCancellationRequested();
+        transaction.Commit();
+
+        return new HostResult<bool>.Success(exists);
+    }
+
     public Task<HostResult<LensPresentation>> ReadAsync(
         DrawingGrouping grouping,
         IReadOnlyCollection<string> enabledFilters,

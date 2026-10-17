@@ -33,6 +33,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private string _emptyMessage = "Refresh to explore the active space.";
     private CancellationTokenSource? _pendingRequest;
     private object? _readProgressOperation;
+    private IPlacedObjectId? _availabilityTarget;
+    private HostResult<bool>? _currentObjectAvailability;
     private Task _operation = Task.CompletedTask;
     private ImmutableArray<LensNode> _visibleGroups = [];
     private bool _sortDescending;
@@ -73,11 +75,11 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             CanRun);
         IsolateCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(IsolateCurrentAsync),
-            () => CanRun() && IsolationTarget is {Objects.IsEmpty: false});
+            () => CanRun() && CanUseCurrentTarget && IsolationTarget is {Objects.IsEmpty: false});
         ResetCommand = new AsyncRelayCommand(() => ExecuteActionAsync(ResetAsync), CanRun);
         SelectCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(SelectCurrentAsync),
-            () => CanRun() && Current is {Objects.IsEmpty: false});
+            () => CanRun() && CanUseCurrentTarget && Current is {Objects.IsEmpty: false});
         FocusCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(async token => await _actions.FocusAsync(Current!.Objects, token)),
             () => CanRun() && HasFocusTarget());
@@ -128,7 +130,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         ClearSearchCommand = new RelayCommand(() => SearchText = "");
         BrowseBlockContentsCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(token => ReadBlockContentsAsync(true, token)),
-            () => CanRun() && CanBrowseBlockContents);
+            () => CanRun() && CanUseCurrentTarget && CanBrowseBlockContents);
         InitializeSavedFilters();
         RestorePreferences();
         Filters =
@@ -469,6 +471,35 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         }
     }
 
+    /// <summary>
+    /// Whether the individually displayed object was confirmed to no longer exist.
+    /// </summary>
+    public bool IsCurrentObjectMissing =>
+        IsObject && _currentObjectAvailability is HostResult<bool>.Success {Value: false};
+
+    /// <summary>
+    /// Whether retained object details need an availability explanation.
+    /// </summary>
+    public bool HasObjectAvailabilityNotice => IsObject && _currentObjectAvailability is
+        HostResult<bool>.Success {Value: false} or HostResult<bool>.Unavailable;
+
+    /// <summary>
+    /// Explains why the current object's collected details remain visible without drawing actions.
+    /// </summary>
+    public string ObjectAvailabilityNotice => ObjectAvailabilityMessage.ToString();
+
+    private bool CanUseCurrentTarget =>
+        !IsObject || _currentObjectAvailability is HostResult<bool>.Success {Value: true};
+
+    private UiMessage ObjectAvailabilityMessage => _currentObjectAvailability switch
+    {
+        HostResult<bool>.Success {Value: false} => new UiMessage("Object no longer exists. Showing collected data."),
+        HostResult<bool>.Unavailable unavailable => new UiMessage(
+            "Object availability could not be verified. Showing collected data. {0}",
+            new UiMessage(unavailable.Reason)),
+        _ => new UiMessage("")
+    };
+
     /// <summary>Selected ancestors including the current node.</summary>
     public IReadOnlyList<LensNode> Breadcrumbs => _blockParent is null
         ? _navigation.Path
@@ -688,6 +719,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         UiText.Current.PropertyChanged -= OnLanguageChanged;
         _disposed = true;
+        SetCurrentObjectAvailability(null);
         IsLensActive = false;
         _pendingRequest?.Cancel();
         StopReadProgress();
@@ -701,7 +733,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         !_disposed && !_activationToken.IsCancellationRequested && IsLensActive && _hasDrawing && !IsBusy;
 
     private bool HasFocusTarget() =>
-        Current is {Objects.IsEmpty: false} node && node.Actions.Contains(LensAction.Focus);
+        CanUseCurrentTarget && Current is {Objects.IsEmpty: false} node && node.Actions.Contains(LensAction.Focus);
 
     private void ChangeSort(bool byCount)
     {
@@ -1107,7 +1139,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         IsAutoIsolation = !IsAutoIsolation;
         SavePreferences();
 
-        if (IsAutoIsolation && IsolationTarget is {Objects.IsEmpty: false})
+        if (IsAutoIsolation && CanUseCurrentTarget && IsolationTarget is {Objects.IsEmpty: false})
             return await IsolateCurrentAsync(cancellationToken);
 
         return await ClearIsolationAsync(cancellationToken);
@@ -1118,7 +1150,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         IsAutoSelect = !IsAutoSelect;
         SavePreferences();
 
-        return IsAutoSelect && Current is not null
+        return IsAutoSelect && CanUseCurrentTarget && Current is not null
             ? await SelectCurrentAsync(cancellationToken)
             : DescribeSelection(await _actions.SelectAsync([], cancellationToken), true);
     }
@@ -1128,7 +1160,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         IsAutoFocus = !IsAutoFocus;
         SavePreferences();
 
-        if (IsAutoFocus && Current is not null)
+        if (IsAutoFocus && CanUseCurrentTarget && Current is not null)
             return await FocusCurrentAsync(cancellationToken);
 
         return IsAutoFocus ? "Auto focus on." : "Auto focus off. Camera kept.";
@@ -1162,6 +1194,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         if (Current is {Objects.IsEmpty: true})
             return await ClearEffectsAsync(cancellationToken);
 
+        if (IsObject && !await CheckCurrentObjectAsync(cancellationToken))
+            return new UiMessage("{0} {1}", ObjectAvailabilityMessage, await ClearEffectsAsync(cancellationToken));
+
         List<UiMessage> messages = [];
 
         if (IsAutoSelect)
@@ -1184,7 +1219,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         var message = await ApplySelectionAndIsolationAsync(token);
 
-        if (!IsAutoFocus || Current.Objects.IsEmpty)
+        if (!IsAutoFocus || !CanUseCurrentTarget || Current.Objects.IsEmpty)
             return message;
 
         token.ThrowIfCancellationRequested();
@@ -1248,8 +1283,40 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         }
     }
 
+    private async Task<bool> CheckCurrentObjectAsync(CancellationToken cancellationToken)
+    {
+        var current = Current!;
+        var request = _pendingRequest;
+        SetCurrentObjectAvailability(null);
+        var result = await _actions.ExistsAsync(current.Objects[0], cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_disposed || !ReferenceEquals(request, _pendingRequest) || !ReferenceEquals(current, Current))
+            throw new OperationCanceledException(cancellationToken);
+
+        SetCurrentObjectAvailability(result);
+        return result is HostResult<bool>.Success {Value: true};
+    }
+
+    private void SetCurrentObjectAvailability(HostResult<bool>? availability)
+    {
+        _currentObjectAvailability = availability;
+        OnPropertyChanged(nameof(IsCurrentObjectMissing));
+        OnPropertyChanged(nameof(HasObjectAvailabilityNotice));
+        OnPropertyChanged(nameof(ObjectAvailabilityNotice));
+        NotifyCommands();
+    }
+
     private void NotifyNavigation()
     {
+        var target = IsObject && Current is {Objects.IsEmpty: false} current ? current.Objects[0] : null;
+
+        if (!Equals(target, _availabilityTarget))
+        {
+            _availabilityTarget = target;
+            SetCurrentObjectAvailability(null);
+        }
+
         var type = UnfilteredType;
 
         if (!ReferenceEquals(type, _filterOptionsType))
@@ -1391,7 +1458,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         var message = await ApplySelectionAndIsolationAsync(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return IsAutoFocus
+        return IsAutoFocus && CanUseCurrentTarget
             ? new UiMessage("{0} {1}", await FocusCurrentAsync(cancellationToken), message)
             : message;
     }

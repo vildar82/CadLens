@@ -845,4 +845,10 @@
   <data name="Processed {0:N0} objects" xml:space="preserve">
     <value>Обработано объектов: {0:N0}</value>
   </data>
+  <data name="Object no longer exists. Showing collected data." xml:space="preserve">
+    <value>Объект больше не существует. Показаны собранные данные.</value>
+  </data>
+  <data name="Object availability could not be verified. Showing collected data. {0}" xml:space="preserve">
+    <value>Не удалось проверить, существует ли объект. Показаны собранные данные. {0}</value>
+  </data>
 </root>

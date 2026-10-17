@@ -431,6 +431,9 @@ public sealed partial class LanguageTests : IDisposable
         public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken) =>
             Task.FromResult<HostResult<ImmutableArray<IPlacedObjectId>>>(new HostResult<ImmutableArray<IPlacedObjectId>>.Success([]));
 
+        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         public void ClearImmediately(bool hostTerminating)
         {
         }

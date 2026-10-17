@@ -11,6 +11,13 @@ public interface IObjectExplorerActions
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Checks only one placed object and its container path without reloading the inventory.
+    /// </summary>
+    /// <param name="target">Collected object identity to verify in the active space.</param>
+    /// <param name="cancellationToken">Panel lifetime cancellation.</param>
+    Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken);
+
     /// <summary>Clears selection and graphics synchronously at context and lifetime boundaries.</summary>
     /// <param name="hostTerminating">Whether shutdown forbids editor access and regeneration.</param>
     void ClearImmediately(bool hostTerminating);

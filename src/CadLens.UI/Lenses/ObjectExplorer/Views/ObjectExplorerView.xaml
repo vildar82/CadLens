@@ -776,6 +776,13 @@
                                 FontWeight="SemiBold"
                                 Text="{ui:DrawingValueFormatter Binding={Binding Current}}"
                                 TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="ObjectAvailabilityNotice"
+                                Margin="0,0,0,10"
+                                Foreground="{DynamicResource QuietAccent}"
+                                Text="{Binding ObjectAvailabilityNotice}"
+                                TextWrapping="Wrap"
+                                Visibility="{Binding HasObjectAvailabilityNotice, Converter={StaticResource BooleanVisibility}}" />
                             <Button
                                 x:Name="BrowseBlockContentsAction"
                                 Margin="0,0,0,10"

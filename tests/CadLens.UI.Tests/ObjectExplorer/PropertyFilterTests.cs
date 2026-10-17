@@ -439,6 +439,9 @@ public sealed class PropertyFilterTests
                 new HostResult<ImmutableArray<IPlacedObjectId>>.Success(NativeSelection));
         }
 
+        public Task<HostResult<bool>> ExistsAsync(IPlacedObjectId target, CancellationToken cancellationToken) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         public void ClearImmediately(bool hostTerminating)
         {
             EffectCalls++;

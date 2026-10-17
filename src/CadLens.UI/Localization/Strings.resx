@@ -845,4 +845,10 @@
   <data name="Processed {0:N0} objects" xml:space="preserve">
     <value>Processed {0:N0} objects</value>
   </data>
+  <data name="Object no longer exists. Showing collected data." xml:space="preserve">
+    <value>Object no longer exists. Showing collected data.</value>
+  </data>
+  <data name="Object availability could not be verified. Showing collected data. {0}" xml:space="preserve">
+    <value>Object availability could not be verified. Showing collected data. {0}</value>
+  </data>
 </root>
