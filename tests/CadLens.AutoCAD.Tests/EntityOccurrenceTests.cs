@@ -345,6 +345,83 @@ public sealed class EntityOccurrenceTests
     }
 
     /// <summary>
+    /// A block's bounds ignore members on frozen layers and hidden dynamic states, as Zoom Extents does.
+    /// </summary>
+    [Fact]
+    public async Task FocusIgnoresUndisplayedBlockMembers()
+    {
+        using var fixture = new Fixture();
+        var frozen = fixture.Database.Add(new LayerTableRecord {Name = "Frozen", IsFrozen = true});
+        var far = new Extents3d(new Point3d(-400, -400, 0), new Point3d(400, 400, 0));
+        var shown = fixture.Database.Add(
+            new Line {GeometricExtents = new Extents3d(new Point3d(0, 0, 0), new Point3d(2, 5, 0))});
+        var onFrozenLayer = fixture.Database.Add(new Arc {LayerId = frozen, GeometricExtents = far});
+        var hiddenState = fixture.Database.Add(new Line {Visible = false, GeometricExtents = far});
+        var definition = fixture.Database.Add(new BlockTableRecord(shown, onFrozenLayer, hiddenState));
+        var block = fixture.Database.Add(
+            new BlockReference
+            {
+                OwnerId = fixture.Database.CurrentSpaceId,
+                LayerId = fixture.Layer,
+                BlockTableRecord = definition,
+                BlockTransform = Matrix3d.Displacement(new Vector3d(50, 0, 0)),
+                GeometricExtents = far
+            });
+
+        await FocusAsync(new EntityId(block));
+
+        Assert.Equal(new Point3d(50, 0, 0), fixture.Document.Editor.ZoomBounds!.Value.MinPoint);
+        Assert.Equal(new Point3d(52, 5, 0), fixture.Document.Editor.ZoomBounds.Value.MaxPoint);
+    }
+
+    /// <summary>
+    /// An empty box at the origin cannot stretch Focus, while a real point keeps its position.
+    /// </summary>
+    [Fact]
+    public async Task FocusSkipsEmptyBoundsExceptPoints()
+    {
+        using var fixture = new Fixture();
+        var space = fixture.Database.CurrentSpaceId;
+        var origin = new Extents3d(Point3d.Origin, Point3d.Origin);
+        var empty = fixture.Database.Add(new Line {OwnerId = space, GeometricExtents = origin});
+        var location = new Point3d(100, 50, 0);
+        var point = fixture.Database.Add(
+            new DBPoint {OwnerId = space, GeometricExtents = new Extents3d(location, location)});
+
+        await FocusAsync(new EntityId(empty), new EntityId(point));
+
+        Assert.Equal(location, fixture.Document.Editor.ZoomBounds!.Value.MinPoint);
+        Assert.Equal(location, fixture.Document.Editor.ZoomBounds.Value.MaxPoint);
+    }
+
+    /// <summary>
+    /// Objects reporting more than they draw stop at the drawing extents; targets outside them keep their bounds.
+    /// </summary>
+    /// <param name="overlaps">Whether the drawing extents overlap the target.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task FocusClipsToDrawingExtents(bool overlaps)
+    {
+        using var fixture = new Fixture();
+        var surface = fixture.Database.Add(
+            new Line
+            {
+                OwnerId = fixture.Database.CurrentSpaceId,
+                GeometricExtents = new Extents3d(new Point3d(-1000, -1000, 0), new Point3d(1000, 1000, 0))
+            });
+        var offset = overlaps ? 0 : 5000;
+        fixture.Database.Extmin = new Point3d(offset, offset, 0);
+        fixture.Database.Extmax = new Point3d(offset + 10, offset + 20, 0);
+
+        await FocusAsync(new EntityId(surface));
+
+        var bounds = fixture.Document.Editor.ZoomBounds!.Value;
+        Assert.Equal(overlaps ? new Point3d(0, 0, 0) : new Point3d(-1000, -1000, 0), bounds.MinPoint);
+        Assert.Equal(overlaps ? new Point3d(10, 20, 0) : new Point3d(1000, 1000, 0), bounds.MaxPoint);
+    }
+
+    /// <summary>
     /// Nested inserts accumulate transforms, while attached attributes already use the insertion's parent coordinates.
     /// </summary>
     [Fact]
@@ -661,6 +738,14 @@ public sealed class EntityOccurrenceTests
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
         }
+    }
+
+    private static async Task FocusAsync(params EntityId[] targets)
+    {
+        var service = new AutoCadObjectVisualizationService(new ImmediateTasks(), new CapturedIsolation());
+        var result = await service.FocusAsync([.. targets], CancellationToken.None);
+
+        Assert.IsType<HostResult<bool>.Success>(result);
     }
 
     private sealed class Fixture : IDisposable
