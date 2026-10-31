@@ -56,6 +56,8 @@ public static class DrawingProperties
         DrawingPropertyId.TextHeight => "Text height",
         DrawingPropertyId.Text => "Text content",
         DrawingPropertyId.TextStyle => "Text style",
+        DrawingPropertyId.Name => "Name",
+        DrawingPropertyId.ProxyApplication => "Proxy application",
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Unknown drawing property.")
     };
 

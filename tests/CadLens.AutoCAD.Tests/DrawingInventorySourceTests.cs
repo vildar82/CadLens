@@ -482,6 +482,71 @@ public sealed class DrawingInventorySourceTests
         Assert.Equal(new DrawingNumberValue(15, DrawingUnit.Distance), snapshot.Properties![DrawingPropertyId.Length]);
     }
 
+    /// <summary>A curve with no measurable length keeps its appearance properties and an unavailable length.</summary>
+    [Fact]
+    public void UnmeasurableCurveKeepsAppearance()
+    {
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+
+        var snapshot = reader.Read(new UnmeasurableCurve());
+
+        Assert.Equal(DrawingPropertyId.Length, snapshot.PrimaryMetric);
+        Assert.Null(snapshot.Properties![DrawingPropertyId.Length]);
+        Assert.Contains(DrawingPropertyId.Color, snapshot.Properties.Keys.Select(key => key.BuiltIn));
+    }
+
+    /// <summary>Proxy objects group by their original class and report the application that created them.</summary>
+    [Fact]
+    public void ProxyUsesOriginalClassAndApplication()
+    {
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+
+        var snapshot = reader.Read(new ProxyEntity {OriginalClassName = "AecDbWall", ApplicationDescription = "ACA"});
+
+        Assert.Equal("AecDbWall", snapshot.TypeKey);
+        Assert.Equal(new DrawingTextValue("ACA"), snapshot.Properties![DrawingPropertyId.ProxyApplication]);
+    }
+
+    /// <summary>A proxy without a recorded class keeps the native proxy type.</summary>
+    [Fact]
+    public void ProxyWithoutOriginalClassKeepsNativeType()
+    {
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+
+        Assert.Equal("AcDbProxyEntity", reader.Read(new ProxyEntity()).TypeKey);
+    }
+
+    /// <summary>Custom types publish their name, and a failing getter only makes that value unavailable.</summary>
+    [Fact]
+    public void CustomObjectNamesAreReadAndFailuresStayLocal()
+    {
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+
+        var named = reader.Read(new NamedObject {Name = "Road axis"});
+        var failing = reader.Read(new NamedObject {NameFails = true});
+
+        Assert.Equal(new DrawingTextValue("Road axis"), named.Properties![DrawingPropertyId.Name]);
+        Assert.Null(failing.Properties![DrawingPropertyId.Name]);
+        Assert.Contains(DrawingPropertyId.Color, failing.Properties.Keys.Select(key => key.BuiltIn));
+    }
+
+    private sealed class UnmeasurableCurve : Curve
+    {
+        internal override double GetDistanceAtParameter(double parameter) =>
+            throw new Autodesk.AutoCAD.Runtime.Exception(Autodesk.AutoCAD.Runtime.ErrorStatus.GeneralModelingFailure);
+    }
+
+    private sealed class NamedObject : Entity
+    {
+        internal bool NameFails { get; init; }
+
+        public string Name
+        {
+            get => NameFails ? throw new InvalidOperationException("Getter failure") : field;
+            init;
+        } = "";
+    }
+
     /// <summary>Flattened attributes show actual values and constant definitions, without placeholders.</summary>
     [Fact]
     public async Task AttributesUseActualValuesAndTheirOwnerCoordinateSpace()

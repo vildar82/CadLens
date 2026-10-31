@@ -93,6 +93,9 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    reopening should restore valid navigation/settings without moving the camera. Retry failed cleanup.
 6. Check keyboard use, narrow layouts, dragging/resizing, mixed-DPI monitors, and a large drawing.
    Compare geometry, entity/layer properties, cameras, and DBMOD before and after temporary effects.
+   Open a drawing with proxy objects and, in Civil 3D, alignments and surfaces: proxies must group by their
+   original class and show their application, named objects must show their name, and rays and construction
+   lines must show an unavailable length while keeping their appearance properties.
 7. Open Appearance in the compact bar. With Follow AutoCAD selected, change `COLORTHEME` between
    0 (Dark) and 1 (Light), then verify both lenses, search selection, menus, tooltips, dropdowns,
    disabled controls, hover, and keyboard focus. Explicit Light/Dark should ignore later host theme

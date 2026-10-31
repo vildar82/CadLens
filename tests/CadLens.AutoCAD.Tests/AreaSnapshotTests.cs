@@ -23,7 +23,7 @@ public sealed class AreaSnapshotTests
             (new Arc {ReadArea = () => 12.3451}, DrawingPropertyId.Radius),
             (new Spline {ReadArea = () => 12.3451}, DrawingPropertyId.ControlPoints),
             (new Ellipse {ReadArea = () => 12.3451}, DrawingPropertyId.Length),
-            (new CustomCurve {ReadArea = () => 12.3451}, null)
+            (new CustomCurve {ReadArea = () => 12.3451}, DrawingPropertyId.Length)
         ];
 
         foreach (var (curve, metric) in cases)

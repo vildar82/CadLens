@@ -110,10 +110,16 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal bool Closed { get; init; }
         internal double StartParam { get; init; }
         internal double EndParam { get; init; }
-        internal double GetDistanceAtParameter(double parameter) => parameter * Length;
+        internal virtual double GetDistanceAtParameter(double parameter) => parameter * Length;
     }
 
     internal sealed class Ellipse : Curve;
+
+    internal sealed class ProxyEntity : Entity
+    {
+        internal string OriginalClassName { get; init; } = "";
+        internal string ApplicationDescription { get; init; } = "";
+    }
 
     internal sealed class Polyline : Curve
     {
