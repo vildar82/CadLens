@@ -22,6 +22,7 @@
         <Compile Include="../../src/CadLens.Common.AutoCAD/Services/AutoCadObjectVisualizationService.cs" Link="AutoCadObjectVisualizationService.cs"/>
         <Compile Include="../../src/CadLens.Common.AutoCAD/Extensions/EntityOccurrence.cs" Link="EntityOccurrence.cs"/>
         <Compile Include="../../src/CadLens.Common.AutoCAD/Extensions/DatabaseExtensions.cs" Link="DatabaseExtensions.cs"/>
+        <Compile Include="../../src/CadLens.Common.AutoCAD/Extensions/VisibleBounds.cs" Link="VisibleBounds.cs"/>
         <Compile Include="../../src/CadLens.Common.AutoCAD/Extensions/DatabaseObjectExtensions.cs" Link="DatabaseObjectExtensions.cs" />
     </ItemGroup>
 </Project>

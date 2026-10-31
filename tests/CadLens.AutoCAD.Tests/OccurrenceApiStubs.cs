@@ -58,6 +58,16 @@ namespace Autodesk.AutoCAD.DatabaseServices
         }
     }
 
+    public sealed partial class Database
+    {
+        private static readonly Point3d UnsetMin = new(1e20, 1e20, 1e20);
+        private static readonly Point3d UnsetMax = new(-1e20, -1e20, -1e20);
+        internal Point3d Extmin { get; set; } = UnsetMin;
+        internal Point3d Extmax { get; set; } = UnsetMax;
+        internal Point3d Pextmin { get; set; } = UnsetMin;
+        internal Point3d Pextmax { get; set; } = UnsetMax;
+    }
+
     internal sealed class DBPoint : Entity;
     internal sealed class Solid : Entity;
     internal sealed class Face : Entity;

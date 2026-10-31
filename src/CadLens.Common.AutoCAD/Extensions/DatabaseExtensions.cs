@@ -1,7 +1,5 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.Runtime;
-using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
 namespace CadLens.Common.AutoCAD;
 
@@ -24,6 +22,7 @@ public static class DatabaseExtensions
             CancellationToken cancellationToken = default)
         {
             Extents3d? bounds = null;
+            var displayed = new VisibleBounds(cancellationToken);
             var completed = 0;
             var total = objects is IReadOnlyCollection<ObjectId> collection ? collection.Count : 0;
 
@@ -41,28 +40,38 @@ public static class DatabaseExtensions
                 if (entity is null || entity.OwnerId != database.CurrentSpaceId)
                     continue;
 
-                try
-                {
-                    var extents = entity.GeometricExtents;
-                    cancellationToken.ThrowIfCancellationRequested();
+                if (displayed.Read(entity) is not { } extents)
+                    continue;
 
-                    if (!HasUsableBounds(extents))
-                        continue;
-
-                    var combined = bounds ?? extents;
-                    combined.AddExtents(extents);
-                    bounds = combined;
-                }
-                catch (Exception exception) when (
-                    exception.ErrorStatus is ErrorStatus.NullExtents or ErrorStatus.InvalidExtents or ErrorStatus.NotApplicable)
-                {
-                    // Bounds are optional for custom or empty entities; other native failures reach the queue.
-                }
+                var combined = bounds ?? extents;
+                combined.AddExtents(extents);
+                bounds = combined;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
             progress?.Report(new OperationProgress(OperationStage.Reading, completed, total));
             return bounds;
+        }
+
+        /// <summary>Limits bounds to the drawing extents, which contain everything Zoom Extents displays.</summary>
+        /// <remarks>Custom objects such as Civil 3D surfaces can report far more than they draw.</remarks>
+        /// <param name="bounds">Combined target bounds.</param>
+        /// <param name="modelSpace">Whether the targets belong to model space.</param>
+        /// <returns>The clipped bounds, or the original ones when the extents are unset or elsewhere.</returns>
+        internal Extents3d ClipToExtents(Extents3d bounds, bool modelSpace)
+        {
+            var low = modelSpace ? database.Extmin : database.Pextmin;
+            var high = modelSpace ? database.Extmax : database.Pextmax;
+            var min = new Point3d(
+                Math.Max(bounds.MinPoint.X, low.X),
+                Math.Max(bounds.MinPoint.Y, low.Y),
+                Math.Max(bounds.MinPoint.Z, low.Z));
+            var max = new Point3d(
+                Math.Min(bounds.MaxPoint.X, high.X),
+                Math.Min(bounds.MaxPoint.Y, high.Y),
+                Math.Min(bounds.MaxPoint.Z, high.Z));
+
+            return min.X <= max.X && min.Y <= max.Y && min.Z <= max.Z ? new Extents3d(min, max) : bounds;
         }
     }
 
@@ -91,9 +100,4 @@ public static class DatabaseExtensions
                 new Point3d(corners.Max(p => p.X), corners.Max(p => p.Y), corners.Max(p => p.Z)));
         }
     }
-
-    private static bool HasUsableBounds(Extents3d bounds) =>
-        bounds.MinPoint.X.IsFinite() && bounds.MinPoint.Y.IsFinite() && bounds.MinPoint.Z.IsFinite() &&
-        bounds.MaxPoint.X.IsFinite() && bounds.MaxPoint.Y.IsFinite() && bounds.MaxPoint.Z.IsFinite() &&
-        bounds.MinPoint.X <= bounds.MaxPoint.X && bounds.MinPoint.Y <= bounds.MaxPoint.Y && bounds.MinPoint.Z <= bounds.MaxPoint.Z;
 }

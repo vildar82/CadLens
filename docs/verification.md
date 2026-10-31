@@ -91,6 +91,9 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
 5. Reset, navigate to the root, disable Auto Isolate, collapse/reopen, close during pending work,
    switch drawings/spaces, and close the last drawing. Effects must clear without stale work returning;
    reopening should restore valid navigation/settings without moving the camera. Retry failed cleanup.
+   Compare Focus with Zoom Extents on a Civil 3D drawing with a surface and dynamic blocks that keep members
+   on frozen layers: the fit must not extend past the displayed geometry, including a single such block.
+   Check again after moving objects without a regeneration, because drawing extents can be stale.
 6. Check keyboard use, narrow layouts, dragging/resizing, mixed-DPI monitors, and a large drawing.
    Compare geometry, entity/layer properties, cameras, and DBMOD before and after temporary effects.
    Open a drawing with proxy objects and, in Civil 3D, alignments and surfaces: proxies must group by their
