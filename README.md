@@ -53,8 +53,8 @@ A compatible later .NET Framework 4.x runtime also satisfies these requirements;
 These are the intended hosts; native compatibility needs verification in each host/version and update.
 AutoCAD 2018 and earlier, AutoCAD LT, and macOS are outside the current release scope.
 
-The screenshots below show the production WPF interface with sample drawing data. They illustrate the
-interface and do not establish behavior inside AutoCAD or Civil 3D. See [Verification](#verification).
+The screenshot below shows the production WPF interface with sample drawing data. It illustrates the
+interface and does not establish behavior inside AutoCAD or Civil 3D. See [Verification](#verification).
 
 ## Install and run
 
