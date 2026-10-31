@@ -21,6 +21,22 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        try
+        {
+            return ReadProperties(entity);
+        }
+        catch (Exception)
+        {
+            // One damaged object keeps its row with unavailable values instead of failing the whole inventory.
+            return new EntitySnapshot(
+                new EntityId(entity.ObjectId),
+                new LayerId(entity.LayerId),
+                entity.GetRXClass().Name);
+        }
+    }
+
+    private EntitySnapshot ReadProperties(Entity entity)
+    {
         var properties = new Dictionary<DrawingPropertyKey, DrawingValue?>();
         var displayColor = ReadAppearance(entity, properties);
         ReadArea(entity, properties);
@@ -94,7 +110,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
 
         return snapshot with
         {
-            Properties = snapshot.Properties!.ToImmutableDictionary(
+            Properties = snapshot.Properties?.ToImmutableDictionary(
                 pair => pair.Key,
                 pair => pair.Value is DrawingNumberValue
                 {
@@ -241,6 +257,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             Line line => ReadLine(line, properties),
             Circle circle => ReadCircle(circle, properties),
             Arc arc => ReadArc(arc, properties),
+            Ellipse ellipse => ReadEllipse(ellipse, properties),
             DBText text => ReadText(text, properties),
             MText text => ReadText(text, properties),
             _ => null
@@ -543,6 +560,16 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         properties[DrawingPropertyId.Thickness] = ReadNumber(() => arc.Thickness);
 
         return DrawingPropertyId.Radius;
+    }
+
+    private static DrawingPropertyId ReadEllipse(
+        Ellipse ellipse,
+        Dictionary<DrawingPropertyKey, DrawingValue?> properties)
+    {
+        properties[DrawingPropertyId.Length] = ReadNumber(() =>
+            ellipse.GetDistanceAtParameter(ellipse.EndParam) - ellipse.GetDistanceAtParameter(ellipse.StartParam));
+
+        return DrawingPropertyId.Length;
     }
 
     private static DrawingPropertyId ReadText(DBText text, Dictionary<DrawingPropertyKey, DrawingValue?> properties)

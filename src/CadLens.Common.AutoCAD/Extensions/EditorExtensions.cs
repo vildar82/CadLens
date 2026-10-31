@@ -24,7 +24,7 @@ public static class EditorExtensions
             var eyeToWorld = Matrix3d.Rotation(-view.ViewTwist, view.ViewDirection, view.Target) *
                              Matrix3d.Displacement(view.Target - Point3d.Origin) *
                              Matrix3d.PlaneToWorld(view.ViewDirection);
-            extents.TransformBy(eyeToWorld.Inverse());
+            extents = extents.TransformCorners(eyeToWorld.Inverse());
             var width = extents.MaxPoint.X - extents.MinPoint.X;
             var height = extents.MaxPoint.Y - extents.MinPoint.Y;
             var aspect = view.Width / view.Height;

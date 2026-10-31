@@ -19,7 +19,8 @@ internal sealed class ExplorerOwner
         services.AddScoped<IHostTaskService, AutoCadTaskService>();
         services.AddScoped<IDrawingInventorySource, AutoCadDrawingInventorySource>();
         services.AddScoped<IObjectExplorerActions, ObjectExplorerActions>();
-        services.AddScoped<IEntityIsolationService, EntityIsolationService>();
+        // A failed native removal must stay retryable, so the overrule outlives each panel scope.
+        services.AddSingleton<IEntityIsolationService, EntityIsolationService>();
         services.AddScoped<IEntityIsolationActions, EntityIsolationActions>();
         services.AddScoped<IObjectVisualizationService, AutoCadObjectVisualizationService>();
     });

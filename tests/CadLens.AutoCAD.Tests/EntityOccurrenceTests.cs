@@ -182,7 +182,7 @@ public sealed class EntityOccurrenceTests
         Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
 
         fixture.Manager.OnErase = null;
-        new EntityIsolationService().Clear(false);
+        fixture.Graphics.Clear(false);
 
         Assert.True(clone.IsDisposed);
         Assert.Empty(fixture.Manager.Registered);
@@ -265,6 +265,83 @@ public sealed class EntityOccurrenceTests
         Assert.Equal(Matrix3d.Identity, fixture.Source.AppliedTransform);
         Assert.True(part.IsDisposed);
         Assert.Equal(100, Assert.Single(fixture.Manager.Registered).AppliedTransform.X);
+    }
+
+    /// <summary>
+    /// Dimensions own a generated block, so previews use exploded geometry instead of a shallow clone.
+    /// </summary>
+    [Fact]
+    public void DimensionUsesIndependentExplodedGeometry()
+    {
+        var part = new Solid();
+        using var fixture = new Fixture((definition, zero, _) => new AlignedDimension
+        {
+            OwnerId = definition,
+            LayerId = zero,
+            TransformedCopy = _ => throw new InvalidOperationException("Unsafe header clone"),
+            OnExplode = parts => parts.Items.Add(part)
+        });
+
+        fixture.Apply();
+
+        Assert.True(part.IsDisposed);
+        Assert.Equal(100, Assert.Single(fixture.Manager.Registered).AppliedTransform.X);
+    }
+
+    /// <summary>
+    /// Points, 2D solids and 3D faces own no children, so they preview through an ordinary transformed copy.
+    /// </summary>
+    /// <param name="kind">Simple entity kind found inside a block.</param>
+    [Theory]
+    [InlineData("point")]
+    [InlineData("solid")]
+    [InlineData("face")]
+    public void SimpleEntitiesPreviewInsideBlocks(string kind)
+    {
+        using var fixture = new Fixture((definition, zero, _) => kind switch
+        {
+            "point" => new DBPoint {OwnerId = definition, LayerId = zero},
+            "solid" => new Solid {OwnerId = definition, LayerId = zero},
+            _ => new Face {OwnerId = definition, LayerId = zero}
+        });
+
+        fixture.Apply();
+
+        Assert.Equal(fixture.Source.GetType(), Assert.Single(fixture.Manager.Registered).GetType());
+    }
+
+    /// <summary>
+    /// A rotated insertion bounds all eight transformed corners, not only the original minimum and maximum.
+    /// </summary>
+    [Fact]
+    public void BoundsCoverEveryCornerOfRotatedInsertion()
+    {
+        using var fixture = new Fixture();
+        var definition = fixture.Database.Add(new BlockTableRecord());
+        var rotated = fixture.Database.Add(
+            new BlockReference
+            {
+                OwnerId = fixture.Root.BlockTableRecord,
+                LayerId = fixture.Layer,
+                BlockTableRecord = definition,
+                BlockTransform = Matrix3d.RotationAboutZ(Math.PI / 4)
+            });
+        var leaf = fixture.Database.Add(
+            new Line
+            {
+                OwnerId = definition,
+                LayerId = fixture.Layer,
+                GeometricExtents = new Extents3d(new Point3d(0, 0, 0), new Point3d(2, 1, 0))
+            });
+        var target = new EntityId(leaf, new EntityId(rotated, fixture.Target.Container));
+
+        var bounds = EntityOccurrence.Resolve(fixture.Database, target)!.ReadBounds()!.Value;
+
+        var halfDiagonal = Math.Sqrt(0.5);
+        Assert.Equal(100 - halfDiagonal, bounds.MinPoint.X, 6);
+        Assert.Equal(100 + 2 * halfDiagonal, bounds.MaxPoint.X, 6);
+        Assert.Equal(0, bounds.MinPoint.Y, 6);
+        Assert.Equal(3 * halfDiagonal, bounds.MaxPoint.Y, 6);
     }
 
     /// <summary>
@@ -449,7 +526,7 @@ public sealed class EntityOccurrenceTests
         Assert.DoesNotContain(fixture.Graphics, DrawableOverrule.Registered);
 
         fixture.Manager.OnErase = null;
-        new EntityIsolationService().Clear(false);
+        fixture.Graphics.Clear(false);
 
         Assert.True(clone.IsDisposed);
         Assert.Empty(fixture.Manager.Registered);

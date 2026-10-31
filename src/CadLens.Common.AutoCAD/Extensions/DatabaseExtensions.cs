@@ -1,4 +1,5 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 
@@ -62,6 +63,32 @@ public static class DatabaseExtensions
             cancellationToken.ThrowIfCancellationRequested();
             progress?.Report(new OperationProgress(OperationStage.Reading, completed, total));
             return bounds;
+        }
+    }
+
+    extension(Extents3d bounds)
+    {
+        /// <summary>Returns the axis-aligned box around all eight transformed corners.</summary>
+        /// <remarks>Rotation moves the extreme corners, so the minimum and maximum alone are not enough.</remarks>
+        /// <param name="transform">Transformation into the target coordinate system.</param>
+        internal Extents3d TransformCorners(Matrix3d transform)
+        {
+            var min = bounds.MinPoint;
+            var max = bounds.MaxPoint;
+            List<Point3d> corners = [];
+
+            foreach (var x in new[] {min.X, max.X})
+            {
+                foreach (var y in new[] {min.Y, max.Y})
+                {
+                    foreach (var z in new[] {min.Z, max.Z})
+                        corners.Add(new Point3d(x, y, z).TransformBy(transform));
+                }
+            }
+
+            return new Extents3d(
+                new Point3d(corners.Min(p => p.X), corners.Min(p => p.Y), corners.Min(p => p.Z)),
+                new Point3d(corners.Max(p => p.X), corners.Max(p => p.Y), corners.Max(p => p.Z)));
         }
     }
 

@@ -45,20 +45,6 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal Point3d MinPoint { get; private set; }
         internal Point3d MaxPoint { get; private set; }
 
-        internal void TransformBy(Matrix3d transform)
-        {
-            var first = Transform(MinPoint, transform);
-            var second = Transform(MaxPoint, transform);
-            MinPoint = new Point3d(
-                Math.Min(first.X, second.X),
-                Math.Min(first.Y, second.Y),
-                Math.Min(first.Z, second.Z));
-            MaxPoint = new Point3d(
-                Math.Max(first.X, second.X),
-                Math.Max(first.Y, second.Y),
-                Math.Max(first.Z, second.Z));
-        }
-
         internal void AddExtents(Extents3d other)
         {
             MinPoint = new Point3d(
@@ -70,13 +56,13 @@ namespace Autodesk.AutoCAD.DatabaseServices
                 Math.Max(MaxPoint.Y, other.MaxPoint.Y),
                 Math.Max(MaxPoint.Z, other.MaxPoint.Z));
         }
-
-        private static Point3d Transform(Point3d point, Matrix3d matrix) =>
-            new(
-                point.X * matrix.Scale + matrix.X,
-                point.Y * matrix.Scale + matrix.Y,
-                point.Z * matrix.Scale + matrix.Z);
     }
+
+    internal sealed class DBPoint : Entity;
+    internal sealed class Solid : Entity;
+    internal sealed class Face : Entity;
+    internal class Dimension : Entity;
+    internal sealed class AlignedDimension : Dimension;
 
     internal sealed class ViewTableRecord : IDisposable
     {

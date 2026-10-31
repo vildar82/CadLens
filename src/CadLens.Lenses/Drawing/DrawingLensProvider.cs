@@ -335,7 +335,7 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
         {
             progress.ThrowIfCancellationRequested();
 
-            if (filter is null || filter.Matches(entity, layers[entity.LayerId]))
+            if (filter is null || filter.Matches(entity, layers[entity.LayerId], precision))
                 included.Add(entity);
             else
                 progress.Advance();

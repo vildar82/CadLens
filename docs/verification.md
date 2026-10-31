@@ -66,7 +66,9 @@ should use English. Test a fresh bundle and a manual NETLOAD copy including the 
 
 Load the rebuilt plugin in a fresh host session and record the host/version and relevant outcomes:
 
-1. Load the bundle, run CADLENS with preselected objects, and confirm compact startup preserves them.
+1. Load the bundle, run CADLENS with preselected objects, and confirm compact startup and activating a
+   lens preserve them. Selected objects should then load that subset. Refresh and returning to the root
+   list must keep a manual selection.
    Activate Layers, browse layer/type/object, Back, breadcrumbs, and Previous/Next. Repeated CADLENS
    should bring the existing panel forward. Activate Object Types and browse Type → Object across layers;
    check per-object layer details, search, count sorting, inclusion filters, and switching between lenses.
@@ -120,7 +122,7 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
    in English and Russian. Numeric values of the same kind and unit that display identically must share
    one group. Include zero and small positive/negative values that display as zero, several values that
    display as 1.2, and unavailable values: there must be one numeric zero group and a separate dash group.
-   Increasing precision may split groups after Refresh. Check exact object sorting and filter comparisons,
+   Increasing precision may split groups after Refresh. Check exact object sorting, less/greater filters, equal filters at drawing precision,
    unchanged object values and Select/Isolate targets, and themed grouping controls in Light/Dark.
 10. In both lenses, filter a primitive type by length, vertex count, closed state, text, and assigned color.
     Apply and clear conditions while viewing a type, subgroup, and individual object. Check that counts
@@ -155,10 +157,10 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
     filters. Xrefs, clipped blocks, and block arrays stay atomic. Selected scope expands only its captured
     insertions; toggling must not prompt again. Object Types stays unchanged. Check persisted default-off setting,
     English/Russian controls, narrow Light/Dark layouts, and Refresh after drawing edits.
-    Focus must fit the chosen occurrence and Select must choose its distinct outer insertion. Nested
+    Focus must fit the chosen occurrence, including rotated insertions and twisted or 3D views, and Select must choose its distinct outer insertion. Nested
     isolation must reject paper space without hiding originals. In model space, isolate a fixed-layer child shared by inserts on different layers, then a layer-0 child: matching inner
-    geometry must appear only in the requested occurrences. Test hatch/text/attributes and legacy
-    polylines; unsupported preview geometry must fail clearly and clear the entire temporary effect.
+    geometry must appear only in the requested occurrences. Test hatch/text/attributes, legacy
+    polylines, dimensions, points, 2D solids, and 3D faces; unsupported preview geometry must fail clearly and clear the entire temporary effect.
     Check Reset, suspension for CAD selection, failed preview creation, panel close, drawing/layout
     switching, and host shutdown. All originals must return; no visibility or geometry changes may be
     saved to the DWG. Record DBMOD and compare original vertices before/after these operations.

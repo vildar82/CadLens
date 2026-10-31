@@ -73,6 +73,65 @@ public sealed class BlockContentsNavigationTests
     }
 
     /// <summary>
+    /// A drawing read that leaves block contents rebuilds property options with the lens's own root grouping.
+    /// </summary>
+    [Fact]
+    public async Task AllObjectsFromBlockKeepsLayerRootWithPropertyGrouping()
+    {
+        var actions = new Actions();
+        using var model = new ObjectExplorerViewModel(actions, DrawingGrouping.Layers);
+        await model.ActivateAsync(CancellationToken.None);
+        await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+        await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+        await model.ToggleGroupingCommand.ExecuteAsync(model.GroupingOptions[0]);
+        await model.EnterCommand.ExecuteAsync(Assert.Single(model.Items));
+        await model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Objects.Contains(Actions.Block)));
+        await model.BrowseBlockContentsCommand.ExecuteAsync(null);
+
+        await model.ShowAllObjectsCommand.ExecuteAsync(null);
+
+        Assert.False(model.IsBrowsingBlockContents);
+        Assert.Equal(LensNodeKind.Layer, Assert.Single(model.Groups).Kind);
+    }
+
+    /// <summary>
+    /// Refreshing the drawing is not a request to drop what the user selected in CAD.
+    /// </summary>
+    [Fact]
+    public async Task RefreshKeepsManualSelection()
+    {
+        var actions = new Actions();
+        using var model = await OpenBlock(actions, DrawingGrouping.Layers);
+        await model.SelectCommand.ExecuteAsync(null);
+
+        await model.ReadCommand.ExecuteAsync(null);
+
+        Assert.Equal<IPlacedObjectId>([Actions.Block], actions.Selected);
+    }
+
+    /// <summary>
+    /// The root list ends a selection that followed navigation, but keeps one the user made.
+    /// </summary>
+    /// <param name="autoSelect">Whether selection followed navigation.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RootClearsOnlyAutomaticSelection(bool autoSelect)
+    {
+        var actions = new Actions();
+        using var model = await OpenBlock(actions, DrawingGrouping.Layers);
+
+        if (autoSelect)
+            await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+        else
+            await model.SelectCommand.ExecuteAsync(null);
+
+        await model.RootCommand.ExecuteAsync(null);
+
+        Assert.Equal(autoSelect, actions.Selected.IsEmpty);
+    }
+
+    /// <summary>
     /// Refresh retains the block target without prompting, and drawing scope commands leave its contents.
     /// </summary>
     /// <param name="showAll">Whether the all-objects control exits the block instead of the root breadcrumb.</param>

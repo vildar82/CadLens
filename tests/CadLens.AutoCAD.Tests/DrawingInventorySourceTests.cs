@@ -455,6 +455,33 @@ public sealed class DrawingInventorySourceTests
         Assert.Equal(new EntityId(second), rejectedSnapshot.Id);
     }
 
+    /// <summary>An unexpected native failure on one object keeps its row without failing the read.</summary>
+    [Fact]
+    public void UnexpectedNativeFailureKeepsRowWithoutProperties()
+    {
+        var database = CreateDocument().Database;
+        var id = database.Add(new DBText {TextError = Autodesk.AutoCAD.Runtime.ErrorStatus.GeneralModelingFailure});
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+
+        var snapshot = reader.Read((Entity) database.Objects[id.Value]);
+
+        Assert.Equal(new EntityId(id), snapshot.Id);
+        Assert.Equal("AcDbDBText", snapshot.TypeKey);
+        Assert.Null(snapshot.Properties);
+    }
+
+    /// <summary>Elliptical arcs measure only their own span, including a start parameter above zero.</summary>
+    [Fact]
+    public void EllipseLengthUsesTheCurveSpan()
+    {
+        var reader = new AutoCadEntitySnapshotReader(CancellationToken.None);
+
+        var snapshot = reader.Read(new Ellipse {Length = 10, StartParam = 0.5, EndParam = 2});
+
+        Assert.Equal(DrawingPropertyId.Length, snapshot.PrimaryMetric);
+        Assert.Equal(new DrawingNumberValue(15, DrawingUnit.Distance), snapshot.Properties![DrawingPropertyId.Length]);
+    }
+
     /// <summary>Flattened attributes show actual values and constant definitions, without placeholders.</summary>
     [Fact]
     public async Task AttributesUseActualValuesAndTheirOwnerCoordinateSpace()

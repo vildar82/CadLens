@@ -84,6 +84,24 @@ public sealed class LensSettingsTests
         Assert.Equal([false, true], reopenedTypes.Filters.Select(filter => filter.IsEnabled));
     }
 
+    /// <summary>Search text waits for deactivation instead of writing a file on every keystroke.</summary>
+    [Fact]
+    public async Task SearchTextIsSavedOnDeactivation()
+    {
+        using var file = new SettingsFile();
+        using var model = new ObjectExplorerViewModel(new Actions(), DrawingGrouping.Layers, file.Service);
+        await model.ActivateAsync(CancellationToken.None);
+        model.SearchText = "Alpha";
+
+        using (var typing = new ObjectExplorerViewModel(new Actions(), DrawingGrouping.Layers, file.Service))
+            Assert.Equal("", typing.SearchText);
+
+        await model.DeactivateAsync(CancellationToken.None);
+
+        using var reopened = new ObjectExplorerViewModel(new Actions(), DrawingGrouping.Layers, file.Service);
+        Assert.Equal("Alpha", reopened.SearchText);
+    }
+
     /// <summary>Reset saves Auto modes off while preserving filter, search, and sort preferences.</summary>
     [Fact]
     public async Task ResetPersistsOnlyTheControlsItChanges()
@@ -143,6 +161,7 @@ public sealed class LensSettingsTests
         await model.ReadCommand.ExecuteAsync(null);
         Assert.Equal("custom-filter", Assert.Single(actions.Reads[1]));
         model.SearchText = "Beta";
+        model.Close(false);
         using var saved = JsonDocument.Parse(File.ReadAllText(path));
         Assert.Equal(
             "custom-filter",
@@ -188,6 +207,7 @@ public sealed class LensSettingsTests
         closed.Dispose();
         using var current = new ObjectExplorerViewModel(new Actions(), DrawingGrouping.Layers, file.Service);
         current.SearchText = "new";
+        current.Close(false);
         var path = SettingsPath(file, DrawingGrouping.Layers);
         var saved = File.ReadAllText(path);
         closed.SearchText = "stale";

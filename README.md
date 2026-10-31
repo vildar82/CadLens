@@ -185,7 +185,8 @@ DWG.
 Reset also clears CAD selection and turns off all Auto modes while keeping the camera, navigation,
 and inclusion filters. It saves the Auto modes as off. Effects stay clear during later navigation until
 a mode is enabled again. Reset is disabled while work is pending. Turning Auto Select off clears only
-CAD selection. With Auto Select off, a manual selection persists until replaced or cleared.
+CAD selection. With Auto Select off, a manual selection persists until replaced or cleared, including
+through Refresh and returning to the root list. Collapsing, switching lenses, and closing still clear it.
 
 Layers and Objects save their inclusion filters, search text, sorting column/direction, and Auto modes
 independently under `%LOCALAPPDATA%\CadLens`. Closing and reopening the panel or restarting AutoCAD
@@ -215,7 +216,7 @@ objects and stay unchanged when panning or zooming. Use Refresh after drawing ed
 
 Within a primitive type in either lens, object rows show a useful measurement: vertices for polylines,
 direct definition entities for blocks, boundary loops for hatches, control points for splines, length for
-lines, radius for circles/arcs, and height for text. Use **Show property** to choose which observed property
+lines and ellipses, radius for circles/arcs, and height for text. Use **Show property** to choose which observed property
 appears beside each object and controls value sorting. Numeric values sort numerically; text and assigned
 properties use their typed values. Click the value column header to reverse the order; Previous/Next
 follows the displayed order. Unavailable values display a dash and sort last. Geometry distances use
@@ -232,7 +233,7 @@ Decimal measurements display up to the drawing's `LUPREC` digits, and angles use
 Trailing zeros are omitted. Counts remain integers, and assigned lineweights retain their millimeter
 precision. Numeric grouping uses the same rounded values as the display: values that appear as `Area: 0`
 form one group, separate from unavailable values (`—`). Refresh applies changed drawing precision to
-rows, group membership, captions, details, and tooltips. Object values, sorting, and numeric filters
+rows, group membership, captions, details, and tooltips. Object values, sorting, and ordering filters
 retain their exact stored values; a displayed zero group can include small nonzero measurements.
 
 Use **Group by** to combine properties such as Color + Linetype + Lineweight, or hatch Pattern + Angle.
@@ -253,7 +254,8 @@ The dropdown lists the properties observed on objects of the current type, inclu
 
 Use **Filter** inside a primitive type to choose one property, comparison, and value, then press **Apply**.
 For example, find open polylines, lengths below a threshold, or objects with a particular assigned color.
-Numeric comparisons use exact stored values; enter distances in drawing units and angles in degrees.
+Equal and not-equal compare numbers at drawing precision, so a value shown as 100 matches 100; less and
+greater comparisons use exact stored values. Enter distances in drawing units and angles in degrees.
 Text comparisons ignore case. Unavailable values do not match, including a not-equal condition.
 Invalid input keeps the previous result. **Clear** removes the condition, including when no objects match.
 

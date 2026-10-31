@@ -460,7 +460,7 @@ public sealed class SelectedObjectsTests
         {
             Assert.Null(model.Current);
             Assert.Empty(model.Groups);
-            Assert.Empty(actions.NativeSelection);
+            Assert.Single(actions.NativeSelection);
             Assert.Empty(actions.Isolated);
         }
 
@@ -716,6 +716,11 @@ public sealed class SelectedObjectsTests
             CancellationToken cancellationToken,
             IProgress<OperationProgress>? progress = null)
         {
+            Calls.Add("clear");
+
+            if (CleanupFails)
+                return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(false));
+
             Isolated = [];
             return Success();
         }
