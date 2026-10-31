@@ -216,7 +216,9 @@ objects and stay unchanged when panning or zooming. Use Refresh after drawing ed
 
 Within a primitive type in either lens, object rows show a useful measurement: vertices for polylines,
 direct definition entities for blocks, boundary loops for hatches, control points for splines, length for
-lines and ellipses, radius for circles/arcs, and height for text. Use **Show property** to choose which observed property
+lines and other curves, radius for circles/arcs, and height for text. Objects of types that publish a
+name, such as Civil 3D objects, show it in their row. Proxy objects are grouped by their original class
+and report the application that created them. Use **Show property** to choose which observed property
 appears beside each object and controls value sorting. Numeric values sort numerically; text and assigned
 properties use their typed values. Click the value column header to reverse the order; Previous/Next
 follows the displayed order. Unavailable values display a dash and sort last. Geometry distances use

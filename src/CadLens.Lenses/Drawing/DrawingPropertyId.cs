@@ -66,5 +66,9 @@ public enum DrawingPropertyId
     /// <summary>Assigned text style name.</summary>
     TextStyle,
     /// <summary>Native curve or hatch area in square drawing units.</summary>
-    Area
+    Area,
+    /// <summary>Object name published by a custom or Civil 3D type.</summary>
+    Name,
+    /// <summary>Application that created a proxy object.</summary>
+    ProxyApplication
 }

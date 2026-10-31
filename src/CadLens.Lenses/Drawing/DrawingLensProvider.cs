@@ -377,14 +377,10 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
     {
         progress.ThrowIfCancellationRequested();
 
+        var name = ReadName(DrawingPropertyId.BlockName) ?? ReadName(DrawingPropertyId.Name) ?? typeLabel;
         var node = new LensNode(
             entity.Id.DisplayId,
-            DrawingProperties.GetValue(entity, layer, DrawingPropertyId.BlockName) is DrawingTextValue
-            {
-                Text.Length: > 0
-            } blockName
-                ? $"{blockName.Text} {entity.Id.DisplayId}"
-                : $"{typeLabel} {entity.Id.DisplayId}",
+            $"{name} {entity.Id.DisplayId}",
             [entity.Id],
             [],
             [
@@ -410,6 +406,11 @@ public sealed class DrawingLensProvider(IDrawingInventorySource source) : IDrawi
 
         progress.Advance();
         return node;
+
+        string? ReadName(DrawingPropertyId id) =>
+            DrawingProperties.GetValue(entity, layer, id) is DrawingTextValue {Text.Length: > 0} value
+                ? value.Text
+                : null;
     }
 
     private static IEnumerable<DetailField> CreateAttributeDetails(EntitySnapshot entity, BuildProgress progress)

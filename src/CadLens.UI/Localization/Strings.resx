@@ -251,6 +251,9 @@
   <data name="Name" xml:space="preserve">
     <value>Name</value>
   </data>
+  <data name="Proxy application" xml:space="preserve">
+    <value>Proxy application</value>
+  </data>
   <data name="Next object" xml:space="preserve">
     <value>Next object</value>
   </data>

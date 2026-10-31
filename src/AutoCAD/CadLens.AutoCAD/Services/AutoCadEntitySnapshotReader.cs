@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.Reflection;
 using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
@@ -16,6 +17,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
 {
     private readonly Dictionary<ObjectId, DrawingNumberValue?> _blockEntityCounts = new();
     private readonly Dictionary<(ObjectId Id, Matrix3d Transform), EntitySnapshot> _snapshots = new();
+    private readonly Dictionary<Type, PropertyInfo?> _nameProperties = new();
 
     internal EntitySnapshot Read(Entity entity)
     {
@@ -28,10 +30,7 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         catch (Exception)
         {
             // One damaged object keeps its row with unavailable values instead of failing the whole inventory.
-            return new EntitySnapshot(
-                new EntityId(entity.ObjectId),
-                new LayerId(entity.LayerId),
-                entity.GetRXClass().Name);
+            return new EntitySnapshot(new EntityId(entity.ObjectId), new LayerId(entity.LayerId), ReadTypeKey(entity));
         }
     }
 
@@ -42,12 +41,13 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         ReadArea(entity, properties);
         var metric = ReadPrimitiveProperties(entity, properties);
 
+        ReadIdentity(entity, properties);
         ReadBlockProperties(entity, properties);
 
         return new EntitySnapshot(
             new EntityId(entity.ObjectId),
             new LayerId(entity.LayerId),
-            entity.GetRXClass().Name,
+            ReadTypeKey(entity),
             properties.ToImmutableDictionary(),
             metric,
             displayColor);
@@ -58,7 +58,52 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = ReadOccurrenceSnapshot(entity, transform);
 
-        return snapshot with {Id = id, LayerId = new LayerId(layerId), TypeKey = entity.GetRXClass().Name};
+        return snapshot with {Id = id, LayerId = new LayerId(layerId), TypeKey = ReadTypeKey(entity)};
+    }
+
+    private static string ReadTypeKey(Entity entity) =>
+        entity is ProxyEntity proxy && ReadOptional(() => proxy.OriginalClassName) is {Length: > 0} originalClass
+            ? originalClass
+            : entity.GetRXClass().Name;
+
+    private void ReadIdentity(Entity entity, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
+    {
+        if (entity is ProxyEntity proxy)
+            properties[DrawingPropertyId.ProxyApplication] = ReadText(() => proxy.ApplicationDescription);
+
+        // Block insertions publish their readable definition name instead of a generated one.
+        if (entity is not BlockReference && GetNameProperty(entity.GetType()) is { } property)
+            properties[DrawingPropertyId.Name] = ReadObjectName(entity, property);
+    }
+
+    private PropertyInfo? GetNameProperty(Type type)
+    {
+        if (_nameProperties.TryGetValue(type, out var property))
+            return property;
+
+        // Reading only Name by reflection covers Civil 3D objects without referencing its API.
+        property = type.GetProperty(
+            "Name",
+            BindingFlags.Public | BindingFlags.Instance,
+            null,
+            typeof(string),
+            [],
+            null);
+        _nameProperties.Add(type, property);
+
+        return property;
+    }
+
+    private static DrawingTextValue? ReadObjectName(Entity entity, PropertyInfo property)
+    {
+        try
+        {
+            return property.GetValue(entity) is string {Length: > 0} name ? new DrawingTextValue(name) : null;
+        }
+        catch (TargetInvocationException)
+        {
+            return null;
+        }
     }
 
     private EntitySnapshot ReadOccurrenceSnapshot(Entity entity, Matrix3d transform)
@@ -257,9 +302,9 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
             Line line => ReadLine(line, properties),
             Circle circle => ReadCircle(circle, properties),
             Arc arc => ReadArc(arc, properties),
-            Ellipse ellipse => ReadEllipse(ellipse, properties),
             DBText text => ReadText(text, properties),
             MText text => ReadText(text, properties),
+            Curve curve => ReadCurve(curve, properties),
             _ => null
         };
 
@@ -562,12 +607,18 @@ internal sealed class AutoCadEntitySnapshotReader(CancellationToken cancellation
         return DrawingPropertyId.Radius;
     }
 
-    private static DrawingPropertyId ReadEllipse(
-        Ellipse ellipse,
-        Dictionary<DrawingPropertyKey, DrawingValue?> properties)
+    private static DrawingPropertyId ReadCurve(Curve curve, Dictionary<DrawingPropertyKey, DrawingValue?> properties)
     {
-        properties[DrawingPropertyId.Length] = ReadNumber(() =>
-            ellipse.GetDistanceAtParameter(ellipse.EndParam) - ellipse.GetDistanceAtParameter(ellipse.StartParam));
+        try
+        {
+            properties[DrawingPropertyId.Length] = ReadNumber(() =>
+                curve.GetDistanceAtParameter(curve.EndParam) - curve.GetDistanceAtParameter(curve.StartParam));
+        }
+        catch (Exception)
+        {
+            // Rays, construction lines, and custom curves can have no measurable length.
+            properties[DrawingPropertyId.Length] = null;
+        }
 
         return DrawingPropertyId.Length;
     }
