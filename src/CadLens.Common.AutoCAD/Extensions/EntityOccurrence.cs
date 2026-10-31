@@ -1,7 +1,6 @@
 ﻿using Autodesk.AutoCAD.Colors;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
-using Autodesk.AutoCAD.Runtime;
 using Application = Autodesk.AutoCAD.ApplicationServices.Core.Application;
 
 namespace CadLens.Common.AutoCAD;
@@ -118,28 +117,8 @@ internal sealed class EntityOccurrence
         AddGraphics(Source, graphics, canExplode: true, cancellationToken);
     }
 
-    internal Extents3d? ReadBounds(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var bounds = Source.GeometricExtents.TransformCorners(Transform);
-            cancellationToken.ThrowIfCancellationRequested();
-
-            return bounds.MinPoint.X.IsFinite() && bounds.MinPoint.Y.IsFinite() && bounds.MinPoint.Z.IsFinite() &&
-                   bounds.MaxPoint.X.IsFinite() && bounds.MaxPoint.Y.IsFinite() && bounds.MaxPoint.Z.IsFinite() &&
-                   bounds.MinPoint.X <= bounds.MaxPoint.X && bounds.MinPoint.Y <= bounds.MaxPoint.Y &&
-                   bounds.MinPoint.Z <= bounds.MaxPoint.Z
-                ? bounds
-                : null;
-        }
-        catch (Autodesk.AutoCAD.Runtime.Exception exception) when (
-            exception.ErrorStatus is ErrorStatus.NullExtents or ErrorStatus.InvalidExtents or
-                ErrorStatus.NotApplicable)
-        {
-            return null;
-        }
-    }
+    internal Extents3d? ReadBounds(VisibleBounds? displayed = null) =>
+        (displayed ?? new VisibleBounds(CancellationToken.None)).Read(Source)?.TransformCorners(Transform);
 
     private void AddGraphics(
         Entity source,

@@ -167,6 +167,8 @@ panel session starts with All objects.
 | Isolate | Temporarily hides other direct active-space objects | Off          |
 
 Each action has its own Auto toggle. All three default to off; saved choices are restored for each lens.
+Focus fits what the drawing displays: block members on off or frozen layers and hidden dynamic states do not
+count, and the result stays within the drawing extents, as with Zoom Extents.
 Enabled actions follow navigation. Returning to the root list fits all listed objects with Auto Focus and
 selects nothing. For selection without camera movement, turn Auto Select on and leave
 Auto Focus off. Select remains available when Focus cannot use bounds or the viewport is locked.

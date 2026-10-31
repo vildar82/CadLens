@@ -175,6 +175,7 @@ public sealed class AutoCadObjectVisualizationService(
             progress?.Report(new OperationProgress(OperationStage.Reading, 0, direct.Count));
             bounds = database.ReadBounds(direct, progress, cancellationToken);
             var frozenLayers = EntityOccurrence.ReadFrozenLayers(database, cancellationToken);
+            var displayed = new VisibleBounds(cancellationToken);
             progress?.Report(new OperationProgress(OperationStage.Reading, 0, nested.Count));
 
             for (var index = 0; index < nested.Count; index++)
@@ -182,7 +183,7 @@ public sealed class AutoCadObjectVisualizationService(
                 cancellationToken.ThrowIfCancellationRequested();
                 var occurrence = EntityOccurrence.Resolve(database, nested[index], frozenLayers, cancellationToken);
 
-                if (occurrence?.ReadBounds(cancellationToken) is { } extents)
+                if (occurrence?.ReadBounds(displayed) is { } extents)
                 {
                     var combined = bounds ?? extents;
                     combined.AddExtents(extents);
@@ -213,7 +214,7 @@ public sealed class AutoCadObjectVisualizationService(
         // Apply the view after the read transaction has finished.
         progress?.Report(new OperationProgress(OperationStage.Focusing, 0, 1));
         cancellationToken.ThrowIfCancellationRequested();
-        editor.Zoom(bounds.Value, cancellationToken);
+        editor.Zoom(database.ClipToExtents(bounds.Value, database.TileMode || viewportNumber > 1), cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(new OperationProgress(OperationStage.Focusing, 1, 1));
         return new HostResult<bool>.Success(true);
