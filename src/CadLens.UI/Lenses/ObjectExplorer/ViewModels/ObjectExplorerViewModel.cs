@@ -1315,6 +1315,19 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         return messages.Count == 1 ? messages[0] : new UiMessage("{0} {1}", messages[0], messages[1]);
     }
 
+    private async Task<UiMessage> FocusRootAsync(UiMessage rootEffects, CancellationToken cancellationToken)
+    {
+        ImmutableArray<IPlacedObjectId> objects = [.. Items.SelectMany(node => node.Objects)];
+
+        if (!IsAutoFocus || objects.IsEmpty)
+            return rootEffects;
+
+        cancellationToken.ThrowIfCancellationRequested();
+        UiMessage focus = await _actions.FocusAsync(objects, cancellationToken, _progress);
+
+        return new UiMessage("{0} {1}", focus, rootEffects);
+    }
+
     private Task NavigateAsync(Action navigate) => NavigateAsync(_ =>
     {
         navigate();
@@ -1326,7 +1339,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         await navigate(token);
 
         if (Current is null)
-            return await ApplyRootEffectsAsync(token);
+            return await FocusRootAsync(await ApplyRootEffectsAsync(token), token);
 
         var message = await ApplySelectionAndIsolationAsync(token);
 

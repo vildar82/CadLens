@@ -83,6 +83,8 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
 2. Try Focus, Select, and Isolate independently. With no saved preferences, all Auto modes start off.
    Saved Auto modes should apply only after choosing a target. Auto Select should follow
    navigation without moving the camera; Select should remain usable when a locked viewport blocks Focus.
+   With Auto Focus on, All layers and All types must fit every listed object; with Auto Select on, they must
+   leave nothing selected.
 3. Isolate patterned/solid hatches, text, blocks with attributes/nested blocks, repeated insertions,
    xrefs, and custom/proxy entities. Targets should retain their original appearance; other direct
    active-space objects should disappear. Check selection, object snaps, and plotting while isolated.

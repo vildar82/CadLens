@@ -132,6 +132,28 @@ public sealed class BlockContentsNavigationTests
     }
 
     /// <summary>
+    /// Returning to the root fits every listed object with Auto Focus, while Auto Select never selects them all.
+    /// </summary>
+    /// <param name="autoFocus">Whether the camera follows navigation.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RootFitsAllListedObjectsOnlyWithAutoFocus(bool autoFocus)
+    {
+        var actions = new Actions();
+        using var model = await OpenBlock(actions, DrawingGrouping.Layers);
+        await model.ToggleAutoSelectCommand.ExecuteAsync(null);
+
+        if (autoFocus)
+            await model.ToggleAutoFocusCommand.ExecuteAsync(null);
+
+        await model.RootCommand.ExecuteAsync(null);
+
+        Assert.Equal(autoFocus ? 3 : 0, actions.Focused.Length);
+        Assert.Empty(actions.Selected);
+    }
+
+    /// <summary>
     /// Refresh retains the block target without prompting, and drawing scope commands leave its contents.
     /// </summary>
     /// <param name="showAll">Whether the all-objects control exits the block instead of the root breadcrumb.</param>
