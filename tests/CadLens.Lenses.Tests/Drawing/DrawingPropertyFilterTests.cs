@@ -27,6 +27,21 @@ public sealed class DrawingPropertyFilterTests
         Assert.False(zero.Matches(null));
     }
 
+    /// <summary>Equality follows the displayed value, while ordering keeps comparing exact stored values.</summary>
+    [Fact]
+    public void DrawingPrecisionAppliesOnlyToEquality()
+    {
+        var precision = new DrawingPrecision(2);
+        var stored = new DrawingNumberValue(100.001, DrawingUnit.Distance);
+        var shown = new DrawingNumberValue(100, DrawingUnit.Distance);
+        var equal = new DrawingPropertyFilter(DrawingPropertyId.Length, DrawingFilterOperator.Equal, shown);
+
+        Assert.True(equal.Matches(stored, precision));
+        Assert.False((equal with {Operator = DrawingFilterOperator.NotEqual}).Matches(stored, precision));
+        Assert.False(equal.Matches(new DrawingNumberValue(100.01, DrawingUnit.Distance), precision));
+        Assert.True((equal with {Operator = DrawingFilterOperator.GreaterThan}).Matches(stored, precision));
+    }
+
     /// <summary>Comparisons use the original value, including differences below display precision.</summary>
     [Theory]
     [InlineData(DrawingFilterOperator.Equal, 12.3451, true)]

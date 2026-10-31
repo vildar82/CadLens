@@ -14,14 +14,16 @@ public sealed record DrawingPropertyFilter(
     /// <summary>Tests an entity without modifying the retained inventory.</summary>
     /// <param name="entity">Detached entity facts.</param>
     /// <param name="layer">Assigned layer facts.</param>
-    public bool Matches(EntitySnapshot entity, LayerSnapshot layer) =>
-        Matches(DrawingProperties.GetValue(entity, layer, PropertyId));
+    /// <param name="precision">Drawing precision for numeric equality; null compares exact stored values.</param>
+    public bool Matches(EntitySnapshot entity, LayerSnapshot layer, DrawingPrecision? precision = null) =>
+        Matches(DrawingProperties.GetValue(entity, layer, PropertyId), precision);
 
     /// <summary>Tests a raw value; unavailable and incompatible values never match.</summary>
     /// <param name="actual">Observed value, or null when unavailable.</param>
-    public bool Matches(DrawingValue? actual) => (actual, Value) switch
+    /// <param name="precision">Drawing precision for numeric equality; null compares exact stored values.</param>
+    public bool Matches(DrawingValue? actual, DrawingPrecision? precision = null) => (actual, Value) switch
     {
-        (DrawingNumberValue first, DrawingNumberValue second) => MatchesNumber(first, second),
+        (DrawingNumberValue first, DrawingNumberValue second) => MatchesNumber(first, second, precision),
         (DrawingTextValue first, DrawingTextValue second) => Operator == DrawingFilterOperator.Contains
 #if NETFRAMEWORK
             ? first.Text.IndexOf(second.Text, StringComparison.OrdinalIgnoreCase) >= 0
@@ -37,17 +39,21 @@ public sealed record DrawingPropertyFilter(
         _ => false
     };
 
-    private bool MatchesNumber(DrawingNumberValue actual, DrawingNumberValue expected)
+    private bool MatchesNumber(DrawingNumberValue actual, DrawingNumberValue expected, DrawingPrecision? precision)
     {
         if (!actual.Value.IsFinite() || !expected.Value.IsFinite() || actual.Unit != expected.Unit)
             return false;
 
         var comparison = actual.Value.CompareTo(expected.Value);
+        // Equality follows the displayed value: typing a shown 100 must find a stored 100.00001.
+        var equal = precision is null
+            ? comparison == 0
+            : precision.Round(actual.Value, actual.Unit).Equals(precision.Round(expected.Value, expected.Unit));
 
         return Operator switch
         {
-            DrawingFilterOperator.Equal => comparison == 0,
-            DrawingFilterOperator.NotEqual => comparison != 0,
+            DrawingFilterOperator.Equal => equal,
+            DrawingFilterOperator.NotEqual => !equal,
             DrawingFilterOperator.LessThan => comparison < 0,
             DrawingFilterOperator.LessThanOrEqual => comparison <= 0,
             DrawingFilterOperator.GreaterThan => comparison > 0,

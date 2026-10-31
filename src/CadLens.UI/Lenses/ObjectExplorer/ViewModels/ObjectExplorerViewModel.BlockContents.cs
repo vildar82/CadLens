@@ -59,14 +59,14 @@ public sealed partial class ObjectExplorerViewModel
             return ((HostResult<LensPresentation>.Unavailable) result).Reason;
 
         if (!entering)
-            return await ApplyPresentationAsync(success.Value, null, cancellationToken);
+            return await ApplyPresentationAsync(success.Value, DrawingGrouping.ObjectTypes, null, cancellationToken);
 
         _blockParent = new BlockParent(_inventory!, _navigation, SearchText);
         _navigation = new NavigationState();
         _searchText = "";
         OnPropertyChanged(nameof(SearchText));
 
-        return await ApplyPresentationAsync(success.Value, null, cancellationToken);
+        return await ApplyPresentationAsync(success.Value, DrawingGrouping.ObjectTypes, null, cancellationToken);
     }
 
     private async Task<UiMessage> IsolateCurrentAsync(CancellationToken cancellationToken) =>
@@ -74,8 +74,11 @@ public sealed partial class ObjectExplorerViewModel
 
     private async Task<UiMessage> ApplyRootEffectsAsync(CancellationToken cancellationToken)
     {
+        // Only a selection that followed navigation ends at the root; a manual one stays until replaced.
         if (!IsAutoIsolation || IsolationTarget is null)
-            return await ClearEffectsAsync(cancellationToken);
+            return IsAutoSelect
+                ? await ClearEffectsAsync(cancellationToken)
+                : await ClearIsolationAsync(cancellationToken);
 
         var cleared = await _actions.SelectAsync([], cancellationToken, _progress);
         cancellationToken.ThrowIfCancellationRequested();
@@ -86,11 +89,11 @@ public sealed partial class ObjectExplorerViewModel
         return await IsolateCurrentAsync(cancellationToken);
     }
 
-    private void GoBack()
+    private async Task GoBackAsync(CancellationToken cancellationToken)
     {
         if (IsBrowsingBlockContents && Current is null)
         {
-            RestoreBlockParent();
+            await RestoreBlockParentAsync(cancellationToken);
             NotifyNavigation();
             return;
         }
@@ -98,18 +101,18 @@ public sealed partial class ObjectExplorerViewModel
         GoBackTo(_navigation.Path.Count - 1);
     }
 
-    private void GoToRoot()
+    private async Task GoToRootAsync(CancellationToken cancellationToken)
     {
-        RestoreBlockParent();
+        await RestoreBlockParentAsync(cancellationToken);
         GoBackTo(0);
     }
 
-    private void GoToBreadcrumb(LensNode node)
+    private async Task GoToBreadcrumbAsync(LensNode node, CancellationToken cancellationToken)
     {
         if (_blockParent is { } parent && parent.Navigation.Path.Contains(node))
         {
             var depth = Array.IndexOf([.. parent.Navigation.Path], node) + 1;
-            RestoreBlockParent();
+            await RestoreBlockParentAsync(cancellationToken);
             GoBackTo(depth);
             return;
         }
@@ -117,34 +120,29 @@ public sealed partial class ObjectExplorerViewModel
         GoBackTo(Array.IndexOf([.. _navigation.Path], node) + 1);
     }
 
-    private void RestoreBlockParent()
+    private async Task RestoreBlockParentAsync(CancellationToken cancellationToken)
     {
         if (_blockParent is not { } parent)
             return;
 
-        var cancellationToken = _pendingRequest?.Token ?? CancellationToken.None;
-        var presentation = DrawingLensProvider.Build(
-            parent.Inventory,
-            _grouping,
-            _enabledFilters,
-            cancellationToken: cancellationToken,
-            progress: _progress);
-        var groups = HasPropertyOptions
-            ? DrawingLensProvider.Build(
-                parent.Inventory,
-                _grouping,
-                _enabledFilters,
-                _propertyGrouping,
-                _propertyFilters,
-                progress: _progress,
-                cancellationToken: cancellationToken).Groups
+        var presentation = await BuildPresentationAsync(parent.Inventory, _grouping, false, cancellationToken);
+        var groups = HasPropertyOptions(parent.Inventory)
+            ? (await BuildPresentationAsync(parent.Inventory, _grouping, true, cancellationToken)).Groups
             : presentation.Groups;
         cancellationToken.ThrowIfCancellationRequested();
+        ExitBlockContents();
+        ApplyPresentation(presentation, groups);
+    }
+
+    private void ExitBlockContents()
+    {
+        if (_blockParent is not { } parent)
+            return;
+
         _blockParent = null;
         _navigation = parent.Navigation;
         _searchText = parent.SearchText;
         OnPropertyChanged(nameof(SearchText));
-        ApplyPresentation(presentation, groups);
     }
 
     private sealed record BlockParent(DrawingInventory Inventory, NavigationState Navigation, string SearchText);

@@ -58,7 +58,7 @@ public sealed class ObjectTypesTests
         Assert.Same(line, model.Current);
         await model.RootCommand.ExecuteAsync(null);
         Assert.Null(model.Current);
-        Assert.Empty(actions.Selected);
+        Assert.Equal(new TestEntityId(2), Assert.Single(actions.Selected));
         Assert.Empty(actions.Isolated);
     }
 

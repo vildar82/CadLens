@@ -12,8 +12,6 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
 {
     private const int TransientSubMode = 128;
 
-    // Native transient registration does not own managed wrappers. Keep failed removals alive across panel scopes.
-    private static readonly HashSet<EntityIsolationService> PendingRemoval = [];
     private HashSet<ObjectId> _hidden = [];
     private List<Entity> _transients = [];
     private readonly HashSet<Entity> _displayed = [];
@@ -255,27 +253,6 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
     public void Clear(bool redraw = true, IProgress<OperationProgress>? progress = null)
     {
         progress?.Report(new OperationProgress(OperationStage.Clearing));
-        System.Exception? failure = null;
-        EntityIsolationService[] owners = [.. PendingRemoval.Where(owner => owner != this), this];
-
-        foreach (var owner in owners)
-        {
-            try
-            {
-                owner.ClearOwnedGraphics(redraw && owner == this, progress);
-            }
-            catch (System.Exception exception)
-            {
-                failure ??= exception;
-            }
-        }
-
-        if (failure is not null)
-            throw new InvalidOperationException("Temporary isolation cleanup failed.", failure);
-    }
-
-    private void ClearOwnedGraphics(bool redraw, IProgress<OperationProgress>? progress)
-    {
         var affectedDatabase = _database;
         _database = null;
         _hidden = [];
@@ -325,11 +302,6 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
                 failure ??= exception;
             }
         }
-
-        if (_displayed.Count > 0 || _registered)
-            PendingRemoval.Add(this);
-        else
-            PendingRemoval.Remove(this);
 
         var document = Application.DocumentManager.MdiActiveDocument;
 

@@ -123,9 +123,7 @@ internal sealed class EntityOccurrence
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var bounds = Source.GeometricExtents;
-            cancellationToken.ThrowIfCancellationRequested();
-            bounds.TransformBy(Transform);
+            var bounds = Source.GeometricExtents.TransformCorners(Transform);
             cancellationToken.ThrowIfCancellationRequested();
 
             return bounds.MinPoint.X.IsFinite() && bounds.MinPoint.Y.IsFinite() && bounds.MinPoint.Z.IsFinite() &&
@@ -152,7 +150,7 @@ internal sealed class EntityOccurrence
         cancellationToken.ThrowIfCancellationRequested();
         // Complex entities can retain database-owned children in a shallow transformed copy.
         // Explode those entities into independent in-memory geometry before transforming anything.
-        if (source.GetType() == typeof(Polyline2d) || source.GetType() == typeof(Polyline3d))
+        if (source is Dimension || source.GetType() == typeof(Polyline2d) || source.GetType() == typeof(Polyline3d))
         {
             if (!canExplode)
                 throw new NotSupportedException("The nested object has unsupported graphics.");
@@ -189,7 +187,8 @@ internal sealed class EntityOccurrence
 
         if (type != typeof(Line) && type != typeof(Circle) && type != typeof(Arc) && type != typeof(Ellipse) &&
             type != typeof(Polyline) && type != typeof(Spline) && type != typeof(DBText) && type != typeof(MText) &&
-            type != typeof(AttributeDefinition) && type != typeof(AttributeReference) && type != typeof(Hatch))
+            type != typeof(AttributeDefinition) && type != typeof(AttributeReference) && type != typeof(Hatch) &&
+            type != typeof(DBPoint) && type != typeof(Solid) && type != typeof(Face))
             throw new NotSupportedException("Isolation inside blocks does not support this object type.");
 
         var clone = source.GetTransformedCopy(Transform);

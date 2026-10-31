@@ -534,7 +534,7 @@ public sealed class ExplorerNavigationTests
         Assert.False(model.IsLensActive);
         Assert.True(model.IsBusy);
         Assert.True(actions.IsolationToken.IsCancellationRequested);
-        Assert.Equal(1, actions.ClearCount);
+        Assert.Equal(0, actions.ClearCount);
         actions.PendingIsolation.SetResult("Old isolation completed.");
         await isolation;
         await actions.ClearStarted.Task;

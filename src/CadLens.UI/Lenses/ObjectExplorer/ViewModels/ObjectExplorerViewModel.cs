@@ -29,6 +29,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     private LensNode? _propertyOptionsType;
     private LensNode? _filterOptionsType;
     private string _searchText = "";
+    private bool _searchChanged;
     private ImmutableHashSet<string> _enabledFilters = [];
     private CancellationToken _activationToken;
     private string _emptyMessage = "Refresh to explore the active space.";
@@ -96,13 +97,13 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             node => NavigateAsync(() => Enter(node)),
             node => CanRun() && node is not null && Items.Contains(node));
         BackCommand = new AsyncRelayCommand(
-            () => NavigateAsync(GoBack),
+            () => NavigateAsync(GoBackAsync),
             () => CanRun() && HasNavigation);
         RootCommand = new AsyncRelayCommand(
-            () => NavigateAsync(GoToRoot),
+            () => NavigateAsync(GoToRootAsync),
             () => CanRun() && HasNavigation);
         BreadcrumbCommand = new AsyncRelayCommand<LensNode>(
-            node => NavigateAsync(() => GoToBreadcrumb(node!)),
+            node => NavigateAsync(token => GoToBreadcrumbAsync(node!, token)),
             node => CanRun() && node is not null && Breadcrumbs.Contains(node));
         PreviousCommand = new AsyncRelayCommand(
             () => NavigateAsync(() => MoveObject(-1)),
@@ -450,8 +451,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             if (!SetProperty(ref _searchText, value))
                 return;
 
+            _searchChanged = true;
             UpdateVisibleGroups();
-            SavePreferences();
         }
     }
 
@@ -772,6 +773,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             return;
 
         UiText.Current.PropertyChanged -= OnLanguageChanged;
+        SaveChangedSearch();
         _disposed = true;
         SetCurrentObjectAvailability(null);
         IsLensActive = false;
@@ -842,11 +844,18 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         }
     }
 
+    private void SaveChangedSearch()
+    {
+        if (_searchChanged)
+            SavePreferences();
+    }
+
     private void SavePreferences()
     {
         if (_disposed || _settings is null)
             return;
 
+        _searchChanged = false;
         var preferences = new LensPreferences(
             IsAutoFocus,
             IsAutoSelect,
@@ -931,6 +940,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             return new HostResult<bool>.Unavailable($"The {LensLabel} session has closed.");
 
         IsLensActive = false;
+        SaveChangedSearch();
         // ReSharper disable once MethodHasAsyncOverload -- Cancellation must finish before replacing request ownership.
         _pendingRequest?.Cancel();
         StopReadProgress();
@@ -1067,7 +1077,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             selectedObjects = selection.Value;
         }
 
-        var cleared = await _actions.ClearAsync(cancellationToken, _progress);
+        // Reading must not cost the user their CAD selection; only isolation can hide objects from the read.
+        var cleared = await _actions.ClearIsolationAsync(cancellationToken, _progress);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (cleared is not HostResult<bool>.Success {Value: true})
@@ -1095,9 +1106,10 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         if (result is HostResult<LensPresentation>.Success success)
             return await ApplyPresentationAsync(
                 success.Value,
+                _grouping,
                 () =>
                 {
-                    RestoreBlockParent();
+                    ExitBlockContents();
 
                     if (IsSelectedObjectsOnly != selectedOnly)
                     {
@@ -1124,26 +1136,30 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
     private async Task<UiMessage> RebuildInventoryAsync(DrawingInventory inventory, CancellationToken cancellationToken)
     {
-        var cleared = await _actions.ClearAsync(cancellationToken, _progress);
+        var cleared = await _actions.ClearIsolationAsync(cancellationToken, _progress);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (cleared is not HostResult<bool>.Success {Value: true})
             return DescribeCleanup(cleared);
 
+        var grouping = CurrentGrouping;
+
         return await ApplyPresentationAsync(
-            await BuildPresentationAsync(inventory, false, cancellationToken),
+            await BuildPresentationAsync(inventory, grouping, false, cancellationToken),
+            grouping,
             null,
             cancellationToken);
     }
 
     private async Task<UiMessage> ApplyPresentationAsync(
         LensPresentation presentation,
+        DrawingGrouping grouping,
         Action? beforePublish,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var groups = presentation.Inventory is { } inventory && HasPropertyOptions
-            ? (await BuildPresentationAsync(inventory, true, cancellationToken)).Groups
+        var groups = presentation.Inventory is { } inventory && HasPropertyOptions(inventory)
+            ? (await BuildPresentationAsync(inventory, grouping, true, cancellationToken)).Groups
             : presentation.Groups;
         cancellationToken.ThrowIfCancellationRequested();
         beforePublish?.Invoke();
@@ -1162,16 +1178,17 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             : _emptyMessage;
     }
 
-    private bool HasPropertyOptions =>
-        _propertyFilters.Count != 0 || _propertyGrouping.Values.Any(fields => !fields.IsDefaultOrEmpty);
+    private bool HasPropertyOptions(DrawingInventory inventory) => inventory.Entities.Any(entity =>
+        _propertyFilters.ContainsKey(entity.TypeKey) ||
+        _propertyGrouping.TryGetValue(entity.TypeKey, out var fields) && !fields.IsDefaultOrEmpty);
 
     private Task<LensPresentation> BuildPresentationAsync(
         DrawingInventory inventory,
+        DrawingGrouping rootGrouping,
         bool includePropertyOptions,
         CancellationToken cancellationToken)
     {
         var filters = _enabledFilters;
-        var rootGrouping = CurrentGrouping;
         var grouping = includePropertyOptions ? _propertyGrouping.ToImmutableDictionary() : null;
         var propertyFilters = includePropertyOptions ? _propertyFilters.ToImmutableDictionary() : null;
         var progress = _progress;
@@ -1298,9 +1315,16 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         return messages.Count == 1 ? messages[0] : new UiMessage("{0} {1}", messages[0], messages[1]);
     }
 
-    private Task NavigateAsync(Action navigate) => ExecuteActionAsync(async token =>
+    private Task NavigateAsync(Action navigate) => NavigateAsync(_ =>
     {
         navigate();
+        return Task.CompletedTask;
+    });
+
+    private Task NavigateAsync(Func<CancellationToken, Task> navigate) => ExecuteActionAsync(async token =>
+    {
+        await navigate(token);
+
         if (Current is null)
             return await ApplyRootEffectsAsync(token);
 
@@ -1494,7 +1518,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         try
         {
-            presentation = await BuildPresentationAsync(inventory, true, cancellationToken);
+            presentation = await BuildPresentationAsync(inventory, CurrentGrouping, true, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -1576,7 +1600,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
 
         try
         {
-            presentation = await BuildPresentationAsync(inventory, true, cancellationToken);
+            presentation = await BuildPresentationAsync(inventory, CurrentGrouping, true, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

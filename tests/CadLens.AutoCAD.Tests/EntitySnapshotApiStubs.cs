@@ -108,6 +108,9 @@ namespace Autodesk.AutoCAD.DatabaseServices
         internal double Area => ReadArea();
         internal double Length { get; init; }
         internal bool Closed { get; init; }
+        internal double StartParam { get; init; }
+        internal double EndParam { get; init; }
+        internal double GetDistanceAtParameter(double parameter) => parameter * Length;
     }
 
     internal sealed class Ellipse : Curve;
@@ -228,8 +231,6 @@ namespace Autodesk.AutoCAD.DatabaseServices
     {
         internal int NumControlPoints { get; init; }
         internal int NumFitPoints { get; init; }
-        internal double EndParam { get; init; }
-        internal double GetDistanceAtParameter(double parameter) => parameter * Length;
     }
 
     internal sealed class Mline : Entity
@@ -295,11 +296,22 @@ namespace Autodesk.AutoCAD.Geometry
     internal readonly record struct Point3d(double X, double Y, double Z)
     {
         internal static Point3d Origin => default;
+
+        internal Point3d TransformBy(Matrix3d matrix)
+        {
+            var cosine = Math.Cos(matrix.Angle);
+            var sine = Math.Sin(matrix.Angle);
+
+            return new Point3d(
+                (X * cosine - Y * sine) * matrix.Scale + matrix.X,
+                (X * sine + Y * cosine) * matrix.Scale + matrix.Y,
+                Z * matrix.Scale + matrix.Z);
+        }
     }
 
     internal readonly record struct Vector3d(double X, double Y, double Z);
 
-    internal readonly record struct Matrix3d(double Scale, double X = 0, double Y = 0, double Z = 0)
+    internal readonly record struct Matrix3d(double Scale, double X = 0, double Y = 0, double Z = 0, double Angle = 0)
     {
         internal Matrix3d(double[] values) : this(values[0], values[3], values[7], values[11]) { }
 
@@ -312,10 +324,13 @@ namespace Autodesk.AutoCAD.Geometry
 
         internal static Matrix3d Displacement(Vector3d vector) => new(1, vector.X, vector.Y, vector.Z);
 
+        internal static Matrix3d RotationAboutZ(double angle) => new(1, Angle: angle);
+
         public static Matrix3d operator *(Matrix3d left, Matrix3d right) => new(
             left.Scale * right.Scale,
             left.Scale * right.X + left.X,
             left.Scale * right.Y + left.Y,
-            left.Scale * right.Z + left.Z);
+            left.Scale * right.Z + left.Z,
+            left.Angle + right.Angle);
     }
 }
