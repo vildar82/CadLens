@@ -30,7 +30,7 @@ public sealed partial class ObjectExplorerViewModel
     /// <summary>Switches the temporary coloring of the drawing on or off.</summary>
     public IAsyncRelayCommand ToggleMapCommand { get; }
 
-    // Object rows are too fine for a map, so they keep the colors of the nearest group list.
+    // Opening a row keeps the root colors; only combined properties make a new map.
     private ImmutableArray<LensNode>? MapRows
     {
         get
@@ -42,7 +42,7 @@ public sealed partial class ObjectExplorerViewModel
             {
                 var children = _navigation.Path[depth].Children;
 
-                if (!children.IsDefaultOrEmpty && children[0].Kind != LensNodeKind.Object)
+                if (!children.IsDefaultOrEmpty && children[0].Kind == LensNodeKind.PropertyGroup)
                     return children;
             }
 

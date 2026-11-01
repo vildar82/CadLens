@@ -189,8 +189,8 @@ DWG.
 
 Press Map to temporarily color the drawing by the current list: every layer, type, or property group becomes
 a color, and its row border shows that color. The 12 rows with the most objects get their own color; the rest
-are gray. Opening a group or combining properties repaints the drawing, and object rows keep the colors of the
-nearest group list. Objects outside the list keep their own colors.
+are gray. Opening a row keeps these colors; combining properties repaints the drawing by the property groups.
+Objects outside the list keep their own colors.
 
 Whole insertions take the color of their row, including attributes, so block contents shown as separate rows
 do not get their own color. Map is unavailable inside block contents. `MTEXT` and dimension text stay in their

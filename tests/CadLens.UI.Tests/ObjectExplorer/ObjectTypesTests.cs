@@ -32,6 +32,21 @@ public sealed class ObjectTypesTests
         Assert.All(model.Items, node => Assert.NotEqual(line.DisplayColor, node.DisplayColor));
     }
 
+    /// <summary>Opening a layer keeps the layer colors on the drawing.</summary>
+    [Fact]
+    public async Task MapKeepsLayerColorsInsideLayer()
+    {
+        var actions = new Actions();
+        using var lens = new ObjectExplorerLens(actions, DrawingGrouping.Layers);
+        var model = lens.ViewModel;
+        await lens.ActivateAsync(CancellationToken.None);
+        await model.ToggleMapCommand.ExecuteAsync(null);
+
+        await model.EnterCommand.ExecuteAsync(model.Items[0]);
+
+        Assert.Single(actions.Paints);
+    }
+
     /// <summary>Combining a property turns its groups into the map legend.</summary>
     [Fact]
     public async Task MapFollowsPropertyGroups()

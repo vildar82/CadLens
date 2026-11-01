@@ -174,8 +174,8 @@ Load the rebuilt plugin in a fresh host session and record the host/version and 
     saved to the DWG. Record DBMOD and compare original vertices before/after these operations.
 15. Turn Map on in Layers and Objects. Check that row borders match the drawing, that repeated insertions on
     different layers take different colors, and that attributes follow their insertion; `MTEXT` and dimension
-    text keep their own colors. Open a group, combine properties, filter, and Refresh: the drawing must follow
-    the list, and object rows must keep the parent colors. Map must work with Isolate in several viewports.
+    text keep their own colors. Open a layer or a type: the colors must not change. Combine properties, filter,
+    and Refresh: the drawing must follow the list. Map must work with Isolate in several viewports.
     Plot to PDF, including with `BACKGROUNDPLOT` on, and open `PREVIEW`: output must keep the drawing's colors
     and the screen must stay painted. Check paper-space viewports and xrefs. Reset, collapsing, closing, and
     switching drawings or spaces must leave no paint behind, and DBMOD must not change.
