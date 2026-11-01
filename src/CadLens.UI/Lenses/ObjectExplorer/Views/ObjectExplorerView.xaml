@@ -69,7 +69,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type ui:FilterOption}">
-                                <ToggleButton
+                                <ui:CommandToggleButton
                                     Margin="0,0,5,0"
                                     Padding="6,4"
                                     AutomationProperties.Name="{ui:Localize Binding={Binding Descriptor.Label}}"
@@ -94,7 +94,7 @@
                                         </TextBlock>
                                         <TextBlock Text="{ui:Localize Binding={Binding Descriptor.Label}}" />
                                     </StackPanel>
-                                </ToggleButton>
+                                </ui:CommandToggleButton>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -339,7 +339,7 @@
                             </ScrollViewer>
                         </Border>
                     </Popup>
-                    <ToggleButton
+                    <ui:CommandToggleButton
                         x:Name="PropertyFilterAction"
                         Command="{Binding RefreshSavedPropertyFiltersCommand}"
                         Grid.Column="4"
@@ -360,7 +360,7 @@
                                 Text="{Binding PropertyFilterCount}"
                                 TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                    </ToggleButton>
+                    </ui:CommandToggleButton>
                     <Popup
                         x:Name="PropertyFilterPopup"
                         Grid.Column="4"
@@ -639,7 +639,7 @@
                         </DockPanel>
                     </Border>
                     <DockPanel Grid.Row="1">
-                        <ToggleButton
+                        <ui:CommandToggleButton
                             MinWidth="78"
                             AutomationProperties.Name="{Binding SortByCountLabel}"
                             Command="{Binding SortByCountCommand}"
@@ -651,8 +651,8 @@
                                 <TextBlock Text="{Binding SortByCountLabel}" />
                                 <TextBlock Margin="4,0,0,0" Text="{Binding CountSortArrow}" />
                             </StackPanel>
-                        </ToggleButton>
-                        <ToggleButton
+                        </ui:CommandToggleButton>
+                        <ui:CommandToggleButton
                             AutomationProperties.Name="{Binding SortByNameLabel}"
                             Command="{Binding SortByNameCommand}"
                             DockPanel.Dock="Left"
@@ -663,7 +663,7 @@
                                 <TextBlock Text="{ui:Localize 'Name'}" />
                                 <TextBlock Margin="4,0,0,0" Text="{Binding NameSortArrow}" />
                             </StackPanel>
-                        </ToggleButton>
+                        </ui:CommandToggleButton>
                     </DockPanel>
                 </Grid>
                 <TextBlock
@@ -694,6 +694,7 @@
                     </ListBox.Style>
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
+                            <Setter Property="AutomationProperties.Name" Value="{ui:DrawingValueFormatter Binding={Binding}}" />
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                             <Setter Property="Focusable" Value="False" />
                             <Setter Property="Padding" Value="0" />
@@ -869,6 +870,7 @@
                         <RowDefinition Height="26" />
                     </Grid.RowDefinitions>
                     <Button
+                        AutomationProperties.AutomationId="FocusAction"
                         AutomationProperties.Name="{ui:Localize 'Focus camera'}"
                         Command="{Binding FocusCommand}"
                         Style="{StaticResource ModeButton}">
@@ -888,7 +890,7 @@
                                 Text="{ui:Localize 'Camera'}" />
                         </StackPanel>
                     </Button>
-                    <ToggleButton
+                    <ui:CommandToggleButton
                         Grid.Row="2"
                         Grid.Column="0"
                         MinHeight="26"
@@ -896,17 +898,18 @@
                         Command="{Binding ToggleAutoFocusCommand}"
                         IsChecked="{Binding IsAutoFocus, Mode=OneWay}"
                         Style="{StaticResource ModeAuto}">
-                        <ToggleButton.ToolTip>
+                        <ui:CommandToggleButton.ToolTip>
                             <ui:Localize>
                                 <ui:Localize.Text>
                                     Automatically fit the camera when browsing layers, types, and objects.
                                 </ui:Localize.Text>
                             </ui:Localize>
-                        </ToggleButton.ToolTip>
-                    </ToggleButton>
+                        </ui:CommandToggleButton.ToolTip>
+                    </ui:CommandToggleButton>
                     <Button
                         Grid.Row="0"
                         Grid.Column="2"
+                        AutomationProperties.AutomationId="SelectAction"
                         AutomationProperties.Name="{ui:Localize 'Select CAD objects'}"
                         Command="{Binding SelectCommand}"
                         Style="{StaticResource ModeButton}">
@@ -926,7 +929,7 @@
                                 Text="{ui:Localize 'CAD selection'}" />
                         </StackPanel>
                     </Button>
-                    <ToggleButton
+                    <ui:CommandToggleButton
                         Grid.Row="2"
                         Grid.Column="2"
                         MinHeight="26"
@@ -934,14 +937,14 @@
                         Command="{Binding ToggleAutoSelectCommand}"
                         IsChecked="{Binding IsAutoSelect, Mode=OneWay}"
                         Style="{StaticResource ModeAuto}">
-                        <ToggleButton.ToolTip>
+                        <ui:CommandToggleButton.ToolTip>
                             <ui:Localize>
                                 <ui:Localize.Text>
                                     Automatically select CAD objects while browsing. Works with Auto Focus off.
                                 </ui:Localize.Text>
                             </ui:Localize>
-                        </ToggleButton.ToolTip>
-                    </ToggleButton>
+                        </ui:CommandToggleButton.ToolTip>
+                    </ui:CommandToggleButton>
                     <Button
                         Grid.Row="0"
                         Grid.Column="4"
@@ -964,7 +967,7 @@
                                 Text="{ui:Localize 'Temporary'}" />
                         </StackPanel>
                     </Button>
-                    <ToggleButton
+                    <ui:CommandToggleButton
                         x:Name="AutoIsolation"
                         Grid.Row="2"
                         Grid.Column="4"
@@ -973,15 +976,15 @@
                         Command="{Binding ToggleAutoIsolationCommand}"
                         IsChecked="{Binding IsAutoIsolation, Mode=OneWay}"
                         Style="{StaticResource ModeAuto}">
-                        <ToggleButton.ToolTip>
+                        <ui:CommandToggleButton.ToolTip>
                             <ui:Localize>
                                 <ui:Localize.Text>
                                     Automatically hide other active-space objects while browsing. Turning this off
                                     restores their display.
                                 </ui:Localize.Text>
                             </ui:Localize>
-                        </ToggleButton.ToolTip>
-                    </ToggleButton>
+                        </ui:CommandToggleButton.ToolTip>
+                    </ui:CommandToggleButton>
                 </Grid>
                 <DockPanel Margin="0,7,0,0">
                     <Button

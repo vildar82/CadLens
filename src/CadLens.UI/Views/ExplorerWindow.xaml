@@ -11,6 +11,7 @@
     MinWidth="300"
     MinHeight="52"
     d:DataContext="{d:DesignInstance Type=local:ExplorerViewModel}"
+    AutomationProperties.AutomationId="CadLensPanel"
     Background="{DynamicResource QuietBackground}"
     FontFamily="Segoe UI"
     Foreground="{DynamicResource QuietText}"
@@ -265,8 +266,9 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type local:LensOption}">
-                                    <ToggleButton
+                                    <local:CommandToggleButton
                                         Padding="5,6"
+                                        AutomationProperties.AutomationId="{Binding Descriptor.Id}"
                                         AutomationProperties.HelpText="{Binding DataContext.Status,
                                             RelativeSource={RelativeSource AncestorType=Window}}"
                                         AutomationProperties.Name="{local:Localize Binding={Binding Descriptor.Label}}"
@@ -277,7 +279,7 @@
                                         IsChecked="{Binding IsActive, Mode=OneWay}"
                                         Style="{StaticResource QuietToggle}"
                                         WindowChrome.IsHitTestVisibleInChrome="True">
-                                        <ToggleButton.ToolTip>
+                                        <local:CommandToggleButton.ToolTip>
                                             <ToolTip>
                                                 <StackPanel>
                                                     <TextBlock
@@ -293,8 +295,8 @@
                                                             RelativeSource={RelativeSource AncestorType=ToolTip}}" />
                                                 </StackPanel>
                                             </ToolTip>
-                                        </ToggleButton.ToolTip>
-                                    </ToggleButton>
+                                        </local:CommandToggleButton.ToolTip>
+                                    </local:CommandToggleButton>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

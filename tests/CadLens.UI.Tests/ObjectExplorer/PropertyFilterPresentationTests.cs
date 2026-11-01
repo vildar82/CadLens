@@ -40,7 +40,7 @@ public sealed class PropertyFilterPresentationTests
             window.Height = 450;
             Pump();
             var view = Assert.IsType<ObjectExplorerView>(shell.ActiveView);
-            var toggle = Assert.IsType<ToggleButton>(view.FindName("PropertyFilterAction"));
+            var toggle = Assert.IsType<CommandToggleButton>(view.FindName("PropertyFilterAction"));
             var popup = Assert.IsType<Popup>(view.FindName("PropertyFilterPopup"));
             toggle.IsChecked = true;
             Pump();
