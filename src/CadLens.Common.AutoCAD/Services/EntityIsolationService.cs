@@ -1,5 +1,4 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.DatabaseServices;
+﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Runtime;
@@ -51,11 +50,9 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
             cancellationToken.ThrowIfCancellationRequested();
             Register();
             cancellationToken.ThrowIfCancellationRequested();
-            RegenerateAllViewports(
-                Application.DocumentManager.MdiActiveDocument ??
-                throw new InvalidOperationException("The active drawing is no longer available."),
-                progress,
-                cancellationToken);
+            var document = Application.DocumentManager.MdiActiveDocument ??
+                           throw new InvalidOperationException("The active drawing is no longer available.");
+            document.RegenerateAllViewports(progress, cancellationToken);
         }
         catch
         {
@@ -131,7 +128,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
 
             if (resolved.Count == 0)
             {
-                RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument!, progress, cancellationToken);
+                Application.DocumentManager.MdiActiveDocument!.RegenerateAllViewports(progress, cancellationToken);
                 return 0;
             }
 
@@ -146,7 +143,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
             Register();
             cancellationToken.ThrowIfCancellationRequested();
             ShowTransients(progress, cancellationToken);
-            RegenerateAllViewports(Application.DocumentManager.MdiActiveDocument!, progress, cancellationToken);
+            Application.DocumentManager.MdiActiveDocument!.RegenerateAllViewports(progress, cancellationToken);
             return resolved.Count;
         }
         catch
@@ -214,7 +211,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
             try
             {
                 ShowTransients();
-                RegenerateAllViewports(document);
+                document.RegenerateAllViewports();
             }
             catch
             {
@@ -228,7 +225,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         try
         {
             EraseTransients();
-            RegenerateAllViewports(document);
+            document.RegenerateAllViewports();
             return Restore;
         }
         catch
@@ -306,7 +303,7 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         var document = Application.DocumentManager.MdiActiveDocument;
 
         if (redraw && document is not null && document.Database == affectedDatabase)
-            RegenerateAllViewports(document, progress: progress);
+            document.RegenerateAllViewports(progress: progress);
 
         if (failure is not null)
             throw new InvalidOperationException("Temporary isolation cleanup failed.", failure);
@@ -387,20 +384,5 @@ public sealed class EntityIsolationService : DrawableOverrule, IEntityIsolationS
         {
             // Cleanup attempts every resource; native redraw failures must not preserve a hiding rule.
         }
-    }
-
-    private static void RegenerateAllViewports(
-        Document document,
-        IProgress<OperationProgress>? progress = null,
-        CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        progress?.Report(new OperationProgress(OperationStage.Regenerating));
-        const int allViewports = 1;
-        dynamic drawing = document.GetAcadDocument();
-        cancellationToken.ThrowIfCancellationRequested();
-        drawing.Regen(allViewports);
-        cancellationToken.ThrowIfCancellationRequested();
-        progress?.Report(new OperationProgress(OperationStage.Regenerating, 1, 1));
     }
 }

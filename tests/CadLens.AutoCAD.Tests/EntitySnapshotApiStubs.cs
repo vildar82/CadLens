@@ -21,8 +21,12 @@ namespace Autodesk.AutoCAD.Runtime
 
 namespace Autodesk.AutoCAD.Colors
 {
-    internal readonly struct EntityColor
+    internal readonly struct EntityColor(byte red, byte green, byte blue)
     {
+        internal byte Red { get; } = red;
+        internal byte Green { get; } = green;
+        internal byte Blue { get; } = blue;
+
         internal static int LookUpRgb(byte colorIndex) => colorIndex == 1
             ? unchecked((int) 0xC3FF0000)
             : throw new NotSupportedException("Only the tested palette entry is available in this API double.");

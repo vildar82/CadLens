@@ -4,18 +4,13 @@ Candidates for future CAD Lens work. Nothing here is planned or committed; these
 ideas and what each one needs from the current code.
 
 The name comes from the lenses in Sid Meier's Civilization, where a lens repaints the map to answer
-one question. Today's lenses browse a list and hide objects, so the drawing itself is never painted.
+one question.
 
-## Map mode
+## Map mode next steps
 
-Paint the drawing instead of adding another list. Any Group by choice gives each group a temporary
-color, or a gradient for numeric properties, and group rows become the legend with visibility toggles.
-Every existing property then works as a map view: length, text height, `Attribute: MARK`, and so on.
-
-`EntityIsolationService` already holds the mechanism. A `DrawableOverrule` can set `traits.Color` in
-`SetAttributes` without touching the DWG. This needs a map from object to color and the same cleanup
-and regeneration rules as isolation. Check in the host: plotting, nested block contents, and regeneration
-cost on large drawings.
+The first version colors the current rows of the Layers and Objects lenses through `ObjectPaintService`.
+Still open: `MTEXT` and dimension text, which keep their own colors because they ignore `traits.TrueColor`
+and need fragment drawing; a gradient for numeric properties; visibility toggles on legend rows.
 
 ## Lens candidates
 
@@ -66,7 +61,6 @@ bounds would serve Fog of War, Health, and Elevation together.
 
 1. Blocks: the cheapest lens, and the one that forces the preparation below.
 2. Health: the most useful in daily work.
-3. Map mode: the feature that delivers the Civilization idea.
 
 ## Preparation for a third lens
 

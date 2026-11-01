@@ -179,6 +179,12 @@ public sealed class BlockAttributeDetailsTests
 
     private sealed class Actions(DrawingInventory inventory) : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         internal DrawingInventory Inventory { get; set; } = inventory;
         internal int ReadCount { get; private set; }
         internal ImmutableArray<IPlacedObjectId> Targets { get; private set; } = [];

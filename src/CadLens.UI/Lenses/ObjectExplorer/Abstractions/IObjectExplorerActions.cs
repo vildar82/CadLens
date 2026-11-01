@@ -82,6 +82,15 @@ public interface IObjectExplorerActions
         CancellationToken cancellationToken,
         IProgress<OperationProgress>? progress = null);
 
+    /// <summary>Temporarily redraws objects in group colors; empty groups clear the effect.</summary>
+    /// <param name="groups">Objects and their temporary colors.</param>
+    /// <param name="cancellationToken">Request cancellation.</param>
+    /// <param name="progress">Optional operation step and item counts.</param>
+    Task<HostResult<bool>> PaintAsync(
+        ImmutableArray<PaintGroup> groups,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null);
+
     /// <summary>Clears CAD selection and temporary rendering.</summary>
     /// <param name="cancellationToken">Panel lifetime cancellation.</param>
     /// <param name="progress">Optional operation step and item counts.</param>

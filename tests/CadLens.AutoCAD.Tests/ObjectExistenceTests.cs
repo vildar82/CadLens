@@ -201,7 +201,7 @@ public sealed class ObjectExistenceTests
     }
 
     private static ObjectExplorerActions CreateActions(IHostTaskService tasks) =>
-        new(null!, null!, null!, null!, tasks);
+        new(null!, null!, null!, null!, null!, tasks);
 
     private static Document CreateDocument()
     {

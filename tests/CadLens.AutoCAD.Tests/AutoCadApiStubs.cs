@@ -120,7 +120,7 @@ namespace Autodesk.AutoCAD.DatabaseServices
 
     // ReSharper disable once InconsistentNaming -- Matches the native AutoCAD API type.
     /// <summary>Test double for the native DBObject type.</summary>
-    public class DBObject : Runtime.RXObject, IDisposable
+    public class DBObject : GraphicsInterface.Drawable, IDisposable
     {
         internal bool IsErased { get; init; }
         internal ObjectId ObjectId { get; set; }

@@ -14,6 +14,7 @@ internal sealed class ObjectExplorerActions(
     IDrawingLensProvider lens,
     IEntityIsolationActions isolation,
     IEntityIsolationService graphics,
+    ObjectPaintService paint,
     IObjectVisualizationService visualization,
     IHostTaskService hostTasks) : IObjectExplorerActions
 {
@@ -178,7 +179,14 @@ internal sealed class ObjectExplorerActions(
         }
         finally
         {
-            graphics.Clear(!hostTerminating);
+            try
+            {
+                paint.Clear(!hostTerminating);
+            }
+            finally
+            {
+                graphics.Clear(!hostTerminating);
+            }
         }
     }
 
@@ -280,6 +288,12 @@ internal sealed class ObjectExplorerActions(
                 : "Other objects hidden temporarily. Originally hidden objects remain hidden.",
             reason => reason);
     }
+
+    public Task<HostResult<bool>> PaintAsync(
+        ImmutableArray<PaintGroup> groups,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null) =>
+        visualization.PaintAsync(groups, cancellationToken, progress);
 
     public async Task<string> FocusAsync(
         ImmutableArray<IPlacedObjectId> objects,

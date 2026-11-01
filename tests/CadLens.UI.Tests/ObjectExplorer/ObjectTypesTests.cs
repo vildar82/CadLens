@@ -15,6 +15,43 @@ namespace CadLens.UI.Tests;
 [Collection("WPF")]
 public sealed class ObjectTypesTests
 {
+    /// <summary>Object rows keep the type paint and do not join the legend.</summary>
+    [Fact]
+    public async Task MapKeepsTypeColorsOnObjectRows()
+    {
+        var actions = new Actions();
+        using var lens = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
+        var model = lens.ViewModel;
+        await lens.ActivateAsync(CancellationToken.None);
+        await model.ToggleMapCommand.ExecuteAsync(null);
+        var line = model.Items.Single(node => node.Label == "Line");
+
+        await model.EnterCommand.ExecuteAsync(line);
+
+        Assert.Single(actions.Paints);
+        Assert.All(model.Items, node => Assert.NotEqual(line.DisplayColor, node.DisplayColor));
+    }
+
+    /// <summary>Combining a property turns its groups into the map legend.</summary>
+    [Fact]
+    public async Task MapFollowsPropertyGroups()
+    {
+        var actions = new Actions();
+        using var lens = new ObjectExplorerLens(actions, DrawingGrouping.ObjectTypes);
+        var model = lens.ViewModel;
+        await lens.ActivateAsync(CancellationToken.None);
+        await model.ToggleMapCommand.ExecuteAsync(null);
+        await model.EnterCommand.ExecuteAsync(model.Items.Single(node => node.Label == "Line"));
+
+        await model.ToggleGroupingCommand.ExecuteAsync(model.GroupingOptions[0]);
+
+        Assert.Equal(2, actions.Paints.Count);
+        Assert.Equal(model.Items.Length, actions.Paints[1].Length);
+        Assert.All(
+            model.Items,
+            node => Assert.Contains(actions.Paints[1], group => group.Color == node.DisplayColor));
+    }
+
     /// <summary>Types span layers, objects retain their layer, and manual commands use the current targets.</summary>
     [Fact]
     public async Task BrowseTypesAcrossLayersAndUseManualActions()
@@ -399,7 +436,18 @@ public sealed class ObjectTypesTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
+        {
+            Paints.Add(groups);
+            return Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+        }
+
         private readonly DrawingLensProvider _provider;
+
+        internal List<ImmutableArray<PaintGroup>> Paints { get; } = [];
 
         internal Actions(Source? source = null) => _provider = new DrawingLensProvider(source ?? new Source());
 

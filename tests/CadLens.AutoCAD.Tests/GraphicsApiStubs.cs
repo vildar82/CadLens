@@ -54,10 +54,16 @@ namespace Autodesk.AutoCAD.GraphicsInterface
     }
 
     /// <summary>Test double for native drawable graphics.</summary>
-    public class Drawable;
+    public class Drawable : Runtime.RXObject;
 
     /// <summary>Test double for native drawable traits.</summary>
-    public sealed class DrawableTraits;
+    public sealed class DrawableTraits
+    {
+        internal Colors.EntityColor? TrueColor { get; set; }
+    }
+
+    /// <summary>Test double for the native world drawing context.</summary>
+    public sealed class WorldDraw;
 
     /// <summary>Test double for the native invisible graphics flag.</summary>
     public enum DrawableAttributes
@@ -96,6 +102,36 @@ namespace Autodesk.AutoCAD.GraphicsInterface
 
         /// <summary>Returns the base graphics attributes.</summary>
         public virtual int SetAttributes(Drawable drawable, DrawableTraits traits) => 0;
+
+        /// <summary>Runs the native drawing, which may draw nested objects.</summary>
+        public virtual bool WorldDraw(Drawable drawable, WorldDraw wd)
+        {
+            NestedDrawing?.Invoke();
+            return true;
+        }
+
+        internal Action? NestedDrawing { get; set; }
+    }
+}
+
+namespace Autodesk.AutoCAD.PlottingServices
+{
+    internal sealed class BeginPlotEventArgs;
+
+    internal sealed class EndPlotEventArgs;
+
+    internal sealed class PlotReactorManager
+    {
+        internal PlotReactorManager() => Latest = this;
+
+        internal static PlotReactorManager? Latest { get; private set; }
+        internal bool IsWatched => BeginPlot is not null || EndPlot is not null;
+
+        internal event Action<object, BeginPlotEventArgs>? BeginPlot;
+        internal event Action<object, EndPlotEventArgs>? EndPlot;
+
+        internal void RaiseBeginPlot() => BeginPlot?.Invoke(this, new BeginPlotEventArgs());
+        internal void RaiseEndPlot() => EndPlot?.Invoke(this, new EndPlotEventArgs());
     }
 }
 

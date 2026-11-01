@@ -471,7 +471,7 @@ public sealed class EntityOccurrenceTests
     {
         using var fixture = new Fixture();
         var isolation = new CapturedIsolation();
-        var service = new AutoCadObjectVisualizationService(new ImmediateTasks(), isolation);
+        var service = new AutoCadObjectVisualizationService(new ImmediateTasks(), isolation, new ObjectPaintService());
         ImmutableArray<IPlacedObjectId> targets = [fixture.Target, fixture.Target];
 
         Assert.IsType<HostResult<bool>.Success>(await service.SelectAsync(targets, CancellationToken.None));
@@ -649,7 +649,8 @@ public sealed class EntityOccurrenceTests
         var tasks = new ImmediateTasks();
         var service = new AutoCadObjectVisualizationService(
             tasks,
-            new EntityIsolationActions(tasks, fixture.Graphics));
+            new EntityIsolationActions(tasks, fixture.Graphics),
+            new ObjectPaintService());
         var updates = new List<OperationProgress>();
         var progress = new CapturedProgress(updates.Add);
 
@@ -684,7 +685,10 @@ public sealed class EntityOccurrenceTests
         using var fixture = new Fixture();
         using var cancellation = new CancellationTokenSource();
         Action cancel = cancellation.Cancel;
-        var service = new AutoCadObjectVisualizationService(new ImmediateTasks(), new CapturedIsolation());
+        var service = new AutoCadObjectVisualizationService(
+            new ImmediateTasks(),
+            new CapturedIsolation(),
+            new ObjectPaintService());
         var progress = new CapturedProgress(update =>
         {
             if (update.Completed > 0 && update.Stage == (focus ? OperationStage.Reading : OperationStage.Selecting))
@@ -742,7 +746,10 @@ public sealed class EntityOccurrenceTests
 
     private static async Task FocusAsync(params EntityId[] targets)
     {
-        var service = new AutoCadObjectVisualizationService(new ImmediateTasks(), new CapturedIsolation());
+        var service = new AutoCadObjectVisualizationService(
+            new ImmediateTasks(),
+            new CapturedIsolation(),
+            new ObjectPaintService());
         var result = await service.FocusAsync([.. targets], CancellationToken.None);
 
         Assert.IsType<HostResult<bool>.Success>(result);

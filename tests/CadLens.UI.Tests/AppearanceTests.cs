@@ -336,6 +336,17 @@ public sealed class AppearanceTests
 
     internal sealed class Actions(int groupCount = 12) : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null)
+        {
+            Paints.Add(groups);
+            return Task.FromResult(PaintResult);
+        }
+
+        internal List<ImmutableArray<PaintGroup>> Paints { get; } = [];
+        internal HostResult<bool> PaintResult { get; set; } = new HostResult<bool>.Success(true);
         internal int ReadCount { get; private set; }
         internal int DrawingActionCount { get; private set; }
 

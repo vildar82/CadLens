@@ -437,6 +437,12 @@ public sealed class BlockContentsNavigationTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         internal static readonly IPlacedObjectId Block = new TestEntityId(2);
         internal static readonly IPlacedObjectId Child = new OccurrenceId("2/A/B");
         internal static readonly IPlacedObjectId HiddenChild = new OccurrenceId("2/A/C");
