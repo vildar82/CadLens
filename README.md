@@ -193,8 +193,8 @@ are gray. Opening a row keeps these colors; combining properties repaints the dr
 Objects outside the list keep their own colors.
 
 Whole insertions take the color of their row, including attributes, so block contents shown as separate rows
-do not get their own color. Map is unavailable inside block contents. `MTEXT` and dimension text stay in their
-own colors. Objects added after the last Refresh are not colored.
+do not get their own color. Map is unavailable inside block contents. `MTEXT`, dimension text, and hatch fills
+can stay in their own colors, including inside blocks. Objects added after the last Refresh are not colored.
 
 Map writes nothing to the DWG, and plots keep the drawing's colors. Pressing Map again or Reset turns it off.
 Collapsing the panel, switching drawings or spaces, and refreshing keep Map on and repaint when the lens is

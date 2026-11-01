@@ -10,7 +10,9 @@ one question.
 
 The first version colors the current rows of the Layers and Objects lenses through `ObjectPaintService`.
 Still open: `MTEXT` and dimension text, which keep their own colors because they ignore `traits.TrueColor`
-and need fragment drawing; a gradient for numeric properties; visibility toggles on legend rows.
+and need fragment drawing; hatch fills, which also stayed unpainted on a real drawing, with the cause unconfirmed
+(background or gradient fills are suspected, and an in-memory copy would cost every regeneration); a gradient for
+numeric properties; visibility toggles on legend rows.
 
 ## Lens candidates
 
