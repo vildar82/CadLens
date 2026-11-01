@@ -115,9 +115,9 @@
     <value>Сброс недоступен: {0}</value>
   </data>
   <data
-    name="Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera."
+    name="Clear CAD selection, temporary isolation, and Map colors, turn off all Auto modes, and keep the camera."
     xml:space="preserve">
-    <value>Очистить выбор в CAD и временную изоляцию, отключить все авторежимы и сохранить камеру.</value>
+    <value>Снять выделение в CAD, временную изоляцию и цвета карты, выключить все режимы Auto и сохранить камеру.</value>
   </data>
   <data name="Clear search" xml:space="preserve">
     <value>Очистить поиск</value>
@@ -914,4 +914,28 @@
   <data name="Cancelling… Press Esc in AutoCAD to finish object selection." xml:space="preserve">
   <value>Отмена… Нажмите Esc в AutoCAD, чтобы завершить выбор объектов.</value>
 </data>
+  <data name="Map" xml:space="preserve">
+    <value>Карта</value>
+  </data>
+  <data name="Map mode" xml:space="preserve">
+    <value>Режим карты</value>
+  </data>
+  <data name="Temporarily color the drawing by the list rows. The 12 largest rows get their own color, the rest are gray. The drawing and plots keep their colors." xml:space="preserve">
+    <value>Временно раскрасить чертёж по строкам списка. 12 самых крупных строк получают свой цвет, остальные — серый. Чертёж и печать сохраняют свои цвета.</value>
+  </data>
+  <data name="Map on. List rows show the drawing colors." xml:space="preserve">
+    <value>Карта включена. Строки списка показывают цвета на чертеже.</value>
+  </data>
+  <data name="Map off. Original colors restored." xml:space="preserve">
+    <value>Карта выключена. Исходные цвета восстановлены.</value>
+  </data>
+  <data name="Map unavailable: {0}" xml:space="preserve">
+    <value>Карта недоступна: {0}</value>
+  </data>
+  <data name="Map did not complete." xml:space="preserve">
+    <value>Карта не применена.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before using Map." xml:space="preserve">
+    <value>Контекст чертежа изменился. Обновите список, чтобы использовать карту.</value>
+  </data>
 </root>

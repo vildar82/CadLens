@@ -261,6 +261,12 @@ public sealed class ObjectAvailabilityTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         internal Dictionary<IPlacedObjectId, HostResult<bool>> Results { get; } = [];
         internal List<IPlacedObjectId> Checked { get; } = [];
         internal TaskCompletionSource<HostResult<bool>>? PendingExistence { get; set; }

@@ -396,6 +396,12 @@ public sealed class PropertyFilterTests
 
     internal sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         internal int ReadCount { get; private set; }
         internal int SelectionRequests { get; private set; }
         internal int FocusCalls { get; private set; }

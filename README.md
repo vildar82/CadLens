@@ -185,7 +185,24 @@ Turning Auto Isolate off, returning to the root list, pressing Reset, collapsing
 drawings or spaces restores the ordinary display. Isolation does not write entity or layer visibility properties to the
 DWG.
 
-Reset also clears CAD selection and turns off all Auto modes while keeping the camera, navigation,
+### Map
+
+Press Map to temporarily color the drawing by the current list: every layer, type, or property group becomes
+a color, and its row border shows that color. The 12 rows with the most objects get their own color; the rest
+are gray. Opening a row keeps these colors; combining properties repaints the drawing by the property groups.
+Objects outside the list keep their own colors.
+
+Whole insertions take the color of their row, including attributes, so block contents shown as separate rows
+do not get their own color. Map is unavailable inside block contents. `MTEXT`, dimension text, and hatch fills
+can stay in their own colors, including inside blocks. Objects added after the last Refresh are not colored.
+
+Map writes nothing to the DWG, and plots keep the drawing's colors. Pressing Map again or Reset turns it off.
+Collapsing the panel, switching drawings or spaces, and refreshing keep Map on and repaint when the lens is
+available again; closing the panel turns it off. Map is not saved between sessions.
+
+### Reset
+
+Reset also clears Map and CAD selection and turns off all Auto modes while keeping the camera, navigation,
 and inclusion filters. It saves the Auto modes as off. Effects stay clear during later navigation until
 a mode is enabled again. Reset is disabled while work is pending. Turning Auto Select off clears only
 CAD selection. With Auto Select off, a manual selection persists until replaced or cleared, including

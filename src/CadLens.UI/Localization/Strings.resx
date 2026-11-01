@@ -115,9 +115,9 @@
     <value>Cleanup unavailable: {0}</value>
   </data>
   <data
-    name="Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera."
+    name="Clear CAD selection, temporary isolation, and Map colors, turn off all Auto modes, and keep the camera."
     xml:space="preserve">
-    <value>Clear CAD selection and temporary isolation, turn off all Auto modes, and keep the camera.</value>
+    <value>Clear CAD selection, temporary isolation, and Map colors, turn off all Auto modes, and keep the camera.</value>
   </data>
   <data name="Clear search" xml:space="preserve">
     <value>Clear search</value>
@@ -914,4 +914,28 @@
   <data name="Cancelling… Press Esc in AutoCAD to finish object selection." xml:space="preserve">
   <value>Cancelling… Press Esc in AutoCAD to finish object selection.</value>
 </data>
+  <data name="Map" xml:space="preserve">
+    <value>Map</value>
+  </data>
+  <data name="Map mode" xml:space="preserve">
+    <value>Map mode</value>
+  </data>
+  <data name="Temporarily color the drawing by the list rows. The 12 largest rows get their own color, the rest are gray. The drawing and plots keep their colors." xml:space="preserve">
+    <value>Temporarily color the drawing by the list rows. The 12 largest rows get their own color, the rest are gray. The drawing and plots keep their colors.</value>
+  </data>
+  <data name="Map on. List rows show the drawing colors." xml:space="preserve">
+    <value>Map on. List rows show the drawing colors.</value>
+  </data>
+  <data name="Map off. Original colors restored." xml:space="preserve">
+    <value>Map off. Original colors restored.</value>
+  </data>
+  <data name="Map unavailable: {0}" xml:space="preserve">
+    <value>Map unavailable: {0}</value>
+  </data>
+  <data name="Map did not complete." xml:space="preserve">
+    <value>Map did not complete.</value>
+  </data>
+  <data name="The drawing context changed. Refresh before using Map." xml:space="preserve">
+    <value>The drawing context changed. Refresh before using Map.</value>
+  </data>
 </root>

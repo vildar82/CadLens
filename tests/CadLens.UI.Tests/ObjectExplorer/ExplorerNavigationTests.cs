@@ -905,6 +905,12 @@ public sealed class ExplorerNavigationTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         public Task<HostResult<ImmutableArray<IPlacedObjectId>>> RequestObjectsAsync(
             CancellationToken cancellationToken,
             IProgress<OperationProgress>? progress = null) =>

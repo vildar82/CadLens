@@ -8,7 +8,8 @@ namespace CadLens.Common.AutoCAD;
 /// <summary>Visualizes placed objects in the active AutoCAD drawing.</summary>
 public sealed class AutoCadObjectVisualizationService(
     IHostTaskService hostTasks,
-    IEntityIsolationActions isolation) : IObjectVisualizationService
+    IEntityIsolationActions isolation,
+    ObjectPaintService paint) : IObjectVisualizationService
 {
     /// <inheritdoc />
     public async Task<HostResult<bool>> SelectAsync(
@@ -95,6 +96,44 @@ public sealed class AutoCadObjectVisualizationService(
 
         var result = await isolation.IsolateAsync(targets, cancellationToken, progress);
         return result.Bind(_ => new HostResult<bool>.Success(true));
+    }
+
+    /// <inheritdoc />
+    public async Task<HostResult<bool>> PaintAsync(
+        ImmutableArray<PaintGroup> groups,
+        CancellationToken cancellationToken,
+        IProgress<OperationProgress>? progress = null)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Report(new OperationProgress(OperationStage.Preparing));
+        var document = Application.DocumentManager.MdiActiveDocument;
+
+        if (document is null)
+            return new HostResult<bool>.Unavailable("No active drawing.");
+
+        if (!TryGetColors(groups, cancellationToken, out var colors))
+            return new HostResult<bool>.Unavailable("The targets do not belong to AutoCAD.");
+
+        var space = document.Database.CurrentSpaceId;
+        var result = await hostTasks.RunAsync<HostResult<bool>>(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (document != Application.DocumentManager.MdiActiveDocument ||
+                    space != document.Database.CurrentSpaceId)
+                    return new HostResult<bool>.Unavailable("The drawing context changed. Refresh before using Map.");
+
+                if (colors.Count == 0)
+                    paint.Clear(progress: progress);
+                else
+                    paint.Apply(document, colors, progress, cancellationToken);
+
+                return new HostResult<bool>.Success(true);
+            },
+            cancellationToken);
+
+        return result.Bind(value => value);
     }
 
     /// <inheritdoc />
@@ -218,6 +257,31 @@ public sealed class AutoCadObjectVisualizationService(
         cancellationToken.ThrowIfCancellationRequested();
         progress?.Report(new OperationProgress(OperationStage.Focusing, 1, 1));
         return new HostResult<bool>.Success(true);
+    }
+
+    private static bool TryGetColors(
+        ImmutableArray<PaintGroup> groups,
+        CancellationToken cancellationToken,
+        out Dictionary<ObjectId, int> colors)
+    {
+        colors = new Dictionary<ObjectId, int>();
+
+        foreach (var group in groups)
+        {
+            foreach (var target in group.Objects)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (target is not EntityId entity)
+                    return false;
+
+                // A nested occurrence takes the color of its painted insertion.
+                if (entity.Container is null)
+                    colors[entity.NativeId] = group.Color;
+            }
+        }
+
+        return true;
     }
 
     private static bool TryGetEntityIds(

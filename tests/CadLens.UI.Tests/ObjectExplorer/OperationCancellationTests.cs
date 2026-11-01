@@ -177,6 +177,12 @@ public sealed class OperationCancellationTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         internal OperationStage? PauseStage { get; set; }
         internal TaskCompletionSource<bool> Canceled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource<bool> Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);

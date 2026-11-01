@@ -207,6 +207,12 @@ public sealed class LoadingProgressTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         internal TaskCompletionSource<HostResult<LensPresentation>> Pending { get; set; } = new();
         internal IProgress<DrawingReadProgress>? Progress { get; private set; }
         internal int ReadCount { get; private set; }

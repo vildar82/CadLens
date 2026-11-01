@@ -357,7 +357,7 @@ public sealed class ObjectSelectionTests
     });
 
     private static ObjectExplorerActions CreateActions(IHostTaskService tasks, IEntityIsolationService graphics) =>
-        new(null!, null!, graphics, null!, tasks);
+        new(null!, null!, graphics, new ObjectPaintService(), null!, tasks);
 
     private static Document CreateDocument()
     {

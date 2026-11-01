@@ -135,6 +135,9 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         ToggleAutoFocusCommand = new AsyncRelayCommand(
             () => ExecuteActionAsync(ToggleAutoFocusAsync),
             CanRun);
+        ToggleMapCommand = new AsyncRelayCommand(
+            () => ExecuteActionAsync(ToggleMapAsync),
+            () => CanRun() && !IsBrowsingBlockContents);
         SortByNameCommand = new RelayCommand(() => ChangeSort(false));
         SortByCountCommand = new RelayCommand(() => ChangeSort(true));
         ClearSearchCommand = new RelayCommand(() => SearchText = "");
@@ -440,7 +443,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
     } = [];
 
     /// <summary>Children at the current exploration level.</summary>
-    public ImmutableArray<LensNode> Items => Current is null ? _visibleGroups : _navigation.Items;
+    public ImmutableArray<LensNode> Items => ColorLegend(Current is null ? _visibleGroups : _navigation.Items);
 
     /// <summary>Finds groups by name in the root list.</summary>
     public string SearchText
@@ -757,6 +760,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             return IsLensActive && hasDrawing ? RefreshContextAsync() : Task.CompletedTask;
 
         _actions.ClearImmediately(false);
+        ForgetMap();
         _needsCleanup = IsLensActive;
 
         return IsLensActive && hasDrawing ? RefreshContextAsync() : Task.CompletedTask;
@@ -952,7 +956,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         {
             await _operation;
             cleanup.Token.ThrowIfCancellationRequested();
-            var result = await _actions.ClearAsync(cleanup.Token, _progress);
+            var result = await ClearMapAsync(await _actions.ClearAsync(cleanup.Token, _progress), cleanup.Token);
             cleanup.Token.ThrowIfCancellationRequested();
             SetStatus(DescribeCleanup(result));
 
@@ -992,6 +996,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         IsAutoFocus = false;
         IsAutoSelect = false;
         IsAutoIsolation = false;
+        IsMapMode = false;
         SavePreferences();
 
         var result = await _actions.ClearAsync(cancellationToken, _progress);
@@ -1035,6 +1040,7 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
         ToggleAutoIsolationCommand.NotifyCanExecuteChanged();
         ToggleAutoSelectCommand.NotifyCanExecuteChanged();
         ToggleAutoFocusCommand.NotifyCanExecuteChanged();
+        ToggleMapCommand.NotifyCanExecuteChanged();
     }
 
     private async Task<UiMessage> ChangeScopeAsync(bool selectedOnly, CancellationToken cancellationToken)
@@ -1739,6 +1745,8 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             SetStatus("Working…");
             var message = await action(request.Token);
             request.Token.ThrowIfCancellationRequested();
+            message = await UpdateMapAsync(message, request.Token);
+            request.Token.ThrowIfCancellationRequested();
             SetStatus(message);
         }
         catch (OperationCanceledException) when (request.IsCancellationRequested)
@@ -1746,11 +1754,14 @@ public sealed partial class ObjectExplorerViewModel : ObservableObject, IDisposa
             if (window is {IsCancellationRequested: true} && !_disposed && ReferenceEquals(_pendingRequest, request))
             {
                 IsAutoIsolation = false;
+                IsMapMode = false;
                 SavePreferences();
                 _progress?.Report(new OperationProgress(OperationStage.Clearing));
                 try
                 {
-                    var result = await _actions.ClearIsolationAsync(CancellationToken.None, _progress);
+                    var result = await ClearMapAsync(
+                        await _actions.ClearIsolationAsync(CancellationToken.None, _progress),
+                        CancellationToken.None);
                     SetStatus(
                         result is HostResult<bool>.Success {Value: true}
                             ? new UiMessage("Operation canceled. Isolation cleared. Auto Isolate off.")

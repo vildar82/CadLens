@@ -501,6 +501,12 @@ public sealed class ObjectPropertiesTests
 
     private sealed class Actions(DrawingInventory? inventory = null) : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         private readonly DrawingLensProvider _provider = new(new Source(inventory ?? Inventory()));
         internal int ReadCount { get; private set; }
         internal int EffectCalls { get; private set; }

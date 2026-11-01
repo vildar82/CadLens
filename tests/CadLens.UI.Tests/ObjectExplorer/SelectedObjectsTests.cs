@@ -606,6 +606,12 @@ public sealed class SelectedObjectsTests
 
     private sealed class Actions : IObjectExplorerActions
     {
+        public Task<HostResult<bool>> PaintAsync(
+            ImmutableArray<PaintGroup> groups,
+            CancellationToken cancellationToken,
+            IProgress<OperationProgress>? progress = null) =>
+            Task.FromResult<HostResult<bool>>(new HostResult<bool>.Success(true));
+
         internal static readonly DrawingInventory Inventory = new(
             "Model",
             [new LayerSnapshot(new LayerId("visible"), "Visible", false, false, false, false),

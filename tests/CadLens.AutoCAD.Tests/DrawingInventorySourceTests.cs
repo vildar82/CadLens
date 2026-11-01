@@ -53,7 +53,7 @@ public sealed class DrawingInventorySourceTests
         var document = CreateDocument();
         var entity = AddEntity(document.Database);
         document.Editor.Selection = [entity];
-        var actions = new ObjectExplorerActions(null!, null!, null!, null!, null!);
+        var actions = new ObjectExplorerActions(null!, null!, null!, null!, null!, null!);
         var selected = Assert.IsType<HostResult<ImmutableArray<IPlacedObjectId>>.Success>(await actions.RequestObjectsAsync(CancellationToken.None));
         document.Editor.Selection = [];
 
